@@ -1,6 +1,6 @@
 // src/pages/Store.jsx
 import { useEffect, useMemo, useState } from "react";
-import { getProducts } from "../services/api";
+import { fetchProducts } from "../services/api";
 import ProductCard from "../components/ProductCard";
 import {
   Store as StoreIcon,
@@ -24,7 +24,7 @@ function Store() {
   async function load() {
   try {
     setStatus("loading");
-    const data = await getProducts();
+    const data = await fetchProducts();
     setProducts(data || []);
     setStatus("ready");
   } catch (err) {

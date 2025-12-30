@@ -18,34 +18,42 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
+
 function Checkout() {
+
+  const FIELD_LABELS_ES = {
+  name: "Nombre y apellido",
+  email: "Correo electrónico",
+  phone: "Teléfono",
+  notes: "Notas",
+};
+
   const { items, totalPrice, clearCart } = useCart();
   const navigate = useNavigate();
 
   const [customer, setCustomer] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    address: "",
-    city: "",
-    province: "",
-    postalCode: "",
-    notes: "",
-  });
+  name: "",
+  email: "",
+  phone: "",
+  notes: "",
+});
 
-  const [paymentMethod, setPaymentMethod] = useState("mercadopago");
+  const [paymentMethod, setPaymentMethod] = useState("mercadopago"); // mercadopago | efectivo
+  const [cashGiven, setCashGiven] = useState(""); // "con cuánto abonás"
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [successOrderId, setSuccessOrderId] = useState(null);
 
-  const requiredFields = useMemo(
-    () => ["name", "email", "address", "city", "province", "postalCode"],
-    []
-  );
+  const requiredFields = useMemo(() => ["name", "email"], []);
 
   const missing = useMemo(
     () => requiredFields.filter((f) => !customer[f]?.trim()),
     [customer, requiredFields]
+  );
+
+  const missingLabels = useMemo(
+    () => missing.map((k) => FIELD_LABELS_ES[k] || k),
+    [missing]
   );
 
   const isCartEmpty = items.length === 0;
@@ -68,6 +76,12 @@ function Checkout() {
     );
   }
 
+  function mapPaymentMethod(method) {
+    if (method === "mercadopago") return "mercadopago";
+    if (method === "efectivo") return "efectivo"; // o "cash" si tu backend lo espera así
+    return method;
+  } 
+
   function handleChange(e) {
     const { name, value } = e.target;
     setCustomer((prev) => ({ ...prev, [name]: value }));
@@ -87,32 +101,34 @@ function Checkout() {
       return;
     }
 
+    if (paymentMethod === "efectivo") {
+        const n = Number(String(cashGiven).replace(/[^\d]/g, ""));
+        if (!n || n <= 0) {
+          setError("Indicá con cuánto vas a abonar (solo números).");
+          return;
+        }
+        if (n < totalPrice) {
+          setError("El monto con el que abonás no puede ser menor al total.");
+          return;
+        }
+      }
+
     try {
       setLoading(true);
 
       const orderPayload = {
-        customer,
-        items: items.map((item) => ({
-          productId: item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-        })),
-        paymentMethod,
-        paymentResult: null,
-      };
+          customer,
+          items: items.map((item) => ({
+            productId: item.id,
+            quantity: item.quantity,
+          })),
+          paymentMethod: "mercadopago",
+        };
 
       const order = await createOrder(orderPayload);
 
       if (paymentMethod === "mercadopago") {
-        const pref = await createMpPreference({
-          orderId: order.id,
-          items: items.map((item) => ({
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-          })),
-        });
+        const pref = await createMpPreference({ orderId: order.id });
 
         console.log("[MP][front] initPoint recibido:", pref.initPoint);
 
@@ -203,34 +219,6 @@ function Checkout() {
               </span>
               <input name="phone" value={customer.phone} onChange={handleChange} />
             </label>
-
-            <label className="field field-span-2">
-              <span className="field-label">
-                <MapPin size={16} className="icon" />
-                Dirección *
-              </span>
-              <input name="address" value={customer.address} onChange={handleChange} required />
-            </label>
-
-            <label className="field">
-              <span className="field-label">Ciudad *</span>
-              <input name="city" value={customer.city} onChange={handleChange} required />
-            </label>
-
-            <label className="field">
-              <span className="field-label">Provincia *</span>
-              <input name="province" value={customer.province} onChange={handleChange} required />
-            </label>
-
-            <label className="field">
-              <span className="field-label">Código postal *</span>
-              <input
-                name="postalCode"
-                value={customer.postalCode}
-                onChange={handleChange}
-                required
-              />
-            </label>
           </div>
 
           {/* Medios de pago */}
@@ -238,11 +226,8 @@ function Checkout() {
             <h2 className="checkout-h2">Medios de pago</h2>
 
             <div className="payment-options">
-              <label
-                className={`payment-option ${
-                  paymentMethod === "mercadopago" ? "active" : ""
-                }`}
-              >
+              {/* Mercado Pago */}
+              <label className={`payment-option ${paymentMethod === "mercadopago" ? "active" : ""}`}>
                 <input
                   type="radio"
                   name="paymentMethod"
@@ -262,25 +247,39 @@ function Checkout() {
                 <span className="payment-tag">Recomendado</span>
               </label>
 
-              <label className="payment-option disabled">
-                <input type="radio" disabled />
-                <span className="payment-icon">🏦</span>
+              {/* Efectivo (retiro en local) */}
+              <label className={`payment-option ${paymentMethod === "efectivo" ? "active" : ""}`}>
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="efectivo"
+                  checked={paymentMethod === "efectivo"}
+                  onChange={() => setPaymentMethod("efectivo")}
+                />
+                <span className="payment-icon">💵</span>
                 <div className="payment-info">
-                  <span className="payment-title">Transferencia bancaria</span>
-                  <span className="payment-subtitle">Disponible próximamente.</span>
-                </div>
-              </label>
-
-              <label className="payment-option disabled">
-                <input type="radio" disabled />
-                <span className="payment-icon">💰</span>
-                <div className="payment-info">
-                  <span className="payment-title">Efectivo en el local</span>
-                  <span className="payment-subtitle">Disponible próximamente.</span>
+                  <span className="payment-title">Efectivo al retirar</span>
+                  <span className="payment-subtitle">
+                    Pagás en el local cuando venís a buscar tu pedido.
+                  </span>
                 </div>
               </label>
             </div>
           </div>
+          {paymentMethod === "efectivo" && (
+            <label className="field">
+              <span className="field-label">¿Con cuánto abonás?</span>
+              <input
+                inputMode="numeric"
+                placeholder="Ej: 20000"
+                value={cashGiven}
+                onChange={(e) => setCashGiven(e.target.value)}
+              />
+              <small className="field-hint">
+                Te lo pedimos para preparar el cambio (si hace falta).
+              </small>
+            </label>
+          )}
 
           <label className="field">
             <span className="field-label">
@@ -303,9 +302,9 @@ function Checkout() {
           )}
 
           {missing.length > 0 && (
-            <p className="checkout-required-hint">
-              Campos obligatorios faltantes: <strong>{missing.join(", ")}</strong>
-            </p>
+          <p className="checkout-required-hint">
+            Campos obligatorios faltantes: <strong>{missingLabels.join(", ")}</strong>
+          </p>
           )}
 
           <button className="btn-primary btn-icon" type="submit" disabled={loading}>

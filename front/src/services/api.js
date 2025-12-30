@@ -1,6 +1,10 @@
 // src/services/api.js
 const API_BASE_URL = "http://127.0.0.1:5000/api";
 
+function getToken() {
+  return localStorage.getItem("access_token");
+}
+
 export async function fetchProducts() {
   const res = await fetch(`${API_BASE_URL}/products`);
   if (!res.ok) {
@@ -22,12 +26,6 @@ export async function login(email, password) {
   }
 
   return data; // { access_token, user }
-}
-
-export async function getProducts() {
-  console.log("[API] getProducts");
-  const res = await fetch(`${API_BASE_URL}/products`);
-  return handleResponse(res);
 }
 
 export async function createProduct(product, token) {
@@ -83,9 +81,14 @@ export async function deleteProduct(id, token) {
 }
 
 export async function createOrder(payload) {
+  const token = getToken();
+
   const res = await fetch(`${API_BASE_URL}/orders`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: JSON.stringify(payload),
   });
 
@@ -94,7 +97,7 @@ export async function createOrder(payload) {
     throw new Error(data.msg || "Error al crear la orden");
   }
 
-  return data; // orden creada
+  return data;
 }
 
 // NUEVO
@@ -147,13 +150,17 @@ export async function mockChargeCard({ amount, card }) {
 }
 
 // 🔹 NUEVO: crear preferencia de Mercado Pago
-export async function createMpPreference({ orderId, items }) {
-  console.log("[MP][front] creando preferencia con:", { orderId, items });
+export async function createMpPreference({ orderId }) {
+  const token = getToken();
+  console.log("[MP][front] creando preferencia con:", { orderId });
 
   const res = await fetch(`${API_BASE_URL}/payments/mp/create_preference`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ orderId, items }),
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ orderId }),
   });
 
   const data = await res.json();
@@ -163,7 +170,7 @@ export async function createMpPreference({ orderId, items }) {
     throw new Error(data.msg || "Error al crear preferencia de pago");
   }
 
-  return data; // { initPoint, preferenceId }
+  return data;
 }
 
 

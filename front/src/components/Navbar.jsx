@@ -3,11 +3,35 @@ import { Link, NavLink, useNavigate  } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { ShoppingCart, Globe, Tag, Home, HelpCircle, Mail, User, LogOut, Settings, Shield } from "lucide-react";
+import CartMiniPreview from "./CartMiniPreview";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 function Navbar() {
   const navigate = useNavigate();
-  const { totalItems } = useCart();
+
+  //Carrito
+
+  const { items } = useCart(); // o useCartContext
+
+  const totalItems = (Array.isArray(items) ? items : []).reduce(
+  (acc, it) => acc + Number(it?.quantity ?? 1),
+  0
+);
+
+  const [cartOpen, setCartOpen] = useState(false);
+  const closeT = useRef(null);
+
+  const openCart = () => {
+    if (closeT.current) clearTimeout(closeT.current);
+    setCartOpen(true);
+};
+
+  const closeCart = () => {
+    if (closeT.current) clearTimeout(closeT.current);
+    closeT.current = setTimeout(() => setCartOpen(false), 140);
+};
+
+  //Cerrar Carrito
 
   const { user, logout, clearSession  } = useAuth(); // si no tenés logout, te explico abajo
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -104,17 +128,32 @@ function Navbar() {
             ES
           </button>
 
-          <Link to="/carrito" className="cart-btn cart-pill" aria-label="Ir al carrito">
-            <ShoppingCart size={16} className="icon" />
-            <span>Carrito</span>
+        <div
+          className="nav-cart-wrap"
+          onMouseEnter={openCart}
+          onMouseLeave={closeCart}
+        >
+        <Link to="/carrito" className="cart-btn cart-pill" aria-label="Ir al carrito">
+          <ShoppingCart size={16} className="icon" />
+          <span>Carrito</span>
+          {totalItems > 0 && <span className="cart-count">{totalItems}</span>}
+        </Link>
 
-            {totalItems > 0 && <span className="cart-count">{totalItems}</span>}
-          </Link>
-
-          <div className="navbar-auth">
-            <NavLink to="/login" className="nav-auth-link">Iniciar sesión</NavLink>
-            <NavLink to="/signup" className="btn-auth">Crear cuenta</NavLink>
+        {cartOpen && (
+          <div
+            className="nav-cart-popover"
+            onMouseEnter={openCart}
+            onMouseLeave={closeCart}
+          >
+            <CartMiniPreview />
           </div>
+        )}
+        </div>
+
+        <div className="navbar-auth">
+          <NavLink to="/login" className="nav-auth-link">Iniciar sesión</NavLink>
+          <NavLink to="/signup" className="btn-auth">Crear cuenta</NavLink>
+        </div>
 
           {user && initials && (
   <div className="user-menu" ref={userMenuRef}>

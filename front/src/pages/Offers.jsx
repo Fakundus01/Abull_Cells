@@ -1,6 +1,6 @@
 // src/pages/Offers.jsx
 import { useEffect, useMemo, useState } from "react";
-import { getProducts } from "../services/api";
+import { fetchProducts } from "../services/api";
 import ProductCard from "../components/ProductCard";
 import { Tag, Loader2, AlertTriangle, Percent } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -12,7 +12,7 @@ function Offers() {
   async function load() {
     try {
       setStatus("loading");
-      const data = await getProducts();
+      const data = await fetchProducts();
       setProducts(data || []);
       setStatus("ready");
     } catch (err) {

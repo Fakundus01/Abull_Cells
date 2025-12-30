@@ -1,13 +1,14 @@
 # app.py
 from flask import Flask, jsonify, request
-import random
-import mercadopago
+import re
+import mercadopago # type: ignore
 import os
-import string
+from functools import wraps
 from flask_cors import CORS
-from flask_jwt_extended import (
+from flask_jwt_extended import ( # type: ignore
     JWTManager,
     create_access_token,
+    create_refresh_token,
     jwt_required,
     get_jwt,
     get_jwt_identity,
@@ -17,7 +18,7 @@ from dotenv import load_dotenv
 from werkzeug.exceptions import NotFound  # arriba, con los imports
 from config import Config
 from models import db, Product, User, Order, OrderItem
-from email_utils import send_order_confirmation_email  # 👈 NUEVO
+from email_utils import send_contact_message_to_admin, send_contact_autoreply, send_order_confirmation_email
 
 load_dotenv()  # 👈 carga las variables desde .env
 
@@ -30,6 +31,25 @@ def create_app():
     CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
 
     jwt = JWTManager(app)
+
+    # -------- JWT HANDLERS (respuestas consistentes) --------
+
+    @jwt.unauthorized_loader
+    def _missing_token(reason):
+        return jsonify({"msg": "Falta el token de autorización"}), 401
+
+    @jwt.invalid_token_loader
+    def _invalid_token(reason):
+        return jsonify({"msg": "Token inválido"}), 422
+
+    @jwt.expired_token_loader
+    def _expired_token(jwt_header, jwt_payload):
+        return jsonify({"msg": "Token expirado"}), 401
+
+    @jwt.revoked_token_loader
+    def _revoked_token(jwt_header, jwt_payload):
+        return jsonify({"msg": "Token revocado"}), 401
+
     mp_access_token = os.getenv("MP_ACCESS_TOKEN")
 
     if not mp_access_token:
@@ -61,52 +81,44 @@ def create_app():
             return jsonify({"msg": "Error al obtener productos"}), 500
         
     @app.route("/api/orders", methods=["POST"])
+    @jwt_required()
     def create_order():
         """
-        Crea una orden a partir del carrito y los datos del cliente.
+        Crea una orden a partir del carrito del usuario logueado.
         Body esperado:
         {
-          "customer": { ... },
-          "items": [ ... ],
-          "paymentMethod": "tarjeta" | "efectivo" | "transferencia"
+        "customer": { "phone": "...", "notes": "..." },
+        "items": [ { "productId": 1, "quantity": 2 }, ... ]
         }
         """
         try:
             data = request.get_json() or {}
+            user_id = get_jwt_identity()
+            user = User.query.get(int(user_id)) if user_id else None
+            if not user:
+                return jsonify({"msg": "Usuario no encontrado"}), 404
+
             customer = data.get("customer") or {}
             items = data.get("items") or []
-            payment_method = data.get("paymentMethod") or "tarjeta"
-            valid_methods = ["tarjeta", "efectivo", "transferencia", "mercadopago"]
+            payment_method = "mercadopago"
+            valid_methods = ["efectivo","mercadopago"]
 
             if payment_method not in valid_methods:
                 print(f"[ORDER] Método de pago inválido recibido: {payment_method}")
                 return jsonify({"msg": "Método de pago inválido"}), 400
             
-            payment_result = data.get("paymentResult") or {}
             status = "pending"
             payment_brand = None
             payment_last4 = None
             payment_txid = None
 
-            if payment_method == "tarjeta":
-                if payment_result.get("status") == "approved":
-                    status = "paid"
-                    payment_brand = payment_result.get("brand")
-                    payment_last4 = payment_result.get("last4")
-                    payment_txid = payment_result.get("transactionId")
-                else:
-                    # si vino tarjeta pero sin approved, la dejamos pendiente
-                    status = "pending"
+            if not mp_client:
+                return jsonify({"msg": "Mercado Pago no está configurado"}), 500
 
             elif payment_method == "mercadopago":
                 status = "pending"
 
-            # Validaciones básicas
-            required_fields = ["name", "email", "address", "city", "province", "postalCode"]    
-            missing = [f for f in required_fields if not customer.get(f)]
-            if missing:
-                return jsonify({"msg": f"Faltan campos obligatorios: {', '.join(missing)}"}), 400
-
+            # Validaciones básicas  
             if not items:
                 return jsonify({"msg": "La orden no tiene ítems"}), 400
 
@@ -115,37 +127,41 @@ def create_app():
             order_items = []
 
             for item in items:
-                product_id = item.get("productId")
-                name = item.get("name")
-                price = item.get("price")
-                quantity = item.get("quantity", 1)
+                    product_id = item.get("productId")
+                    quantity = int(item.get("quantity", 1))
 
-                if not name or price is None:
-                    return jsonify({"msg": "Cada ítem debe tener nombre y precio"}), 400
+                    if not product_id:
+                        return jsonify({"msg": "Cada ítem debe tener productId"}), 400
 
-                quantity = int(quantity)
-                price = int(price)
-                subtotal = price * quantity
-                total_amount += subtotal
+                    product = Product.query.get(product_id)
+                    if not product:
+                        return jsonify({"msg": f"Producto no encontrado (id={product_id})"}), 404
 
-                order_items.append(
-                    {
-                        "product_id": product_id,
-                        "product_name": name,
-                        "unit_price": price,
-                        "quantity": quantity,
-                        "subtotal": subtotal,
-                    }
-                )
+                    if quantity <= 0:
+                        return jsonify({"msg": "Cantidad inválida"}), 400
+
+                    # Validar stock (opcional pero recomendado)
+                    if product.stock is not None and quantity > int(product.stock):
+                        return jsonify({"msg": f"Sin stock suficiente para '{product.name}'"}), 409
+
+                    price = int(product.price)
+                    subtotal = price * quantity
+                    total_amount += subtotal
+
+                    order_items.append(
+                        {
+                            "product_id": product.id,
+                            "product_name": product.name,
+                            "unit_price": price,
+                            "quantity": quantity,
+                            "subtotal": subtotal,
+                        }
+                    )
 
             order = Order(
-                customer_name=customer["name"],
-                email=customer["email"],
-                phone=customer.get("phone"),
-                address=customer["address"],
-                city=customer["city"],
-                province=customer["province"],
-                postal_code=customer["postalCode"],
+                customer_name=user.name,
+                email=user.email,
+                phone=customer.get("phone"),              
                 notes=customer.get("notes"),
                 payment_method=payment_method,
                 total_amount=total_amount,
@@ -169,90 +185,51 @@ def create_app():
                 )
                 db.session.add(item)
 
-            db.session.commit()
-
-             # Intentamos enviar el correo de confirmación.
-            # Si falla, NO afectamos el resultado de la API.
-            # 🔍 DEBUG DEL MAIL
-            try:
-                print("[MAIL] Voy a intentar enviar email de prueba...")
-                resultado = send_order_confirmation_email(order)
-                print(f"[MAIL] Resultado de send_order_confirmation_email: {resultado}")
-            except Exception as ex:
-                # Logs bien detallados
-                print("========= EXCEPCION EN ENVIO DE MAIL =========")
-                print("Tipo:", type(ex))
-                print("Args:", ex.args)
-                print("Repr:", repr(ex))
-                app.logger.exception(
-                    f"[MAIL] Excepcion cruda al enviar email: {ex!r}"
-                )
-                print("========= FIN EXCEPCION EN ENVIO DE MAIL =========")
-                # Opcional: comentar el raise si queres que NO rompa el flujo
-                raise
+            db.session.commit()    
 
             return jsonify(order.to_dict()), 201
         except Exception as exc:
             app.logger.exception(f"Error inesperado en POST /api/orders: {exc}")
             db.session.rollback()
             return jsonify({"msg": "Error interno al crear la orden"}), 500
+        
+    @app.route("/api/my/orders", methods=["GET"])
+    @jwt_required()
+    def my_orders():
+        user_id = get_jwt_identity()
+        user = User.query.get(int(user_id)) if user_id else None
+        if not user:
+            return jsonify({"msg": "Usuario no encontrado"}), 404
 
-    @app.route("/api/payments/mock-charge", methods=["POST"])
-    def mock_charge():
-        """
-        Simula un cobro con tarjeta.
-        NO hace un cobro real, solo devuelve aprobado/rechazado.
-        Regla: si la tarjeta termina en 0000 => rechazado.
-        """
-        data = request.get_json() or {}
-        amount = data.get("amount")
-        card = data.get("card") or {}
-
-        card_number = (card.get("number") or "").replace(" ", "")
-        exp_month = card.get("expMonth")
-        exp_year = card.get("expYear")
-        cvc = card.get("cvc")
-
-        if not amount or amount <= 0:
-            return jsonify({"msg": "Monto inválido"}), 400
-
-        if not card_number or not exp_month or not exp_year or not cvc:
-            return jsonify({"msg": "Datos de tarjeta incompletos"}), 400
-
-        # Regla tonta para simular rechazo
-        if card_number.endswith("0000"):
-            return jsonify(
-                {
-                    "status": "declined",
-                    "msg": "La tarjeta fue rechazada (simulado). Usa otra tarjeta de prueba.",
-                }
-            ), 402
-
-        # Detección simple de marca
-        brand = "Desconocida"
-        if card_number.startswith("4"):
-            brand = "Visa"
-        elif card_number.startswith("5"):
-            brand = "Mastercard"
-        elif card_number.startswith("3"):
-            brand = "Amex"
-
-        last4 = card_number[-4:]
-
-        txid = "TEST-" + "".join(
-            random.choices(string.ascii_uppercase + string.digits, k=10)
+        orders = (
+            Order.query
+            .filter(Order.email == user.email)
+            .order_by(Order.created_at.desc())
+            .all()
         )
+        return jsonify([o.to_dict() for o in orders])
 
-        return jsonify(
-            {
-                "status": "approved",
-                "transactionId": txid,
-                "brand": brand,
-                "last4": last4,
-            }
-        )
+
+    @app.route("/api/my/orders/<int:order_id>", methods=["GET"])
+    @jwt_required()
+    def my_order_detail(order_id):
+        user_id = get_jwt_identity()
+        user = User.query.get(int(user_id)) if user_id else None
+        if not user:
+            return jsonify({"msg": "Usuario no encontrado"}), 404
+
+        order = Order.query.get_or_404(order_id)
+
+        # Dueño o admin
+        is_admin = (get_jwt().get("role") == "admin")
+        if not is_admin and order.email != user.email:
+            return jsonify({"msg": "No tenés permiso para ver esta orden"}), 403
+
+        return jsonify(order.to_dict())
+
 
     @app.route("/api/payments/mp/create_preference", methods=["POST"])
+    @jwt_required()
     def create_mp_preference():
         """
         Crea una preferencia de pago de Mercado Pago para una orden ya creada.
@@ -272,37 +249,44 @@ def create_app():
             data = request.get_json() or {}
             print(f"[MP] /create_preference - payload recibido: {data}")
 
-            order_id = data.get("orderId")
-            items = data.get("items") or []
+            user_id = get_jwt_identity()
+            user = User.query.get(int(user_id)) if user_id else None
+            if not user:
+                return jsonify({"msg": "Usuario no encontrado"}), 404
 
+            order_id = data.get("orderId")
             if not order_id:
-                print("[MP] Falla: falta orderId en el payload.")
                 return jsonify({"msg": "Falta orderId"}), 400
-            if not items:
-                print("[MP] Falla: la lista de items viene vacía.")
-                return jsonify({"msg": "La orden no tiene ítems"}), 400
 
             order = Order.query.get(order_id)
             if not order:
-                print(f"[MP] Falla: no se encontró la orden con id={order_id}.")
                 return jsonify({"msg": "Orden no encontrada"}), 404
 
+            is_admin = (get_jwt().get("role") == "admin")
+            if not is_admin and order.email != user.email:
+                return jsonify({"msg": "No tenés permiso para pagar esta orden"}), 403
+
+            if order.payment_method != "mercadopago":
+                return jsonify({"msg": "La orden no es de Mercado Pago"}), 400
+
+            if not order.items:
+                return jsonify({"msg": "La orden no tiene ítems"}), 400
+            
+            # ✅ Estado válido para generar preferencia
+            if order.status != "pending":
+                return jsonify({"msg": f"No se puede pagar una orden con estado '{order.status}'"}), 409
+            
+            if order.payment_txid and str(order.payment_txid).startswith("MP_PREF:"):
+                return jsonify({"msg": "La preferencia ya fue creada para esta orden"}), 409
+
             mp_items = []
-            for it in items:
-                name = it.get("name")
-                qty = it.get("quantity", 1)
-                price = it.get("price")
-
-                if not name or price is None:
-                    print(f"[MP] Falla: ítem inválido: {it}")
-                    return jsonify({"msg": "Cada ítem debe tener nombre y precio"}), 400
-
+            for it in order.items:
                 mp_items.append(
                     {
-                        "title": name,
-                        "quantity": int(qty),
+                        "title": it.product_name,
+                        "quantity": int(it.quantity),
                         "currency_id": "ARS",
-                        "unit_price": float(price),
+                        "unit_price": float(it.unit_price),
                     }
                 )
 
@@ -350,7 +334,7 @@ def create_app():
 
             # opcional: guardar id de preferencia en la orden
             order.payment_method = "mercadopago"
-            order.payment_txid = pref_id
+            order.payment_txid = f"MP_PREF:{pref_id}"
             db.session.commit()
             print(
                 f"[MP] Preferencia creada OK. preference_id={pref_id}, init_point={init_point}"
@@ -379,11 +363,17 @@ def create_app():
 
         topic = request.args.get("topic") or request.args.get("type")
         payment_id = request.args.get("id") or request.args.get("data.id")
+        order.payment_txid = f"MP_PAY:{payment_id}"
 
         print(f"[MP] Webhook recibido. topic={topic}, payment_id={payment_id}")
         print(f"[MP] request.args = {dict(request.args)}")
         try:
             body_json = request.get_json(silent=True) or {}
+            if not payment_id:
+                payment_id = (
+                    (body_json.get("data") or {}).get("id")
+                    or body_json.get("id")
+                )
             print(f"[MP] request.json = {body_json}")
         except Exception:
             body_json = {}
@@ -405,6 +395,8 @@ def create_app():
                 if external_reference:
                     order = Order.query.get(int(external_reference))
                     if order:
+                        previous_status = order.status
+
                         if status == "approved":
                             order.status = "paid"
                         elif status in ("rejected", "cancelled"):
@@ -412,14 +404,26 @@ def create_app():
                         else:
                             order.status = status or order.status
 
+                        order.payment_txid = f"MP_PAY:{payment_id}"
                         db.session.commit()
-                        print(
-                            f"[MP] Orden {order.id} actualizada a status='{order.status}'."
-                        )
+
+                        if previous_status != "paid" and order.status == "paid":
+                            try:
+                                send_order_confirmation_email(order)  # cliente (y CC admin si tenés EMAIL_ADMIN)
+                            except Exception as ex:
+                                app.logger.exception(f"[MAIL] Error enviando mail cliente orden pagada: {ex!r}")
+
+                            try:
+                                # si agregaste la función nueva:
+                                from email_utils import send_admin_order_paid_email
+                                send_admin_order_paid_email(order)
+                            except Exception as ex:
+                                app.logger.exception(f"[MAIL] Error enviando aviso admin orden pagada: {ex!r}")   
+
+                        print(f"[MP] Orden {order.id} actualizada a status='{order.status}'.")
+
                     else:
-                        print(
-                            f"[MP] No se encontró la orden con id={external_reference} para actualizar."
-                        )
+                        print(f"[MP] No se encontró la orden con id={external_reference} para actualizar.")
 
             return "OK", 200
         except Exception as exc:
@@ -429,15 +433,169 @@ def create_app():
             app.logger.exception(f"Error en webhook MP: {exc}")
             print("========== FIN EXCEPCION mp_webhook ==========")
             return "ERROR", 500
+        
+    @app.route("/api/contact", methods=["POST"])
+    @jwt_required(optional=True)
+    def contact():
+        data = request.get_json() or {}
+
+        # Si está logueado, podemos usar sus datos como fallback
+        user = None
+        user_id = get_jwt_identity()
+        if user_id:
+            user = User.query.get(int(user_id))
+
+        name = (data.get("name") or (user.name if user else "") or "").strip()
+        email = (data.get("email") or (user.email if user else "") or "").strip().lower()
+        subject = (data.get("subject") or "").strip()
+        message = (data.get("message") or "").strip()
+
+        # Validaciones mínimas
+        email_re = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+        if not name:
+            return jsonify({"msg": "El nombre es obligatorio"}), 400
+        if not email or not email_re.match(email):
+            return jsonify({"msg": "Email inválido"}), 400
+        if not subject:
+            return jsonify({"msg": "El asunto es obligatorio"}), 400
+        if not message or len(message) < 10:
+            return jsonify({"msg": "El mensaje debe tener al menos 10 caracteres"}), 400
+
+        ok_admin = send_contact_message_to_admin(name, email, subject, message)
+        if not ok_admin:
+            return jsonify({"msg": "No se pudo enviar el mensaje (config mail)"}), 500
+
+        # Autoreply (si falla no rompemos)
+        try:
+            send_contact_autoreply(email, name)
+        except Exception as ex:
+            app.logger.exception(f"[MAIL] Error autoreply contacto: {ex!r}")
+
+        return jsonify({"ok": True}), 200
+    
+    @app.route("/api/checkout/validate", methods=["POST"])
+    @jwt_required()
+    def validate_checkout():
+        """
+        Valida carrito contra el servidor para permitir entrar al checkout.
+        Body:
+        { "items": [ { "productId": 1, "quantity": 2 }, ... ] }
+        """
+        data = request.get_json() or {}
+        items = data.get("items") or []
+
+        if not items:
+            return jsonify({"msg": "Carrito vacío"}), 400
+
+        validated_items = []
+        total_amount = 0
+
+        for item in items:
+            product_id = item.get("productId")
+            quantity = int(item.get("quantity", 1))
+
+            if not product_id:
+                return jsonify({"msg": "Cada ítem debe tener productId"}), 400
+            if quantity <= 0:
+                return jsonify({"msg": "Cantidad inválida"}), 400
+
+            product = Product.query.get(product_id)
+            if not product:
+                return jsonify({"msg": f"Producto no encontrado (id={product_id})"}), 404
+
+            if product.stock is not None and quantity > int(product.stock):
+                return jsonify({"msg": f"Sin stock suficiente para '{product.name}'"}), 409
+
+            unit_price = int(product.price)
+            subtotal = unit_price * quantity
+            total_amount += subtotal
+
+            validated_items.append({
+                "productId": product.id,
+                "name": product.name,
+                "unitPrice": unit_price,
+                "quantity": quantity,
+                "subtotal": subtotal,
+                "stock": product.stock,
+            })
+
+        return jsonify({
+            "ok": True,
+            "items": validated_items,
+            "totalAmount": total_amount
+        })
+    
+    @app.route("/api/checkout/success/<int:order_id>", methods=["GET"])
+    @jwt_required()
+    def checkout_success_guard(order_id):
+        user_id = get_jwt_identity()
+        user = User.query.get(int(user_id)) if user_id else None
+        if not user:
+            return jsonify({"msg": "Usuario no encontrado"}), 404
+
+        order = Order.query.get_or_404(order_id)
+
+        is_admin = (get_jwt().get("role") == "admin")
+        if not is_admin and order.email != user.email:
+            return jsonify({"msg": "No autorizado"}), 403
+
+        if order.status != "paid":
+            return jsonify({"msg": "La orden aún no está pagada"}), 409
+
+        return jsonify({"ok": True, "order": order.to_dict()})
 
     # -------- AUTH --------
+
+    _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+    def _claims_for(user: User) -> dict:
+        return {"role": user.role, "name": user.name}
+
+    def _create_tokens_for(user: User) -> dict:
+        claims = _claims_for(user)
+        return {
+            "access_token": create_access_token(identity=str(user.id), additional_claims=claims),
+            "refresh_token": create_refresh_token(identity=str(user.id), additional_claims=claims),
+        }
+
+    @app.route("/api/auth/register", methods=["POST"])
+    def register():
+        """Registro simple (rol fijo: customer)."""
+        try:
+            data = request.get_json() or {}
+            name = (data.get("name") or "").strip()
+            email = (data.get("email") or "").strip().lower()
+            password = data.get("password") or ""
+
+            if not name:
+                return jsonify({"msg": "El nombre es obligatorio"}), 400
+            if not email or not _EMAIL_RE.match(email):
+                return jsonify({"msg": "Email inválido"}), 400
+            if not password or len(password) < 8:
+                return jsonify({"msg": "La contraseña debe tener al menos 8 caracteres"}), 400
+
+            if User.query.filter_by(email=email).first():
+                return jsonify({"msg": "Ya existe un usuario con ese email"}), 409
+
+            user = User(name=name, email=email, role="customer")
+            user.set_password(password)
+
+            db.session.add(user)
+            db.session.commit()
+
+            tokens = _create_tokens_for(user)
+            return jsonify({**tokens, "user": user.to_dict()}), 201
+        except Exception as exc:
+            app.logger.exception(f"Error inesperado en /api/auth/register: {exc}")
+            db.session.rollback()
+            return jsonify({"msg": "Error interno al registrar"}), 500
 
     @app.route("/api/auth/login", methods=["POST"])
     def login():
         try:
             data = request.get_json() or {}
-            email = data.get("email", "").strip().lower()
-            password = data.get("password", "")
+            email = (data.get("email") or "").strip().lower()
+            password = data.get("password") or ""
 
             if not email or not password:
                 return jsonify({"msg": "Email y contraseña son obligatorios"}), 400
@@ -446,41 +604,60 @@ def create_app():
             if not user or not user.check_password(password):
                 return jsonify({"msg": "Credenciales inválidas"}), 401
 
-            additional_claims = {"role": user.role, "name": user.name}
-
-            access_token = create_access_token(
-                identity=str(user.id),
-                additional_claims=additional_claims,
-            )
-
-            return jsonify(
-                {
-                    "access_token": access_token,
-                    "user": user.to_dict(),
-                }
-            )
+            tokens = _create_tokens_for(user)
+            return jsonify({**tokens, "user": user.to_dict()})
         except Exception as exc:
             app.logger.exception(f"Error inesperado en /api/auth/login: {exc}")
             return jsonify({"msg": "Error interno al iniciar sesión"}), 500
 
+    @app.route("/api/auth/me", methods=["GET"])
+    @jwt_required()
+    def me():
+        """Devuelve el usuario logueado (para persistir sesión en el front)."""
+        user_id = get_jwt_identity()
+        user = User.query.get(int(user_id)) if user_id else None
+        if not user:
+            return jsonify({"msg": "Usuario no encontrado"}), 404
+        return jsonify({"user": user.to_dict()})
 
+    @app.route("/api/auth/refresh", methods=["POST"])
+    @jwt_required(refresh=True)
+    def refresh():
+        """Entrega un nuevo access_token usando refresh_token."""
+        user_id = get_jwt_identity()
+        user = User.query.get(int(user_id)) if user_id else None
+        if not user:
+            return jsonify({"msg": "Usuario no encontrado"}), 404
+
+        access_token = create_access_token(
+            identity=str(user.id),
+            additional_claims=_claims_for(user),
+        )
+        return jsonify({"access_token": access_token})
 
     # -------- HELPERS --------
 
-    def admin_required():
-        """Valida que el usuario sea admin usando los claims del JWT."""
-        claims = get_jwt()
-        if claims.get("role") != "admin":
-            return False
-        return True
+    def role_required(*roles):
+        """Decorator: requiere JWT y que el claim role esté dentro de roles."""
+        def decorator(fn):
+            @wraps(fn)
+            @jwt_required()
+            def wrapper(*args, **kwargs):
+                claims = get_jwt()
+                if claims.get("role") not in roles:
+                    return jsonify({"msg": "No autorizado"}), 403
+                return fn(*args, **kwargs)
+            return wrapper
+        return decorator
+
+    # Decorator específico para admin
+    admin_required = role_required("admin")
 
     # -------- RUTAS ADMIN (PROTEGIDAS) --------
 
     @app.route("/api/admin/products", methods=["POST"])
-    @jwt_required()
+    @admin_required
     def admin_create_product():
-        if not admin_required():
-            return jsonify({"msg": "Solo administradores"}), 403
 
         try:
             data = request.get_json() or {}
@@ -521,14 +698,11 @@ def create_app():
             return jsonify({"msg": "Error interno al crear el producto"}), 500
         
     @app.route("/api/admin/products/<int:product_id>", methods=["PUT"])
-    @jwt_required()
+    @admin_required
     def admin_update_product(product_id):
-        if not admin_required():
-            return jsonify({"msg": "Solo administradores"}), 403
 
         try:
             product = Product.query.get_or_404(product_id)
-
             data = request.get_json() or {}
             name = data.get("name")
             slug = data.get("slug")
@@ -580,10 +754,8 @@ def create_app():
             return jsonify({"msg": "Error interno al actualizar el producto"}), 500
         
     @app.route("/api/admin/products/<int:product_id>", methods=["DELETE"])
-    @jwt_required()
+    @admin_required
     def admin_delete_product(product_id):
-        if not admin_required():
-            return jsonify({"msg": "Solo administradores"}), 403
 
         try:
             product = Product.query.get_or_404(product_id)
@@ -598,10 +770,8 @@ def create_app():
             return jsonify({"msg": "Error interno al eliminar el producto"}), 500
         
     @app.route("/api/admin/orders", methods=["GET"])
-    @jwt_required()
+    @admin_required
     def admin_list_orders():
-        if not admin_required():
-            return jsonify({"msg": "Solo administradores"}), 403
 
         try:
             orders = Order.query.order_by(Order.created_at.desc()).all()
@@ -611,10 +781,8 @@ def create_app():
             return jsonify({"msg": "Error al obtener órdenes"}), 500
         
     @app.route("/api/admin/orders/<int:order_id>/status", methods=["PUT"])
-    @jwt_required()
+    @admin_required
     def admin_update_order_status(order_id):
-        if not admin_required():
-            return jsonify({"msg": "Solo administradores"}), 403
 
         try:
             data = request.get_json() or {}

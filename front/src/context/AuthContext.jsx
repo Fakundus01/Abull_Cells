@@ -15,14 +15,13 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  function saveSession(nextUser, nextToken) {
-    setUser(nextUser);
-    setToken(nextToken);
-    localStorage.setItem(
-      "abul_auth",
-      JSON.stringify({ user: nextUser, token: nextToken })
-    );
-  }
+  function saveSession(user, accessToken) {
+  setUser(user);
+  setToken(accessToken);
+
+  localStorage.setItem("access_token", accessToken);
+  localStorage.setItem("user", JSON.stringify(user));
+}
 
   function clearSession() {
     setUser(null);

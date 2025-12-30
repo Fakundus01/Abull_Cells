@@ -66,11 +66,7 @@ class Order(db.Model):
     customer_name = db.Column(db.String(200), nullable=False)
     email = db.Column(db.String(200), nullable=False)
     phone = db.Column(db.String(50), nullable=True)
-
-    address = db.Column(db.String(255), nullable=False)
-    city = db.Column(db.String(120), nullable=False)
-    province = db.Column(db.String(120), nullable=False)
-    postal_code = db.Column(db.String(20), nullable=False)
+    email_sent_paid = db.Column(db.Boolean, default=False)
 
     notes = db.Column(db.Text, nullable=True)
 
@@ -95,10 +91,6 @@ class Order(db.Model):
             "customerName": self.customer_name,
             "email": self.email,
             "phone": self.phone,
-            "address": self.address,
-            "city": self.city,
-            "province": self.province,
-            "postalCode": self.postal_code,
             "notes": self.notes,
             "paymentMethod": self.payment_method,
             "paymentBrand": self.payment_brand,

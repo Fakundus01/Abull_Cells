@@ -78,9 +78,21 @@ function Cart() {
               <div className="cart-item-info">
                 <h3 className="cart-item-title">{item.name}</h3>
 
-                <p className="product-price">
-                  ${item.price.toLocaleString("es-AR")}
-                </p>
+                {item.originalPrice ? (
+                  <div className="price-block">
+                    <p className="product-price old">
+                      ${Number(item.originalPrice).toLocaleString("es-AR")}
+                    </p>
+                    <p className="product-price new">
+                      ${Number(item.price).toLocaleString("es-AR")}
+                    </p>
+                    {item.offerLabel && <span className="offer-mini">{item.offerLabel}</span>}
+                  </div>
+                ) : (
+                  <p className="product-price">
+                    ${Number(item.price).toLocaleString("es-AR")}
+                  </p>
+                )}
 
                 <p className="cart-item-qty">
                   <span className="cart-qty-badge">x{item.quantity}</span>

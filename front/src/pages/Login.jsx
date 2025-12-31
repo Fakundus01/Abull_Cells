@@ -21,7 +21,7 @@ function Login() {
 
     try {
       const data = await login(email, password);
-      saveSession(data.user, data.access_token);
+      saveSession(data.user, null); // o directamente sin token
       navigate("/admin");
     } catch (err) {
       setError(err.message);

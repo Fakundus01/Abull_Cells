@@ -14,12 +14,23 @@ function cartReducer(state, action) {
       const existing = state.items.find((i) => i.id === product.id);
 
       if (existing) {
-        // si ya existe, sumamos cantidad
         return {
           ...state,
           items: state.items.map((i) =>
             i.id === product.id
-              ? { ...i, quantity: i.quantity + quantity }
+              ? {
+                  ...i,
+                  quantity: i.quantity + quantity,
+
+                  // ✅ si el producto cambió de precio por oferta, mantenemos el precio final
+                  price: product.price,
+
+                  // ✅ para tachar en carrito/checkout
+                  originalPrice: product.originalPrice ?? i.originalPrice ?? null,
+
+                  // ✅ texto tipo "10% OFF"
+                  offerLabel: product.offerLabel ?? i.offerLabel ?? null,
+                }
               : i
           ),
         };
@@ -32,7 +43,9 @@ function cartReducer(state, action) {
           {
             id: product.id,
             name: product.name,
-            price: product.price,
+            price: product.price,                 // ✅ precio final
+            originalPrice: product.originalPrice ?? null, // ✅ para tachar
+            offerLabel: product.offerLabel ?? null,       // ✅ badge / texto
             imageUrl: product.imageUrl,
             quantity,
           },

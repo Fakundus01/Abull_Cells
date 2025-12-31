@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useCart } from "../context/CartContext";
 import { ShoppingCart, Flame, Image as ImageIcon, Check } from "lucide-react";
+import { getOfferMeta } from "../utils/pricing";
 
 function ProductCard({ product }) {
   const { addToCart } = useCart();
@@ -11,41 +12,45 @@ function ProductCard({ product }) {
     id,
     name,
     description,
-    price,
     category,
     stock,
     imageUrl,
     image_url,
-    isOffer,
-    is_offer,
-    offer_label,
-    offerLabel,
-  } = product;
+  } = product || {};
+
+  // ✅ oferta (según TU helper)
+  const { hasOffer, basePrice, finalPrice, offerLabel } = useMemo(
+    () => getOfferMeta(product),
+    [product]
+  );
 
   const finalImage = imageUrl || image_url || "";
 
-  const isOfferActive =
-    isOffer === true ||
-    is_offer === true ||
-    Boolean(offer_label || offerLabel);
-
-  const offerText = offer_label || offerLabel || "Oferta";
-
-  const disabled = stock === 0;
+  const disabled = Number(stock) === 0;
 
   const stockVariant = useMemo(() => {
-    if (typeof stock !== "number") return "unknown";
-    if (stock <= 0) return "out";
-    if (stock <= 3) return "low";
+    const s = Number(stock);
+    if (!Number.isFinite(s)) return "unknown";
+    if (s <= 0) return "out";
+    if (s <= 3) return "low";
     return "ok";
   }, [stock]);
 
+  const fmt = (v) => {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return "—";
+    return n.toLocaleString("es-AR");
+  };
+
   function handleAddToCart() {
+    // ✅ al carrito va el precio FINAL (oferta) + guardamos original para tachar
     addToCart(
       {
         id,
         name,
-        price,
+        price: Number(finalPrice), // ✅ este se paga
+        originalPrice: hasOffer ? Number(basePrice) : null, // ✅ para tachar en carrito/checkout
+        offerLabel: hasOffer ? offerLabel : null,
         imageUrl: finalImage,
       },
       1
@@ -63,19 +68,21 @@ function ProductCard({ product }) {
   return (
     <article className="product-card product-card--v2 card-animate">
       <div className="product-card-image-wrapper product-card-image-wrapper--v2">
-        {isOfferActive && (
+        {hasOffer && (
           <span className="product-offer-badge product-offer-badge--v2">
             <Flame size={14} className="icon" />
-            {offerText}
+            {offerLabel || "Oferta"}
           </span>
         )}
 
-        {stockVariant === "out" && (
-          <span className="product-out-badge">Sin stock</span>
-        )}
+        {stockVariant === "out" && <span className="product-out-badge">Sin stock</span>}
 
         {finalImage ? (
-          <img src={finalImage} alt={name} className="product-card-image product-card-image--v2" />
+          <img
+            src={finalImage}
+            alt={name}
+            className="product-card-image product-card-image--v2"
+          />
         ) : (
           <div className="product-card-image placeholder placeholder--v2">
             <ImageIcon size={18} className="icon" />
@@ -88,11 +95,7 @@ function ProductCard({ product }) {
         <div className="product-head">
           <h3 className="product-title">{name}</h3>
 
-          {category && (
-            <span className="product-category-pill">
-              {category}
-            </span>
-          )}
+          {category && <span className="product-category-pill">{category}</span>}
         </div>
 
         {description && (
@@ -103,11 +106,16 @@ function ProductCard({ product }) {
 
         <div className="product-card-footer product-card-footer--v2">
           <div className="price-block">
-            <p className="product-price">
-              ${price?.toLocaleString("es-AR")}
-            </p>
+            {hasOffer ? (
+              <div className="price-stack">
+                <p className="product-price old">${fmt(basePrice)}</p>
+                <p className="product-price new">${fmt(finalPrice)}</p>
+              </div>
+            ) : (
+              <p className="product-price">${fmt(finalPrice)}</p>
+            )}
 
-            {typeof stock === "number" && (
+            {Number.isFinite(Number(stock)) && (
               <span
                 className={[
                   "stock-pill",

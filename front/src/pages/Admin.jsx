@@ -71,16 +71,19 @@ function Admin() {
 
   useEffect(() => {
     async function loadData() {
+      console.log("[ADMIN] loadData arrancó");
       try {
         setLoadingProducts(true);
         setLoadingOrders(true);
         const [prodData, orderData] = await Promise.all([
           fetchProducts(),
-          fetchOrders(token),
+          fetchOrders(),
         ]);
         setProducts(prodData);
         setOrders(orderData);
+        console.log("[ADMIN] orders ok", orders)
       } catch (err) {
+        console.log("[ADMIN] orders error", err);
         setError("No se pudieron cargar productos u órdenes.");
       } finally {
         setLoadingProducts(false);
@@ -88,8 +91,11 @@ function Admin() {
       }
     }
 
-    if (isAdmin && token) loadData();
-  }, [isAdmin, token]);
+    if (isAdmin) {
+      console.log("[ADMIN] useEffect montó, voy a cargar data");
+      loadData();
+    }
+  }, [isAdmin]);
 
   useEffect(() => {
     if (!successMsg) return;

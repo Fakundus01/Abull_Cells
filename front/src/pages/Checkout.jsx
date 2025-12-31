@@ -122,7 +122,7 @@ function Checkout() {
             productId: item.id,
             quantity: item.quantity,
           })),
-          paymentMethod: "mercadopago",
+          paymentMethod,
         };
 
       const order = await createOrder(orderPayload);

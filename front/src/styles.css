@@ -2411,20 +2411,26 @@ a:visited { color: inherit; }
   transform: scale(1.04);
 }
 
-.product-offer-badge--v2{
+.product-offer-badge--v2 {
   position: absolute;
-  top: 10px;
-  left: 10px;
+  top: 12px;
+  left: 12px;
+  z-index: 3;
   display: inline-flex;
   align-items: center;
-  gap: .35rem;
-  padding: .25rem .6rem;
+  gap: 6px;
+
+  padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(249,115,22,.90);
-  color: #fff;
-  font-weight: 800;
-  font-size: .78rem;
-  box-shadow: 0 10px 22px rgba(2,6,23,.20);
+
+  font-size: 12px;
+  font-weight: 700;
+
+  /* estilo tipo "oferta" */
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.12);
 }
 
 .product-out-badge{
@@ -2770,6 +2776,25 @@ a:visited { color: inherit; }
   color: rgba(15,23,42,.70);
   font-size: .92rem;
 }
+
+.price-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.product-price.old {
+  text-decoration: line-through;
+  opacity: 0.6;
+  font-size: 0.95rem;
+}
+
+.product-price.new {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #e53935;
+}
+
 
 @media (max-width: 980px){
   .checkout-grid{

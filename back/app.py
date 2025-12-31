@@ -5,20 +5,23 @@ import mercadopago # type: ignore
 import os
 from functools import wraps
 from flask_cors import CORS
-from flask_jwt_extended import ( # type: ignore
+from flask_jwt_extended import ( #type: ignore
     JWTManager,
     create_access_token,
     create_refresh_token,
     jwt_required,
     get_jwt,
     get_jwt_identity,
+    set_access_cookies,
+    set_refresh_cookies,
+    unset_jwt_cookies,
 )
 
 from dotenv import load_dotenv
 from werkzeug.exceptions import NotFound  # arriba, con los imports
 from config import Config
 from models import db, Product, User, Order, OrderItem
-from email_utils import send_contact_message_to_admin, send_contact_autoreply, send_order_confirmation_email
+from email_utils import send_contact_message_to_admin, send_contact_autoreply, send_order_confirmation_email, send_admin_product_out_of_stock_email, send_buyer_order_email
 
 load_dotenv()  # 👈 carga las variables desde .env
 
@@ -28,7 +31,11 @@ def create_app():
     app.config.from_object(Config)
 
     db.init_app(app)
-    CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
+    CORS(
+    app,
+    resources={r"/api/*": {"origins": ["http://localhost:5173"]}},
+    supports_credentials=True
+    )
 
     jwt = JWTManager(app)
 
@@ -88,7 +95,8 @@ def create_app():
         Body esperado:
         {
         "customer": { "phone": "...", "notes": "..." },
-        "items": [ { "productId": 1, "quantity": 2 }, ... ]
+        "items": [ { "productId": 1, "quantity": 2 }, ... ],
+        "paymentMethod": "efectivo" | "mercadopago"
         }
         """
         try:
@@ -99,12 +107,15 @@ def create_app():
                 return jsonify({"msg": "Usuario no encontrado"}), 404
 
             customer = data.get("customer") or {}
-            items = data.get("items") or []
-            payment_method = "mercadopago"
-            valid_methods = ["efectivo","mercadopago"]
+            items_payload  = data.get("items") or []
+            if not items_payload :
+                return jsonify({"msg": "Carrito vacío"}), 400
+
+            payment_method = (data.get("paymentMethod") or "").strip().lower()
+            valid_methods = ["efectivo", "mercadopago"]
 
             if payment_method not in valid_methods:
-                print(f"[ORDER] Método de pago inválido recibido: {payment_method}")
+                app.logger.warning(f"[ORDER] Método de pago inválido recibido: {payment_method!r}")
                 return jsonify({"msg": "Método de pago inválido"}), 400
             
             status = "pending"
@@ -112,51 +123,73 @@ def create_app():
             payment_last4 = None
             payment_txid = None
 
-            if not mp_client:
-                return jsonify({"msg": "Mercado Pago no está configurado"}), 500
-
-            elif payment_method == "mercadopago":
+            if payment_method == "mercadopago":
+                if not mp_client:
+                    return jsonify({"msg": "Mercado Pago no está configurado"}), 500
                 status = "pending"
+            elif payment_method == "efectivo":
+                status = "pending" 
 
             # Validaciones básicas  
-            if not items:
+            if not items_payload :
                 return jsonify({"msg": "La orden no tiene ítems"}), 400
 
-            # Calcular totales en el servidor
+            # ---------------------------
+            # 1) Validar stock + calcular total (sin descontar aún)
+            # ---------------------------
             total_amount = 0
             order_items = []
+            product_map = {}  # product_id -> (product, quantity)
 
-            for item in items:
-                    product_id = item.get("productId")
-                    quantity = int(item.get("quantity", 1))
+            for item in items_payload:
+                product_id = item.get("productId")
+                quantity = int(item.get("quantity", 1))
 
-                    if not product_id:
-                        return jsonify({"msg": "Cada ítem debe tener productId"}), 400
+                if not product_id:
+                    return jsonify({"msg": "Cada ítem debe tener productId"}), 400
 
-                    product = Product.query.get(product_id)
-                    if not product:
-                        return jsonify({"msg": f"Producto no encontrado (id={product_id})"}), 404
+                if quantity <= 0:
+                    return jsonify({"msg": "Cantidad inválida"}), 400
 
-                    if quantity <= 0:
-                        return jsonify({"msg": "Cantidad inválida"}), 400
+                product = Product.query.get(product_id)
+                if not product:
+                    return jsonify({"msg": f"Producto no encontrado (id={product_id})"}), 404
 
-                    # Validar stock (opcional pero recomendado)
-                    if product.stock is not None and quantity > int(product.stock):
-                        return jsonify({"msg": f"Sin stock suficiente para '{product.name}'"}), 409
+                # Normalizar stock
+                if product.stock is None:
+                    product.stock = 0
 
-                    price = int(product.price)
-                    subtotal = price * quantity
-                    total_amount += subtotal
+                if quantity > int(product.stock):
+                    return jsonify({"msg": f"Sin stock suficiente para '{product.name}'. Disponible: {product.stock}"}), 409
 
-                    order_items.append(
-                        {
-                            "product_id": product.id,
-                            "product_name": product.name,
-                            "unit_price": price,
-                            "quantity": quantity,
-                            "subtotal": subtotal,
-                        }
-                    )
+                # ✅ Precio efectivo (oferta si existe)
+                # (si todavía no tenés offer_price, dejalo solo con product.price por ahora)
+                unit_price = int(product.price)
+
+                subtotal = unit_price * quantity
+                total_amount += subtotal
+
+                product_map[product.id] = (product, quantity)
+
+                order_items.append(
+                    {
+                        "product_id": product.id,
+                        "product_name": product.name,
+                        "unit_price": unit_price,
+                        "quantity": quantity,
+                        "subtotal": subtotal,
+                    }
+                )
+
+            # ---------------------------
+            # 2) Reservar stock (descontar)
+            # ---------------------------
+            agotados = []
+            for pid, (product, qty) in product_map.items():
+                prev_stock = int(product.stock or 0)
+                product.stock = max(0, prev_stock - int(qty))
+                if prev_stock > 0 and product.stock == 0:
+                    agotados.append(product)
 
             order = Order(
                 customer_name=user.name,
@@ -185,7 +218,28 @@ def create_app():
                 )
                 db.session.add(item)
 
-            db.session.commit()    
+            db.session.commit()
+
+            # ✅ 1) Aviso admin por stock agotado (no rompe la orden si falla)
+            if agotados:
+                try:
+                    for p in agotados:
+                        send_admin_product_out_of_stock_email(p)
+                except Exception as mail_exc:
+                    app.logger.exception(f"[MAIL] Error enviando aviso stock agotado: {mail_exc}")
+
+            # ✅ 2) Aviso admin: se creó una orden (SIEMPRE)
+            try:
+                send_order_confirmation_email(order, items=order_items)
+            except Exception as mail_exc:
+                app.logger.exception(f"[MAIL] Error enviando mail admin nueva orden: {mail_exc}")
+
+            # ✅ 3) Mail comprador: SOLO si es efectivo (MP se manda al aprobar pago)
+            if order.payment_method == "efectivo":
+                try:
+                    send_buyer_order_email(order, mode="cash_created")
+                except Exception as mail_exc:
+                    app.logger.exception(f"[MAIL] Error enviando mail comprador efectivo: {mail_exc}")
 
             return jsonify(order.to_dict()), 201
         except Exception as exc:
@@ -357,82 +411,47 @@ def create_app():
 
     @app.route("/api/payments/mp/webhook", methods=["POST"])
     def mp_webhook():
-        if not mp_client:
-            print("[MP] Webhook recibido pero mp_client no está configurado.")
-            return "MP not configured", 500
-
-        topic = request.args.get("topic") or request.args.get("type")
-        payment_id = request.args.get("id") or request.args.get("data.id")
-        order.payment_txid = f"MP_PAY:{payment_id}"
-
-        print(f"[MP] Webhook recibido. topic={topic}, payment_id={payment_id}")
-        print(f"[MP] request.args = {dict(request.args)}")
         try:
-            body_json = request.get_json(silent=True) or {}
+            data = request.get_json() or {}
+
+            # depende cómo lo recibas; MP manda distintos formatos
+            # normalmente trae un payment id en data["data"]["id"]
+            payment_id = (data.get("data") or {}).get("id")
             if not payment_id:
-                payment_id = (
-                    (body_json.get("data") or {}).get("id")
-                    or body_json.get("id")
-                )
-            print(f"[MP] request.json = {body_json}")
-        except Exception:
-            body_json = {}
-            print("[MP] No se pudo parsear request.json del webhook.")
+                return "", 200
 
-        try:
-            if topic == "payment" and payment_id:
-                payment = mp_client.payment().get(payment_id)
-                resp = payment.get("response", {})
-                print(f"[MP] Detalle de pago desde MP: {resp}")
+            payment = mp_client.payment().get(payment_id)
+            payment_data = payment.get("response") or {}
 
-                status = resp.get("status")
-                external_reference = resp.get("external_reference")
+            status = payment_data.get("status")  # approved, rejected, etc.
+            external_ref = payment_data.get("external_reference")  # acá ponés el order.id cuando creás preference
 
-                print(
-                    f"[MP] Pago status={status}, external_reference={external_reference}"
-                )
+            if not external_ref:
+                return "", 200
 
-                if external_reference:
-                    order = Order.query.get(int(external_reference))
-                    if order:
-                        previous_status = order.status
+            order = Order.query.get(int(external_ref))
+            if not order:
+                return "", 200
 
-                        if status == "approved":
-                            order.status = "paid"
-                        elif status in ("rejected", "cancelled"):
-                            order.status = "cancelled"
-                        else:
-                            order.status = status or order.status
+            if status == "approved" and order.status != "paid":
+                order.status = "paid"
+                order.payment_txid = str(payment_id)
+                order.payment_brand = (payment_data.get("payment_method_id") or "")
+                order.payment_last4 = (payment_data.get("card") or {}).get("last_four_digits")
 
-                        order.payment_txid = f"MP_PAY:{payment_id}"
-                        db.session.commit()
+                db.session.commit()
 
-                        if previous_status != "paid" and order.status == "paid":
-                            try:
-                                send_order_confirmation_email(order)  # cliente (y CC admin si tenés EMAIL_ADMIN)
-                            except Exception as ex:
-                                app.logger.exception(f"[MAIL] Error enviando mail cliente orden pagada: {ex!r}")
+                # ✅ Mail comprador
+                try:
+                    send_buyer_order_email(order, mode="mp_paid")
+                except Exception as mail_exc:
+                    app.logger.exception(f"[MAIL] Error enviando mail comprador MP: {mail_exc}")
 
-                            try:
-                                # si agregaste la función nueva:
-                                from email_utils import send_admin_order_paid_email
-                                send_admin_order_paid_email(order)
-                            except Exception as ex:
-                                app.logger.exception(f"[MAIL] Error enviando aviso admin orden pagada: {ex!r}")   
+            return "", 200
 
-                        print(f"[MP] Orden {order.id} actualizada a status='{order.status}'.")
-
-                    else:
-                        print(f"[MP] No se encontró la orden con id={external_reference} para actualizar.")
-
-            return "OK", 200
         except Exception as exc:
-            print("========== EXCEPCION EN mp_webhook ==========")
-            print("Tipo:", type(exc))
-            print("Detalle:", repr(exc))
-            app.logger.exception(f"Error en webhook MP: {exc}")
-            print("========== FIN EXCEPCION mp_webhook ==========")
-            return "ERROR", 500
+            app.logger.exception(f"[MP] Error webhook: {exc}")
+            return "", 200
         
     @app.route("/api/contact", methods=["POST"])
     @jwt_required(optional=True)
@@ -560,7 +579,6 @@ def create_app():
 
     @app.route("/api/auth/register", methods=["POST"])
     def register():
-        """Registro simple (rol fijo: customer)."""
         try:
             data = request.get_json() or {}
             name = (data.get("name") or "").strip()
@@ -583,8 +601,21 @@ def create_app():
             db.session.add(user)
             db.session.commit()
 
-            tokens = _create_tokens_for(user)
-            return jsonify({**tokens, "user": user.to_dict()}), 201
+            access_token = create_access_token(
+                identity=str(user.id),
+                additional_claims=_claims_for(user),
+            )
+            refresh_token = create_refresh_token(
+                identity=str(user.id),
+                additional_claims=_claims_for(user),
+            )
+
+            resp = jsonify({"user": user.to_dict()})
+            set_access_cookies(resp, access_token)
+            set_refresh_cookies(resp, refresh_token)
+
+            return resp, 201
+
         except Exception as exc:
             app.logger.exception(f"Error inesperado en /api/auth/register: {exc}")
             db.session.rollback()
@@ -604,11 +635,30 @@ def create_app():
             if not user or not user.check_password(password):
                 return jsonify({"msg": "Credenciales inválidas"}), 401
 
-            tokens = _create_tokens_for(user)
-            return jsonify({**tokens, "user": user.to_dict()})
+            access_token = create_access_token(
+                identity=str(user.id),
+                additional_claims=_claims_for(user),
+            )
+            refresh_token = create_refresh_token(
+                identity=str(user.id),
+                additional_claims=_claims_for(user),
+            )
+
+            resp = jsonify({"user": user.to_dict()})
+            set_access_cookies(resp, access_token)
+            set_refresh_cookies(resp, refresh_token)
+
+            return resp, 200
+
         except Exception as exc:
             app.logger.exception(f"Error inesperado en /api/auth/login: {exc}")
             return jsonify({"msg": "Error interno al iniciar sesión"}), 500
+        
+    @app.route("/api/auth/logout", methods=["POST"])
+    def logout():
+        resp = jsonify({"msg": "logout ok"})
+        unset_jwt_cookies(resp)
+        return resp, 200
 
     @app.route("/api/auth/me", methods=["GET"])
     @jwt_required()
@@ -623,7 +673,6 @@ def create_app():
     @app.route("/api/auth/refresh", methods=["POST"])
     @jwt_required(refresh=True)
     def refresh():
-        """Entrega un nuevo access_token usando refresh_token."""
         user_id = get_jwt_identity()
         user = User.query.get(int(user_id)) if user_id else None
         if not user:
@@ -633,7 +682,10 @@ def create_app():
             identity=str(user.id),
             additional_claims=_claims_for(user),
         )
-        return jsonify({"access_token": access_token})
+
+        resp = jsonify({"ok": True})
+        set_access_cookies(resp, access_token)
+        return resp, 200
 
     # -------- HELPERS --------
 

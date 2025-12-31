@@ -1,5 +1,6 @@
 // src/pages/Store.jsx
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { fetchProducts } from "../services/api";
 import ProductCard from "../components/ProductCard";
 import {
@@ -20,6 +21,12 @@ function Store() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("todos");
   const [sort, setSort] = useState("relevancia");
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const cat = searchParams.get("category");
+    if (cat) setCategory(cat);
+  }, [searchParams]);
 
   async function load() {
   try {

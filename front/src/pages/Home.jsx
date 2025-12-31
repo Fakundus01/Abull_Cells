@@ -103,13 +103,13 @@ function Home() {
             </p>
           </div>
 
-          <Link to="/tienda" className="link-inline link-inline--v2">
+          <Link to={"/tienda"} className="link-inline link-inline--v2">
             Ver todo <FaArrowRight />
           </Link>
         </div>
 
         <div className="category-grid--v2">
-          <Link to="/tienda" className="category-card category-card--v2">
+          <Link to={`/tienda?category=${encodeURIComponent("Celulares")}`} className="category-card category-card--v2">
             <div className="cat-icon">
               <FaMobileAlt />
             </div>
@@ -117,7 +117,7 @@ function Home() {
             <p>Gama alta, media y opciones económicas.</p>
           </Link>
 
-          <Link to="/tienda" className="category-card category-card--v2">
+          <Link to={`/tienda?category=${encodeURIComponent("Notebooks")}`} className="category-card category-card--v2">
             <div className="cat-icon">
               <FaLaptop />
             </div>
@@ -125,7 +125,7 @@ function Home() {
             <p>Equipos para estudio, trabajo y gaming.</p>
           </Link>
 
-          <Link to="/tienda" className="category-card category-card--v2">
+          <Link to={`/tienda?category=${encodeURIComponent("Periféricos")}`} className="category-card category-card--v2">
             <div className="cat-icon">
               <FaPlug />
             </div>
@@ -133,7 +133,7 @@ function Home() {
             <p>Teclados, mouse, pads y más.</p>
           </Link>
 
-          <Link to="/tienda" className="category-card category-card--v2">
+          <Link to={`/tienda?category=${encodeURIComponent("Audio")}`} className="category-card category-card--v2">
             <div className="cat-icon">
               <FaHeadphones />
             </div>
@@ -141,7 +141,7 @@ function Home() {
             <p>Auriculares, parlantes y soundbars.</p>
           </Link>
 
-          <Link to="/tienda" className="category-card category-card--v2">
+          <Link to={`/tienda?category=${encodeURIComponent("Gaming")}`} className="category-card category-card--v2">
             <div className="cat-icon">
               <FaGamepad />
             </div>
@@ -149,7 +149,7 @@ function Home() {
             <p>Monitores, sillas gamers y accesorios.</p>
           </Link>
 
-          <Link to="/tienda" className="category-card category-card--v2">
+          <Link to={`/tienda?category=${encodeURIComponent("Accesorios")}`} className="category-card category-card--v2">
             <div className="cat-icon">
               <FaPlug />
             </div>

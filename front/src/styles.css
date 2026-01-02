@@ -2815,6 +2815,68 @@ a:visited { color: inherit; }
 }
 
 /* =========================
+   Checkout | Envío / Retiro
+   ========================= */
+
+.delivery-options{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+
+.delivery-option{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  cursor:pointer;
+  user-select:none;
+}
+
+.delivery-option input{
+  accent-color: currentColor;
+}
+
+.delivery-option.active{
+  border-color: rgba(56,189,248,.35);
+  background: rgba(56,189,248,.10);
+}
+
+.delivery-box{
+  margin-top:14px;
+  padding-top:12px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+
+.delivery-manual{
+  margin-top:12px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.delivery-row{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:10px;
+}
+
+@media (max-width: 720px){
+  .delivery-row{
+    grid-template-columns: 1fr;
+  }
+}
+
+.address-select{
+  width:100%;
+  margin-top:6px;
+}
+
+/* =========================
    CONTACT - UI Upgrade
 ========================= */
 
@@ -4307,33 +4369,121 @@ a:visited { color: inherit; }
   margin-top: 4px;
 }
 
-/* ===== PROFILE – Address actions + pagination + rows ===== */
-
-.address-actions{
-  display:flex;
-  gap:10px;
-  align-items:center;
+/* =========================
+   PROFILE - Address (NEW)
+   Pegarlo AL FINAL del styles.css
+========================= */
+.profile-verify {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.address-form-row{
-  display:grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap:10px;
+.profile-verify p {
+  margin: 6px 0 10px;
+  opacity: 0.9;
 }
 
-@media (max-width: 720px){
-  .address-form-row{
+.profile-verify-msg {
+  margin: 8px 0 10px;
+  font-size: 0.95rem;
+  opacity: 0.95;
+}
+
+.address-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.address-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: start;
+  padding: 14px 14px;
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.address-item strong {
+  font-weight: 700;
+  margin-right: 8px;
+}
+
+.pill-default {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(34, 197, 94, 0.12);
+  color: #15803d;
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+.address-line {
+  margin-top: 4px;
+  color: rgba(17, 24, 39, 0.9);
+  font-size: 14px;
+}
+
+.address-muted {
+  margin-top: 6px;
+  color: rgba(17, 24, 39, 0.55);
+  font-size: 13px;
+}
+
+.address-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.address-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.address-form {
+  display: grid;
+  gap: 10px;
+}
+
+.address-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.address-select {
+  width: 100%;
+}
+
+/* responsive */
+@media (max-width: 720px) {
+  .address-item {
     grid-template-columns: 1fr;
   }
-}
 
-.address-select{
-  width:100%;
-  padding:10px 12px;
-  border-radius:10px;
-  border:1px solid rgba(255,255,255,.1);
-  background: rgba(255,255,255,.04);
-  color: inherit;
+  .address-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .address-form-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .address-pagination{

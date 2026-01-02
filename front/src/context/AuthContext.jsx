@@ -25,15 +25,26 @@ export function AuthProvider({ children }) {
   }
 
   async function clearSession() {
-  try {
-    await logout();
-  } catch (e) {
-    // si falla igual limpiamos el front
+    try {
+      await logout();
+    } catch (e) {
+      // si falla igual limpiamos el front
+    }
+    setUser(null);
+    localStorage.removeItem("user");
   }
-  setUser(null);
-  localStorage.removeItem("user");
-}
 
+  async function refreshUser() {
+    try {
+      const me = await fetchMe();
+      setUser(me);
+      return me;
+    } catch {
+      setUser(null);
+      return null;
+    }
+  }
+  
   const isAuthenticated = !!user;
   const isAdmin = user?.role === "admin";
 
@@ -41,7 +52,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, isAuthenticated, isAdmin, loadingAuth, saveSession, clearSession, logout: logoutUser }}
+      value={{ user, isAuthenticated, isAdmin, loadingAuth, saveSession, clearSession, logout: logoutUser, refreshUser }}
     >
       {children}
     </AuthContext.Provider>

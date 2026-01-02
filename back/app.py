@@ -1,6 +1,7 @@
 # app.py
 from flask import Flask, json, jsonify, request
 from datetime import datetime
+import mimetypes
 import secrets
 import re
 import mercadopago # type: ignore
@@ -19,16 +20,19 @@ from flask_jwt_extended import ( #type: ignore
     unset_jwt_cookies,
     verify_jwt_in_request
 )
-
 from helpers import get_effective_price, parse_discount_percent
 from dotenv import load_dotenv
 from werkzeug.exceptions import NotFound  # arriba, con los imports
+from werkzeug.utils import secure_filename, secure_filename
 from config import Config
 from models import db, Product, User, Order, OrderItem, Address
-from email_utils import send_contact_message_to_admin, send_contact_autoreply, send_order_confirmation_email, send_admin_product_out_of_stock_email, send_buyer_order_email, send_verify_email
-
+from email_utils import (
+    send_contact_message_to_admin, send_contact_autoreply, send_order_confirmation_email, 
+    send_admin_product_out_of_stock_email, send_buyer_order_email, send_verify_code_email, send_admin_order_paid_email
+    )
+from werkzeug.security import generate_password_hash, check_password_hash
+                         
 load_dotenv()  # 👈 carga las variables desde .env
-
 
 def create_app():
     app = Flask(__name__)
@@ -42,6 +46,20 @@ def create_app():
     )
 
     jwt = JWTManager(app)
+
+    UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", "uploads")
+    MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "8"))
+    ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp", "application/pdf"}
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+    def _total_upload_size(file_list):
+        total = 0
+        for f in file_list:
+            pos = f.stream.tell()
+            f.stream.seek(0, os.SEEK_END)
+            total += f.stream.tell()
+            f.stream.seek(pos)
+        return total
 
     # -------- JWT HANDLERS (respuestas consistentes) --------
 
@@ -259,10 +277,6 @@ def create_app():
             try:
                 if payment_method == "efectivo":
                     send_buyer_order_email(order, order_items, mode="cash_created")
-                elif payment_method == "mercadopago":
-                    # opcional: mail “orden creada, pendiente de pago”
-                    # (si no querés, borrá este bloque)
-                    send_buyer_order_email(order, order_items, mode="mp_paid")
             except Exception as mail_exc:
                 app.logger.exception(f"[MAIL] Error enviando mail comprador: {mail_exc}")
 
@@ -321,39 +335,28 @@ def create_app():
     @app.route("/api/payments/mp/create_preference", methods=["POST"])
     @jwt_required()
     def create_mp_preference():
-        """
-        Crea una preferencia de pago de Mercado Pago para una orden ya creada.
-        Espera:
-        {
-        "orderId": 123,
-        "items": [
-            { "name": "...", "quantity": 1, "price": 10000 }
-        ]
-        }
-        """
         if not mp_client:
-            print("[MP] Intento de crear preferencia sin mp_client inicializado.")
             return jsonify({"msg": "Mercado Pago no está configurado"}), 500
 
         try:
             data = request.get_json() or {}
             print(f"[MP] /create_preference - payload recibido: {data}")
 
-            user_id = get_jwt_identity()
-            user = User.query.get(int(user_id)) if user_id else None
-            if not user:
-                return jsonify({"msg": "Usuario no encontrado"}), 404
-
             order_id = data.get("orderId")
             if not order_id:
                 return jsonify({"msg": "Falta orderId"}), 400
 
-            order = Order.query.get(order_id)
+            user_id = get_jwt_identity()
+            user = db.session.get(User, int(user_id)) if user_id else None
+            if not user:
+                return jsonify({"msg": "Usuario no encontrado"}), 404
+
+            order = db.session.get(Order, int(order_id))
             if not order:
                 return jsonify({"msg": "Orden no encontrada"}), 404
 
-            is_admin = (get_jwt().get("role") == "admin")
-            if not is_admin and order.email != user.email:
+            # seguridad: el user puede pagar su propia orden
+            if order.email != user.email:
                 return jsonify({"msg": "No tenés permiso para pagar esta orden"}), 403
 
             if order.payment_method != "mercadopago":
@@ -361,124 +364,115 @@ def create_app():
 
             if not order.items:
                 return jsonify({"msg": "La orden no tiene ítems"}), 400
-            
-            # ✅ Estado válido para generar preferencia
-            if order.status != "pending":
+
+            # ✅ permitir estado correcto de MP
+            if order.status not in ("pending_payment", "pending"):
                 return jsonify({"msg": f"No se puede pagar una orden con estado '{order.status}'"}), 409
-            
+
+            # si ya existe pref guardada, evitamos duplicar
             if order.payment_txid and str(order.payment_txid).startswith("MP_PREF:"):
                 return jsonify({"msg": "La preferencia ya fue creada para esta orden"}), 409
 
+            # items MP desde la orden
             mp_items = []
             for it in order.items:
-                mp_items.append(
-                    {
-                        "title": it.product_name,
-                        "quantity": int(it.quantity),
-                        "currency_id": "ARS",
-                        "unit_price": float(it.unit_price),
-                    }
-                )
+                mp_items.append({
+                    "title": it.product_name,
+                    "quantity": int(it.quantity),
+                    "currency_id": "ARS",
+                    "unit_price": float(it.unit_price),
+                })
 
             success_url = os.getenv("MP_SUCCESS_URL")
             failure_url = os.getenv("MP_FAILURE_URL")
             pending_url = os.getenv("MP_PENDING_URL")
 
+            # ✅ webhook REAL (público https). No localhost.
+            webhook_url = os.getenv("MP_WEBHOOK_URL")
+            if not webhook_url:
+                return jsonify({
+                    "msg": "Falta MP_WEBHOOK_URL (debe ser HTTPS público, ej: ngrok) para usar webhook."
+                }), 500
 
-            print("[MP] Armando preference_data...")
             preference_data = {
-            "external_reference": str(order.id),
-            "notification_url": "http://localhost:5000/api/mp/webhook", 
-            "back_urls": {
-                "success": success_url,
-                "failure": failure_url,
-                "pending": pending_url,
-            },
-            "auto_return": "approved",
-            "items": [
-                {
-                "title": oi.product_name,
-                "quantity": oi.quantity,
-                "currency_id": "ARS",
-                "unit_price": float(oi.unit_price),  # <- ya con oferta
-                }
-                for oi in order.items
-            ],
+                "external_reference": str(order.id),
+                "notification_url": webhook_url,
+                "items": mp_items,
             }
-            print(f"[MP] items para preference: {preference_data['items']}")
 
-            back_urls = {}
-            if success_url:
-                back_urls["success"] = success_url
-            if failure_url:
-                back_urls["failure"] = failure_url
-            if pending_url:
-                back_urls["pending"] = pending_url
+            # back_url (singular, como venís usando)
+            back_url = {}
+            if success_url: back_url["success"] = success_url
+            if failure_url: back_url["failure"] = failure_url
+            if pending_url: back_url["pending"] = pending_url
+            if back_url:
+                preference_data["back_url"] = back_url
 
-            if back_urls:
-                preference_data["back_urls"] = back_urls
+            # ✅ auto_return SOLO si success es https
+            if success_url and success_url.startswith("https://"):
+                preference_data["auto_return"] = "approved"
 
             print(f"[MP] preference_data armado: {preference_data}")
 
             preference = mp_client.preference().create(preference_data)
             print(f"[MP] Respuesta bruta de MP: {preference}")
 
-            pref_response = preference.get("response", {})
-            print(f"[MP] response interno de MP: {pref_response}")
-
-            print(f"[MP] Respuesta bruta de MP: {preference}")
-            print(f"[MP] response interno de MP: {pref_response}")
-
-            # 👇 En test, muchas veces viene sandbox_init_point
-            init_point = (
-                pref_response.get("init_point")
-                or pref_response.get("sandbox_init_point")
-            )
+            pref_response = preference.get("response", {}) or {}
             pref_id = pref_response.get("id")
+            init_point = pref_response.get("init_point") or pref_response.get("sandbox_init_point")
 
-            if not init_point:
-                print("[MP] No se recibió ni init_point ni sandbox_init_point en la respuesta de MP.")
+            if not init_point or not pref_id:
                 return jsonify({"msg": "No se pudo crear la preferencia de pago"}), 500
 
-            # opcional: guardar id de preferencia en la orden
-            order.payment_method = "mercadopago"
             order.payment_txid = f"MP_PREF:{pref_id}"
             db.session.commit()
-            print(
-                f"[MP] Preferencia creada OK. preference_id={pref_id}, init_point={init_point}"
-            )
 
-            return jsonify(
-                {
-                    "initPoint": init_point,
-                    "preferenceId": pref_id,
-                }
-            )
+            return jsonify({"initPoint": init_point, "preferenceId": pref_id}), 200
+
         except Exception as exc:
-            print("========== EXCEPCION EN create_mp_preference ==========")
-            print("Tipo:", type(exc))
-            print("Detalle:", repr(exc))
-            app.logger.exception(f"Error al crear preferencia MP: {exc}")
-            print("========== FIN EXCEPCION create_mp_preference ==========")
-            return jsonify({"msg": "Error al crear preferencia de pago"}), 500
+            app.logger.exception(f"[MP] Error create_preference: {exc}")
+            return jsonify({"msg": "No se pudo crear la preferencia de pago"}), 500
 
 
-    @app.route("/api/payments/mp/webhook", methods=["POST"])
+    @app.route("/api/payments/mp/webhook", methods=["POST", "GET"])
     def mp_webhook():
-        try:
-            data = request.get_json() or {}
+        """
+        Webhook Mercado Pago:
+        - Recibe notificación
+        - Obtiene payment_id
+        - Consulta el pago a /v1/payments/{id}
+        - Usa external_reference = order.id para actualizar la orden
+        """
+        if not mp_client:
+            return "", 200
 
-            # depende cómo lo recibas; MP manda distintos formatos
-            # normalmente trae un payment id en data["data"]["id"]
-            payment_id = (data.get("data") or {}).get("id")
+        try:
+
+            payload = request.get_json(silent=True) or {}
+
+            event_type = payload.get("type")
+            if event_type and event_type != "payment":
+                return "", 200
+
+            # MP puede mandar el id en body o por querystring
+            payment_id = None
+
+            # Formato recomendado:
+            # { "data": { "id": "123" }, "type": "payment" }
+            payment_id = (payload.get("data") or {}).get("id")
+
+            # fallback: query params
+            payment_id = payment_id or request.args.get("data.id") or request.args.get("id")
+
             if not payment_id:
                 return "", 200
 
             payment = mp_client.payment().get(payment_id)
-            payment_data = payment.get("response") or {}
+            payment_data = (payment.get("response") or {}) if isinstance(payment, dict) else {}
 
-            status = payment_data.get("status")  # approved, rejected, etc.
-            external_ref = payment_data.get("external_reference")  # acá ponés el order.id cuando creás preference
+            status = payment_data.get("status")            # approved / pending / rejected...
+            #status_detail = payment_data.get("status_detail")
+            external_ref = payment_data.get("external_reference")  # acá viene el order.id
 
             if not external_ref:
                 return "", 200
@@ -486,20 +480,60 @@ def create_app():
             order = Order.query.get(int(external_ref))
             if not order:
                 return "", 200
+            
+            if order.status == "paid" and order.payment_txid == f"MP_PAY:{payment_id}":
+                 return "", 200
 
-            if status == "approved" and order.status != "paid":
+            # Mapear a tu status interno
+            if status == "approved":
                 order.status = "paid"
-                order.payment_txid = str(payment_id)
-                order.payment_brand = (payment_data.get("payment_method_id") or "")
-                order.payment_last4 = (payment_data.get("card") or {}).get("last_four_digits")
+                # ✅ descontar stock ahora (pago confirmado)
+                agotados = []
+                for it in (order.items or []):
+                    product = Product.query.get(it.product_id)
+                    if not product:
+                        continue
 
-                db.session.commit()
+                    prev_stock = int(product.stock or 0)
+                    product.stock = max(0, prev_stock - int(it.quantity or 0))
 
-                # ✅ Mail comprador
+                    if prev_stock > 0 and product.stock == 0:
+                        agotados.append(product)
+
+                # ✅ mails post-pago
                 try:
-                    send_buyer_order_email(order, "order_items", mode="mp_paid")
-                except Exception as mail_exc:
-                    app.logger.exception(f"[MAIL] Error enviando mail comprador MP: {mail_exc}")
+                    send_admin_order_paid_email(order)
+                except Exception as e:
+                    app.logger.exception(f"[MAIL] Error mail admin pago aprobado: {e}")
+
+                try:
+                    # mail comprador “pago aprobado”
+                    send_buyer_order_email(order, order.items, mode="mp_paid")
+                except Exception as e:
+                    app.logger.exception(f"[MAIL] Error mail comprador mp_paid: {e}")
+
+                if agotados:
+                    try:
+                        for p in agotados:
+                            send_admin_product_out_of_stock_email(p)
+                    except Exception as e:
+                        app.logger.exception(f"[MAIL] Error mail stock agotado: {e}")
+
+            elif status in ("pending", "in_process"):
+                order.status = "pending"
+            else:
+                order.status = "cancelled"
+
+            order.payment_txid = f"MP_PAY:{payment_id}"
+
+            # Si es tarjeta, a veces hay info en payment_method_id / card
+            order.payment_brand = payment_data.get("payment_method_id")
+            card = payment_data.get("card") or {}
+            last4 = card.get("last_four_digits")
+            if last4:
+                order.payment_last4 = last4
+
+            db.session.commit()
 
             return "", 200
 
@@ -510,18 +544,27 @@ def create_app():
     @app.route("/api/contact", methods=["POST"])
     @jwt_required(optional=True)
     def contact():
-        data = request.get_json() or {}
-
         # Si está logueado, podemos usar sus datos como fallback
         user = None
         user_id = get_jwt_identity()
         if user_id:
             user = User.query.get(int(user_id))
 
-        name = (data.get("name") or (user.name if user else "") or "").strip()
-        email = (data.get("email") or (user.email if user else "") or "").strip().lower()
-        subject = (data.get("subject") or "").strip()
-        message = (data.get("message") or "").strip()
+        is_multipart = request.content_type and "multipart/form-data" in request.content_type
+
+        if is_multipart:
+            name = (request.form.get("name") or (user.name if user else "") or "").strip()
+            email = (request.form.get("email") or (user.email if user else "") or "").strip().lower()
+            subject = (request.form.get("subject") or "").strip()
+            message = (request.form.get("message") or "").strip()
+            files = request.files.getlist("files")
+        else:
+            data = request.get_json() or {}
+            name = (data.get("name") or (user.name if user else "") or "").strip()
+            email = (data.get("email") or (user.email if user else "") or "").strip().lower()
+            subject = (data.get("subject") or "").strip()
+            message = (data.get("message") or "").strip()
+            files = []
 
         # Validaciones mínimas
         email_re = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -534,7 +577,39 @@ def create_app():
         if not message or len(message) < 10:
             return jsonify({"msg": "El mensaje debe tener al menos 10 caracteres"}), 400
 
-        ok_admin = send_contact_message_to_admin(name, email, subject, message)
+        # ✅ Validar adjuntos (tipo + tamaño total)
+        saved_files = []
+        if files:
+            total = _total_upload_size(files)
+            max_bytes = MAX_UPLOAD_MB * 1024 * 1024
+            if total > max_bytes:
+                return jsonify({"msg": f"Adjuntos demasiado grandes (max {MAX_UPLOAD_MB}MB)"}), 400
+
+            for f in files:
+                if not f or not f.filename:
+                    continue
+                mt = (f.mimetype or "").lower()
+                if mt not in ALLOWED_MIME:
+                    return jsonify({"msg": "Tipo de archivo no permitido (solo imágenes o PDF)"}), 400
+
+            # Guardar
+            for f in files:
+                if not f or not f.filename:
+                    continue
+
+                filename = secure_filename(f.filename)
+                base, ext = os.path.splitext(filename)
+                final_path = os.path.join(UPLOAD_FOLDER, filename)
+
+                i = 1
+                while os.path.exists(final_path):
+                    final_path = os.path.join(UPLOAD_FOLDER, f"{base}_{i}{ext}")
+                    i += 1
+
+                f.save(final_path)
+                saved_files.append(final_path)
+
+        ok_admin = send_contact_message_to_admin(name, email, subject, message, attachments=saved_files)
         if not ok_admin:
             return jsonify({"msg": "No se pudo enviar el mensaje (config mail)"}), 500
 
@@ -617,95 +692,125 @@ def create_app():
 
         return jsonify({"ok": True, "order": order.to_dict()})
     
-    @app.route("/api/me/addresses", methods=["GET"])
-    @jwt_required()
-    def get_my_addresses():
-        user_id = int(get_jwt_identity())
-        addresses = (
-            Address.query
-            .filter_by(user_id=user_id)
-            .order_by(Address.is_default.desc(), Address.created_at.desc())
-            .all()
-        )
-        return jsonify([a.to_dict() for a in addresses])
+    def _require_user_id():
+        user_id = get_jwt_identity()
+        if not user_id:
+            return None
+        return int(user_id)
 
-    @app.route("/api/me/addresses", methods=["POST"])
+    @app.route("/api/addresses", methods=["GET"])
     @jwt_required()
-    def create_my_address():
-        user_id = int(get_jwt_identity())
+    def list_addresses():
+        user_id = _require_user_id()
+        rows = Address.query.filter_by(user_id=user_id).order_by(Address.is_default.desc(), Address.id.desc()).all()
+        return jsonify([a.to_dict() for a in rows]), 200
+
+
+    @app.route("/api/addresses", methods=["POST"])
+    @jwt_required()
+    def create_address():
+        user_id = _require_user_id()
         data = request.get_json() or {}
 
         label = (data.get("label") or "").strip()
         street = (data.get("street") or "").strip()
         city = (data.get("city") or "").strip()
         province = (data.get("province") or "").strip()
-        postal_code = (data.get("postalCode") or "").strip() or None
 
         if not label or not street or not city or not province:
-            return jsonify({"msg": "Faltan campos obligatorios"}), 400
+            return jsonify({"msg": "Completá label, calle, ciudad y provincia."}), 400
 
         is_default = bool(data.get("isDefault"))
-
-        # si viene como predeterminada, desmarcamos las otras
         if is_default:
+            # ✅ nunca 2 predeterminadas
             Address.query.filter_by(user_id=user_id, is_default=True).update({"is_default": False})
 
         addr = Address(
             user_id=user_id,
             label=label,
-            type=(data.get("type") or "house"),
             street=street,
             city=city,
             province=province,
-            postal_code=postal_code,
+            postal_code=(data.get("postalCode") or "").strip() or None,
+            type=(data.get("type") or "house"),
             apartment=(data.get("apartment") or "").strip() or None,
             floor=(data.get("floor") or "").strip() or None,
             bell=(data.get("bell") or "").strip() or None,
             notes=(data.get("notes") or "").strip() or None,
             is_default=is_default,
         )
+
         db.session.add(addr)
         db.session.commit()
         return jsonify(addr.to_dict()), 201
 
-    @app.route("/api/me/addresses/<int:address_id>", methods=["DELETE"])
+
+    @app.route("/api/addresses/<int:address_id>", methods=["PUT"])
     @jwt_required()
-    def delete_my_address(address_id):
-        user_id = int(get_jwt_identity())
+    def update_address(address_id):
+        user_id = _require_user_id()
         addr = Address.query.filter_by(id=address_id, user_id=user_id).first()
         if not addr:
             return jsonify({"msg": "Dirección no encontrada"}), 404
 
-        was_default = addr.is_default
+        data = request.get_json() or {}
+
+        # campos editables
+        def _s(v): return (v or "").strip()
+
+        if "label" in data: addr.label = _s(data.get("label"))
+        if "street" in data: addr.street = _s(data.get("street"))
+        if "city" in data: addr.city = _s(data.get("city"))
+        if "province" in data: addr.province = _s(data.get("province"))
+        if "postalCode" in data: addr.postal_code = _s(data.get("postalCode")) or None
+
+        if "type" in data: addr.type = data.get("type") or "house"
+        if "apartment" in data: addr.apartment = _s(data.get("apartment")) or None
+        if "floor" in data: addr.floor = _s(data.get("floor")) or None
+        if "bell" in data: addr.bell = _s(data.get("bell")) or None
+        if "notes" in data: addr.notes = _s(data.get("notes")) or None
+
+        if "isDefault" in data:
+            make_default = bool(data.get("isDefault"))
+            if make_default:
+                Address.query.filter_by(user_id=user_id, is_default=True).update({"is_default": False})
+                addr.is_default = True
+            else:
+                # permitir desmarcar, pero si desmarca la predeterminada y no hay otra,
+                # queda sin predeterminada (ok).
+                addr.is_default = False
+
+        db.session.commit()
+        return jsonify(addr.to_dict()), 200
+
+
+    @app.route("/api/addresses/<int:address_id>", methods=["DELETE"])
+    @jwt_required()
+    def delete_address(address_id):
+        user_id = _require_user_id()
+        addr = Address.query.filter_by(id=address_id, user_id=user_id).first()
+        if not addr:
+            return jsonify({"msg": "Dirección no encontrada"}), 404
+
         db.session.delete(addr)
         db.session.commit()
+        return jsonify({"ok": True}), 200
 
-        # si borró la default, marcamos otra como default si existe
-        if was_default:
-            next_addr = (
-                Address.query.filter_by(user_id=user_id)
-                .order_by(Address.created_at.desc())
-                .first()
-            )
-            if next_addr:
-                next_addr.is_default = True
-                db.session.commit()
 
-        return jsonify({"ok": True})
-
-    @app.route("/api/me/addresses/<int:address_id>/default", methods=["PUT"])
+    @app.route("/api/addresses/<int:address_id>/default", methods=["POST"])
     @jwt_required()
     def set_default_address(address_id):
-        user_id = int(get_jwt_identity())
-
+        user_id = _require_user_id()
         addr = Address.query.filter_by(id=address_id, user_id=user_id).first()
         if not addr:
             return jsonify({"msg": "Dirección no encontrada"}), 404
 
+        # ✅ único default
         Address.query.filter_by(user_id=user_id, is_default=True).update({"is_default": False})
         addr.is_default = True
+
         db.session.commit()
-        return jsonify(addr.to_dict())
+        return jsonify(addr.to_dict()), 200
 
     # -------- AUTH --------
 
@@ -714,12 +819,12 @@ def create_app():
     def _claims_for(user: User) -> dict:
         return {"role": user.role, "email": user.email}
 
-    def _create_tokens_for(user: User) -> dict:
-        claims = _claims_for(user)
-        return {
-            "access_token": create_access_token(identity=str(user.id), additional_claims=claims),
-            "refresh_token": create_refresh_token(identity=str(user.id), additional_claims=claims),
-        }
+    # def _create_tokens_for(user: User) -> dict:
+    #     claims = _claims_for(user)
+    #     return {
+    #         "access_token": create_access_token(identity=str(user.id), additional_claims=claims),
+    #         "refresh_token": create_refresh_token(identity=str(user.id), additional_claims=claims),
+    #     }
 
     @app.route("/api/auth/register", methods=["POST"])
     def register():
@@ -753,18 +858,16 @@ def create_app():
             db.session.add(user)
             db.session.commit()
 
-            # ✅ generar token + enviar mail de verificación
-            token = secrets.token_urlsafe(32)
-            user.email_verify_token = token
-            user.email_verify_sent_at = datetime.utcnow()
+            # ✅ generar CÓDIGO + enviar mail de verificación
+            code = f"{secrets.randbelow(1000000):06d}"  # 000000 - 999999
+
             user.email_verified = False
+            user.email_verify_code_hash = generate_password_hash(code)
+            user.email_verify_code_sent_at = datetime.utcnow()
             db.session.commit()
 
-            frontend_base = os.getenv("FRONTEND_URL", "http://localhost:5173")
-            verify_url = f"{frontend_base}/verify-email?token={token}"
-
             try:
-                send_verify_email(user.email, verify_url, user.name)
+                send_verify_code_email(user.email, code, user.name)  # <- email_utils.py
             except Exception as e:
                 app.logger.exception(f"[MAIL] Error enviando verificación: {e}")
 
@@ -857,7 +960,7 @@ def create_app():
         verify_url = f"{frontend_base}/verify-email?token={token}"
 
         try:
-            send_verify_email(user.email, verify_url, user.name)
+            send_verify_code_email(user.email, verify_url, user.name)
         except Exception as e:
             app.logger.exception(f"[MAIL] Error enviando verificación: {e}")
             return jsonify({"msg": "No se pudo enviar el mail"}), 500
@@ -865,19 +968,58 @@ def create_app():
         return jsonify({"ok": True}), 200
     
     @app.route("/api/auth/verify-email", methods=["POST"])
+    @jwt_required()
     def verify_email():
         data = request.get_json() or {}
-        token = (data.get("token") or "").strip()
-        if not token:
-            return jsonify({"msg": "Token requerido"}), 400
+        code = (data.get("code") or "").strip()
 
-        user = User.query.filter_by(email_verify_token=token).first()
+        if not code or len(code) != 6 or not code.isdigit():
+            return jsonify({"msg": "Código inválido"}), 400
+
+        user_id = get_jwt_identity()
+        user = User.query.get(int(user_id)) if user_id else None
         if not user:
-            return jsonify({"msg": "Token inválido"}), 400
+            return jsonify({"msg": "Usuario no encontrado"}), 404
 
+        if user.email_verified:
+            return jsonify({"ok": True, "already": True}), 200
+
+        if not user.email_verify_code_hash:
+            return jsonify({"msg": "No hay un código activo. Pedí reenviar."}), 400
+
+        # ✅ ACA está la magia:
+        ok = check_password_hash(user.email_verify_code_hash, code)
+        if not ok:
+            return jsonify({"msg": "Código incorrecto"}), 400
+
+        # ✅ marcar verificado y borrar hash (ya no se necesita)
         user.email_verified = True
-        user.email_verify_token = None
+        user.email_verify_code_hash = None
+        user.email_verify_sent_at = None
         db.session.commit()
+
+        return jsonify({"ok": True}), 200
+    
+    @app.route("/api/auth/resend-verify", methods=["POST"])
+    @jwt_required()
+    def resend_verify():
+        user_id = get_jwt_identity()
+        user = User.query.get(int(user_id)) if user_id else None
+        if not user:
+            return jsonify({"msg": "Usuario no encontrado"}), 404
+
+        if user.email_verified:
+            return jsonify({"ok": True, "already": True}), 200
+
+        code = f"{secrets.randbelow(1_000_000):06d}"
+        user.email_verify_code_hash = generate_password_hash(code)
+        user.email_verify_sent_at = datetime.utcnow()
+        db.session.commit()
+
+        try:
+            send_verify_code_email(user.email, code, user.name)
+        except Exception as e:
+            app.logger.exception(f"[MAIL] Error enviando verificación: {e}")
 
         return jsonify({"ok": True}), 200
 

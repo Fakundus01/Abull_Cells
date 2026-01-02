@@ -29,3 +29,10 @@ class Config:
     # Opcional: tiempos (ajustalos a gusto)
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=2)        # ✅ 2 horas
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=14)       # ✅ 14 días (ok)
+
+    #✅ Configuraciones de subida de archivos
+    UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", "uploads")
+    MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "8"))
+    ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp", "application/pdf"}
+
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)

@@ -1,8 +1,10 @@
 # back/email_utils.py
+import email
 import os
 import ssl
 import smtplib
 from email.message import EmailMessage
+import mimetypes
 
 
 def to_ascii_safe(text: str) -> str:
@@ -13,7 +15,7 @@ def to_ascii_safe(text: str) -> str:
         return ""
     return str(text).encode("ascii", errors="ignore").decode("ascii")
 
-def send_email(to_email: str, subject: str, body: str, cc: str | None = None) -> bool:
+def send_email(to_email: str, subject: str, body: str, cc: str | None = None, reply_to: str | None = None) -> bool:
     """
     Envia un email usando Gmail SMTP (EMAIL_SENDER / EMAIL_PASSWORD).
     """
@@ -31,8 +33,12 @@ def send_email(to_email: str, subject: str, body: str, cc: str | None = None) ->
     em = EmailMessage()
     em["From"] = email_sender
     em["To"] = to_email
+    if email:
+        em["Reply-To"] = email
     if cc:
         em["Cc"] = cc
+    if reply_to:
+        em["Reply-To"] = reply_to
     em["Subject"] = to_ascii_safe(subject)
     em.set_content(to_ascii_safe(body))
 
@@ -161,9 +167,16 @@ def send_admin_order_paid_email(order):
 
     return send_email(admin_email, subject, body, cc=None)
     
-def send_contact_message_to_admin(name: str, email: str, subject: str, message: str) -> bool:
+def send_contact_message_to_admin(
+    name: str,
+    email: str,
+    subject: str,
+    message: str,
+    attachments: list[str] | None = None
+) -> bool:
     """
-    Envia al EMAIL_ADMIN el mensaje del formulario "Contactanos".
+    Envía al EMAIL_ADMIN el mensaje del formulario "Contáctanos".
+    Soporta adjuntos (imágenes/PDF).
     """
     email_sender = os.getenv("EMAIL_SENDER")
     email_password = os.getenv("EMAIL_PASSWORD")
@@ -179,7 +192,7 @@ def send_contact_message_to_admin(name: str, email: str, subject: str, message: 
     subject = to_ascii_safe(f"[CONTACTO] {subject}".strip() or "[CONTACTO] Nuevo mensaje")
 
     body_lines = [
-        "Nuevo mensaje desde Contactanos:",
+        "Nuevo mensaje desde Contáctanos:",
         "",
         f"Nombre: {to_ascii_safe(name)}",
         f"Email: {to_ascii_safe(email)}",
@@ -192,8 +205,33 @@ def send_contact_message_to_admin(name: str, email: str, subject: str, message: 
     em = EmailMessage()
     em["From"] = email_sender
     em["To"] = admin_email
+
+    # ✅ Reply-To para responder directo al cliente
+    if email:
+        em["Reply-To"] = email
+
     em["Subject"] = subject
     em.set_content(body)
+
+    # ✅ Adjuntos
+    attachments = attachments or []
+    for path in attachments:
+        try:
+            if not path or not os.path.exists(path):
+                continue
+
+            mime, _ = mimetypes.guess_type(path)
+            maintype, subtype = (mime.split("/", 1) if mime else ("application", "octet-stream"))
+
+            with open(path, "rb") as fp:
+                em.add_attachment(
+                    fp.read(),
+                    maintype=maintype,
+                    subtype=subtype,
+                    filename=os.path.basename(path),
+                )
+        except Exception as ex:
+            print(f"[MAIL] No se pudo adjuntar {path!r}: {ex!r}")
 
     context = ssl.create_default_context()
 
@@ -276,6 +314,10 @@ def send_buyer_order_email(order, items, mode: str):
     address = os.getenv("LOCAL_PICKUP_ADDRESS", "Dirección no configurada")
     hours = os.getenv("LOCAL_PICKUP_HOURS", "")
     whatsapp = os.getenv("LOCAL_PICKUP_WHATSAPP", "")
+    notes = (order.notes or "")
+    notes_u = notes.upper()
+    is_delivery = ("ENVÍO" in notes_u) or ("ENVIO" in notes_u)
+    lines = []
 
     to_email = order.email
     if not to_email:
@@ -306,39 +348,52 @@ def send_buyer_order_email(order, items, mode: str):
 
         lines_items.append(f"- {name} x{qty} · ${int(unit)} c/u · Subtotal: ${int(sub)}")
 
-    lines = [
-        intro,
-        "",
-        f"Número de pedido: #{order.id}",
-        f"Total: ${order.total_amount}",
-        pay_line,
-        "",
-        "🧾 Detalle:",
-        *(lines_items or ["(Sin items)"]),
-        "",
-        "📍 Retiro en:",
-        address,
-    ]
+    # ✅ Entrega: Retiro vs Envío
+    if is_delivery:
+        delivery_hours = os.getenv("DELIVERY_HOURS", "")  # opcional (ej: "16:00 a 19:00")
+        lines += [
+            "",
+            "🛵 Envío a domicilio:",
+            "Estamos preparando tu paquete. Te lo enviaremos en el próximo horario de envíos.",
+        ]
 
-    if hours:
-        lines += ["", f"🕒 Horarios: {hours}"]
-    if whatsapp:
-        lines += ["", f"📲 WhatsApp: {whatsapp}"]
+        if delivery_hours:
+            lines += [f"🕒 Horario estimado de envío: {delivery_hours}"]
+
+        # Mostramos la dirección que viene en notes (porque ahí agregamos "ENVÍO - ...")
+        delivery_line = ""
+        for ln in (notes or "").splitlines():
+            if ln.upper().startswith("ENVÍO") or ln.upper().startswith("ENVIO"):
+                delivery_line = ln
+                break
+
+        lines += ["", "📍 Dirección indicada:", delivery_line or "—"]
+
+        if whatsapp:
+            lines += ["", f"📲 WhatsApp: {whatsapp}"]
+
+    else:
+        lines += [
+            "",
+            "📍 Retiro en:",
+            address,
+        ]
+
+        if hours:
+            lines += ["", f"🕒 Horarios: {hours}"]
+        if whatsapp:
+            lines += ["", f"📲 WhatsApp: {whatsapp}"]
 
     lines += ["", "Gracias por tu compra 🙌"]
 
     body = "\n".join(lines)
     return send_email(to_email, subject, body, cc=None)
 
-def send_verify_email(to_email: str, verify_url: str, user_name: str = ""):
-    subject = "✅ Verificá tu email - Abul Cells"
-    lines = [
-        f"Hola {user_name or ''}".strip(),
-        "",
-        "Para verificar tu email, abrí este link:",
-        verify_url,
-        "",
-        "Si no fuiste vos, ignorá este mensaje.",
-    ]
-    body = "\n".join(lines)
+def send_verify_code_email(to_email: str, code: str, name: str = ""):
+    subject = "🔐 Verificación de email - Abul Cells"
+    body = (
+        f"Hola {name or ''}!\n\n"
+        f"Tu código de verificación es: {code}\n\n"
+        "Si no fuiste vos, ignorá este mail.\n"
+    )
     return send_email(to_email, subject, body, cc=None)

@@ -31,21 +31,21 @@ function Signup() {
     setForm((prev) => ({ ...prev, [name]: value }));
   }
 
-  function handleSendCode() {
-    setError("");
+  // function handleSendCode() {
+  //   setError("");
 
-    if (!emailOk) {
-      setError("Ingresá un email válido para poder verificarlo.");
-      return;
-    }
+  //   if (!emailOk) {
+  //     setError("Ingresá un email válido para poder verificarlo.");
+  //     return;
+  //   }
 
-    const code = getInitialCode();
-    setServerCode(code);
-    setCodeSent(true);
+  //   const code = getInitialCode();
+  //   setServerCode(code);
+  //   setCodeSent(true);
 
-    // MOCK: en real lo enviás por backend/email provider
-    console.log("[SIGNUP][mock] Código enviado a:", form.email, "code:", code);
-  }
+  //   // MOCK: en real lo enviás por backend/email provider
+  //   console.log("[SIGNUP][mock] Código enviado a:", form.email, "code:", code);
+  // }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -81,7 +81,7 @@ function Signup() {
       });
 
       // backend setea cookies + devuelve user
-      navigate("/");
+      navigate("/verify-email");
     } catch (err) {
       setError("Ocurrió un error al crear la cuenta.");
     } finally {

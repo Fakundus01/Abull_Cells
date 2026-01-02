@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { BadgeCheck, Mail, User } from "lucide-react";
-import { sendVerifyEmail, fetchAddresses, createAddress, deleteAddress, setDefaultAddress} from "../services/api";
+import { sendVerifyEmail, fetchAddresses, createAddress, deleteAddress, updateAddress, setDefaultAddress, resendVerifyEmail} from "../services/api";
 import { useEffect, useState, useMemo } from "react";
 
 function Profile() {
@@ -9,6 +9,11 @@ function Profile() {
   const [addresses, setAddresses] = useState([]);
   const [loadingAddresses, setLoadingAddresses] = useState(true);
   const [addrError, setAddrError] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const isEditing = editingId != null;
+  const [verifStatus, setVerifStatus] = useState("idle"); // idle | loading
+  const [verifMsg, setVerifMsg] = useState("");
+
 
   const [addrForm, setAddrForm] = useState({
     label: "",
@@ -39,8 +44,8 @@ function Profile() {
   }, [totalAddrPages]);
 
   useEffect(() => {
-  loadAddresses();
-}, []);
+    loadAddresses();
+  }, []);
 
   if (!user) {
     return (
@@ -52,7 +57,7 @@ function Profile() {
     );
   }
 
-  const isEmailVerified = Boolean(user?.emailVerified); // mock, lo conectamos luego
+  const isEmailVerified = Boolean(user?.emailVerified);
 
   function handleAddrChange(e) {
   const { name, value, type, checked } = e.target;
@@ -72,15 +77,21 @@ function Profile() {
     } finally {
       setLoadingAddresses(false);
     }
-  }
+ }
 
   async function handleAddAddress(e) {
     e.preventDefault();
     setAddrError("");
 
     try {
-      const created = await createAddress(addrForm);
-      setAddresses((prev) => [...prev, created]);
+      if (isEditing) {
+        await updateAddress(editingId, addrForm);
+      } else {
+        await createAddress(addrForm);
+      }
+
+      setEditingId(null);
+      await loadAddresses();
 
       setAddrForm({
         label: "",
@@ -152,29 +163,66 @@ function Profile() {
           </div>
         </div>
 
-        {user && user.emailVerified === false && (
+        {!isEmailVerified && (
         <div className="profile-verify card-animate" role="alert">
           <strong>Tu email todavía no está verificado.</strong>
-          <p>Te enviamos un link para verificarlo. Si no lo recibiste, reenviá el mail.</p>
+          <p>Revisá tu casilla. Si no te llegó el código, podés reenviarlo.</p>
+
+          {verifMsg && <p className="profile-verify-msg">{verifMsg}</p>}
 
           <button
             type="button"
-            className="btn-primary btn-small"
+            className="btn-secondary btn-small"
+            disabled={verifStatus === "loading"}
             onClick={async () => {
               try {
-                await sendVerifyEmail();
-                alert("Listo ✅ Revisá tu casilla.");
+                setVerifStatus("loading");
+                setVerifMsg("");
+                await resendVerifyEmail();
+                setVerifMsg("Listo ✅ Te reenviamos el código. Revisá tu mail.");
               } catch (e) {
-                alert(e.message || "No se pudo reenviar");
+                setVerifMsg(e.message || "No se pudo reenviar el código.");
+              } finally {
+                setVerifStatus("idle");
               }
             }}
           >
-            Reenviar verificación
+            {verifStatus === "loading" ? "Reenviando..." : "Reenviar verificación"}
           </button>
+
+          <div style={{ marginTop: 10 }}>
+            <Link to="/verify-email" className="link-inline--v2">
+              Ingresar código ahora
+            </Link>
+          </div>
         </div>
       )}
       </section>
       <section className="profile-card card-animate">
+        {isEditing && (
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={() => {
+            setEditingId(null);
+            setAddrForm({
+              label: "",
+              street: "",
+              city: "",
+              province: "",
+              postalCode: "",
+              isDefault: false,
+              type: "house",
+              apartment: "",
+              floor: "",
+              bell: "",
+              notes: "",
+            });
+          }}
+        >
+          Cancelar edición
+        </button>
+      )}
         <h2 className="profile-title">Mis direcciones</h2>
 
         {loadingAddresses ? (
@@ -219,11 +267,35 @@ function Profile() {
 
                   <button
                     type="button"
+                    className="btn-small btn-secondary"
+                    onClick={() => {
+                      setEditingId(a.id);
+                      setAddrForm({
+                        label: a.label || "",
+                        street: a.street || "",
+                        city: a.city || "",
+                        province: a.province || "",
+                        postalCode: a.postalCode || "",
+                        isDefault: !!a.isDefault,
+                        type: a.type || "house",
+                        apartment: a.apartment || "",
+                        floor: a.floor || "",
+                        bell: a.bell || "",
+                        notes: a.notes || "",
+                      });
+                    }}
+                  >
+                    Editar
+                  </button>
+
+                  <button
+                    type="button"
                     className="btn-small btn-danger"
                     onClick={() => handleDeleteAddress(a.id)}
                   >
                     Eliminar
                   </button>
+
                 </div>
               </li>
             ))}

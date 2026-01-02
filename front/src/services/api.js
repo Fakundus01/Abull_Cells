@@ -21,7 +21,6 @@ async function apiFetch(path, options = {}, retry = true) {
   const method = (options.method || "GET").toUpperCase();
   const headers = { ...(options.headers || {}) };
 
-  // ✅ Siempre cookies
   const fetchOptions = {
     ...options,
     method,
@@ -29,8 +28,11 @@ async function apiFetch(path, options = {}, retry = true) {
     headers,
   };
 
-  if (fetchOptions.body && !fetchOptions.headers["Content-Type"]) {
-  fetchOptions.headers["Content-Type"] = "application/json";
+  // ✅ NO setear JSON si el body es FormData
+  const isFormData = fetchOptions.body instanceof FormData;
+
+  if (fetchOptions.body && !fetchOptions.headers["Content-Type"] && !isFormData) {
+    fetchOptions.headers["Content-Type"] = "application/json";
   }
 
   // ✅ CSRF para métodos con escritura
@@ -42,12 +44,10 @@ async function apiFetch(path, options = {}, retry = true) {
 
   const res = await fetch(url, fetchOptions);
 
-  // Intentamos leer json siempre que se pueda
   let data = null;
   const ct = res.headers.get("content-type") || "";
   if (ct.includes("application/json")) data = await res.json();
 
-  // ✅ Si token expiró: refrescar y reintentar 1 vez
   if (res.status === 401 && retry) {
     const msg = (data?.msg || "").toLowerCase();
     const expired =
@@ -177,37 +177,73 @@ export function createMpPreference({ orderId }) {
 }
 
 export function sendVerifyEmail() {
-  return apiFetch("/auth/send-verify-email", { method: "POST" });
+  return apiFetch("/auth/verify-email", { method: "POST" });
 }
 
-export function verifyEmailToken(token) {
+// ✅ Confirmar código (usa /auth/verify-email)
+export async function confirmVerifyEmail(code) {
   return apiFetch("/auth/verify-email", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token }),
+    body: JSON.stringify({ code }),
   });
 }
 
+// ✅ Reenviar código (usa /auth/resend-verify)
+export async function resendVerifyEmail() {
+  return apiFetch("/auth/resend-verify", {
+    method: "POST",
+    // sin body (o si querés, body: JSON.stringify({}) con Content-Type)
+  });
+}
+
+// opcional: refrescar /me luego de verificar
+export function fetchMe2() {
+  return apiFetch("/auth/me", { method: "GET" }).then((r) => r.user);
+}
+
 export function fetchAddresses() {
-  return apiFetch("/me/addresses");
+  return apiFetch("/addresses", { method: "GET" });
 }
 
 export function createAddress(payload) {
-  return apiFetch("/me/addresses", {
+  return apiFetch("/addresses", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
 }
 
+export function updateAddress(id, payload) {
+  return apiFetch(`/addresses/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
 export function deleteAddress(id) {
-  return apiFetch(`/me/addresses/${id}`, { method: "DELETE" });
+  return apiFetch(`/addresses/${id}`, { method: "DELETE" });
 }
 
 export function setDefaultAddress(id) {
-  return apiFetch(`/me/addresses/${id}/default`, { method: "PUT" });
+  return apiFetch(`/addresses/${id}/default`, { method: "POST" });
 }
 
+// ✅ Contacto
+export function sendContactMessage(payload) {
+  const isFormData = payload instanceof FormData;
+
+  return apiFetch("/contact", {
+    method: "POST",
+    ...(isFormData
+      ? { body: payload } // multipart/form-data automático
+      : {
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }),
+  });
+}
 
 
 

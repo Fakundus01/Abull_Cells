@@ -19,7 +19,10 @@ class User(db.Model):
     role = db.Column(db.String(20), default="user")  # "admin" | "user"
 
     # ✅ Verificación de email
+   
     email_verified = db.Column(db.Boolean, default=False, nullable=False)
+    email_verify_code_hash = db.Column(db.String(255), nullable=True)
+    email_verify_code_sent_at = db.Column(db.DateTime, nullable=True)
     email_verify_token = db.Column(db.String(120), nullable=True, index=True)
     email_verify_sent_at = db.Column(db.DateTime, nullable=True)
 

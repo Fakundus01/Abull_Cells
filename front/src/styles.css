@@ -3817,13 +3817,538 @@ a:visited { color: inherit; }
   border-color: rgba(56,189,248,.28);
   background: rgba(56,189,248,.12);
 }
+/* =======================================================================
+   ADMIN: Tabs + Users + Metrics (NEW) — agregado sin modificar estilos previos
+   ======================================================================= */
 
+.admin-tabs{
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin: 1rem 0 0;
+  padding: .45rem;
+  border-radius: 14px;
+  background: rgba(255,255,255,.75);
+  border: 1px solid rgba(148,163,184,.25);
+  box-shadow: 0 10px 22px rgba(15,23,42,.06);
+  backdrop-filter: blur(10px);
+}
 
+.admin-tab{
+  appearance: none;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: .6rem .9rem;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: .55rem;
+  color: rgba(15,23,42,.75);
+  font-weight: 650;
+  transition: transform .12s ease, background .12s ease, color .12s ease, box-shadow .12s ease;
+}
 
+.admin-tab:hover{
+  background: rgba(15,23,42,.04);
+  transform: translateY(-1px);
+}
 
+.admin-tab.active{
+  color: rgba(15,23,42,.92);
+  background: rgba(99,102,241,.10);
+  box-shadow: 0 10px 20px rgba(99,102,241,.10);
+}
 
+.admin-tab .icon{
+  width: 18px;
+  height: 18px;
+}
 
+.admin-tab-count{
+  margin-left: .15rem;
+  font-size: .78rem;
+  padding: .18rem .5rem;
+  border-radius: 999px;
+  background: rgba(15,23,42,.06);
+  border: 1px solid rgba(148,163,184,.22);
+  color: rgba(15,23,42,.72);
+  font-weight: 700;
+}
 
+.admin-tab.active .admin-tab-count{
+  background: rgba(99,102,241,.14);
+  border-color: rgba(99,102,241,.18);
+  color: rgba(67,56,202,.95);
+}
+
+/* Secciones dentro del admin (para separar Users / Métricas) */
+.admin-section{
+  display: grid;
+  gap: 1rem;
+}
+
+/* ---------------------------
+   ADMIN USERS: tabla moderna
+   --------------------------- */
+
+.admin-users-table.modern{
+  display: grid;
+  gap: .35rem;
+}
+
+.admin-users-header,
+.admin-users-row{
+  display: grid;
+  grid-template-columns: 80px 1.2fr 1.5fr 110px 140px;
+  align-items: center;
+  column-gap: .75rem;
+  padding: .7rem .75rem;
+  border-radius: 14px;
+}
+
+.admin-users-header{
+  background: rgba(15,23,42,.04);
+  border: 1px solid rgba(148,163,184,.22);
+  color: rgba(15,23,42,.65);
+  font-size: .85rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.admin-users-row{
+  background: rgba(255,255,255,.9);
+  border: 1px solid rgba(148,163,184,.18);
+  box-shadow: 0 10px 20px rgba(15,23,42,.04);
+}
+
+.admin-users-row:hover{
+  border-color: rgba(99,102,241,.25);
+  box-shadow: 0 14px 26px rgba(99,102,241,.08);
+}
+
+.user-role-pill{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  padding: .25rem .55rem;
+  border-radius: 999px;
+  font-size: .82rem;
+  font-weight: 750;
+  border: 1px solid rgba(148,163,184,.22);
+  background: rgba(15,23,42,.04);
+  color: rgba(15,23,42,.75);
+  width: fit-content;
+}
+
+.user-role-pill.admin{
+  background: rgba(34,197,94,.10);
+  border-color: rgba(34,197,94,.18);
+  color: rgba(20,83,45,.95);
+}
+
+.user-role-pill.user{
+  background: rgba(59,130,246,.10);
+  border-color: rgba(59,130,246,.18);
+  color: rgba(30,58,138,.92);
+}
+
+.user-actions{
+  display: inline-flex;
+  justify-content: flex-end;
+  gap: .5rem;
+}
+
+.user-actions .btn-small{
+  min-width: 38px;
+}
+
+/* Responsive users table */
+@media (max-width: 820px){
+  .admin-users-header{
+    display: none;
+  }
+  .admin-users-row{
+    grid-template-columns: 1fr;
+    gap: .55rem;
+    padding: .85rem;
+  }
+  .admin-users-row > span{
+    display: flex;
+    justify-content: space-between;
+    gap: .75rem;
+  }
+  .admin-users-row > span::before{
+    content: attr(data-label);
+    color: rgba(15,23,42,.55);
+    font-weight: 750;
+  }
+  .user-actions{
+    justify-content: flex-start;
+  }
+}
+
+/* ---------------------------
+   MÉTRICAS: cards + filtros
+   --------------------------- */
+
+.admin-metrics-grid{
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.metric-card{
+  background: rgba(255,255,255,.92);
+  border: 1px solid rgba(148,163,184,.18);
+  border-radius: 18px;
+  padding: 1rem;
+  box-shadow: 0 14px 28px rgba(15,23,42,.06);
+}
+
+.metric-label{
+  color: rgba(15,23,42,.60);
+  font-weight: 750;
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+}
+
+.metric-value{
+  margin-top: .4rem;
+  font-size: 1.6rem;
+  font-weight: 850;
+  color: rgba(15,23,42,.92);
+}
+
+.metric-sub{
+  margin-top: .35rem;
+  color: rgba(15,23,42,.55);
+  font-size: .92rem;
+}
+
+.admin-metrics-filters{
+  display: flex;
+  flex-wrap: wrap;
+  gap: .6rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-metrics-filters .filter-group{
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  align-items: center;
+}
+
+.filter-pill{
+  border: 1px solid rgba(148,163,184,.22);
+  background: rgba(255,255,255,.8);
+  border-radius: 999px;
+  padding: .38rem .7rem;
+  font-weight: 750;
+  color: rgba(15,23,42,.72);
+  cursor: pointer;
+  transition: background .12s ease, transform .12s ease, border-color .12s ease;
+}
+
+.filter-pill:hover{
+  background: rgba(15,23,42,.04);
+  transform: translateY(-1px);
+}
+
+.filter-pill.active{
+  background: rgba(99,102,241,.12);
+  border-color: rgba(99,102,241,.22);
+  color: rgba(67,56,202,.95);
+}
+
+.metric-chart-card{
+  background: rgba(255,255,255,.92);
+  border: 1px solid rgba(148,163,184,.18);
+  border-radius: 18px;
+  padding: 1rem;
+  box-shadow: 0 14px 28px rgba(15,23,42,.06);
+}
+
+.metric-chart-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  margin-bottom: .75rem;
+}
+
+.metric-chart-title{
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 850;
+  color: rgba(15,23,42,.88);
+}
+
+@media (max-width: 980px){
+  .admin-metrics-grid{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px){
+  .admin-metrics-grid{
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================
+   Admin - Ganancias (Charts)
+   ========================= */
+
+.gains-grid{
+  display:grid;
+  grid-template-columns: 380px 1fr;
+  gap:16px;
+  margin-top:12px;
+}
+
+@media (max-width: 980px){
+  .gains-grid{ grid-template-columns: 1fr; }
+}
+
+.gains-kpis{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:12px;
+}
+
+.gains-kpi{
+  border:1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.03);
+  border-radius: 14px;
+  padding: 12px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.gains-kpi span{
+  font-size: 12px;
+  opacity:.8;
+}
+
+.gains-kpi strong{
+  font-size: 18px;
+}
+
+.gains-chart{
+  border:1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.03);
+  border-radius: 14px;
+  padding: 12px;
+  min-height: 220px;
+}
+
+.gains-chart-head{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:10px;
+}
+
+.bars{
+  height: 180px;
+  display:flex;
+  align-items:flex-end;
+  gap:8px;
+  padding: 8px;
+  border-radius: 12px;
+  background: rgba(0,0,0,.12);
+}
+
+.bar-wrap{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+  min-width: 16px;
+}
+
+.bar{
+  width: 100%;
+  border-radius: 10px;
+  background: rgba(0, 204, 255, .75);
+  box-shadow: 0 10px 25px rgba(0, 204, 255, .14);
+  transition: transform .15s ease, opacity .15s ease;
+}
+
+.bar-wrap:hover .bar{
+  transform: translateY(-2px);
+  opacity: .95;
+}
+
+.bar-label{
+  font-size: 11px;
+  opacity: .7;
+}
+
+/* =========================
+   PROFILE – DIRECCIONES
+   ========================= */
+
+.profile-card {
+  background: var(--card-bg, #fff);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 16px;
+}
+
+.profile-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.profile-subtitle {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.profile-muted {
+  color: #9aa0a6;
+  font-size: 0.9rem;
+}
+
+/* ---------- Lista de direcciones ---------- */
+
+.address-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.address-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.address-line {
+  margin-top: 4px;
+  font-size: 0.9rem;
+}
+
+.address-muted {
+  font-size: 0.8rem;
+  color: #9aa0a6;
+}
+
+/* ---------- Pill default ---------- */
+
+.pill-default {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  font-weight: 600;
+}
+
+/* ---------- Formulario dirección ---------- */
+
+.address-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.address-form input {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+}
+
+.address-form input::placeholder {
+  color: #9aa0a6;
+}
+
+.address-form input:focus {
+  outline: none;
+  border-color: rgba(99, 102, 241, 0.6);
+}
+
+/* ---------- Checkbox row ---------- */
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+/* ---------- Error ---------- */
+
+.form-error {
+  color: #f87171;
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+
+/* ===== PROFILE – Address actions + pagination + rows ===== */
+
+.address-actions{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+
+.address-form-row{
+  display:grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap:10px;
+}
+
+@media (max-width: 720px){
+  .address-form-row{
+    grid-template-columns: 1fr;
+  }
+}
+
+.address-select{
+  width:100%;
+  padding:10px 12px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.04);
+  color: inherit;
+}
+
+.address-pagination{
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap:10px;
+  margin-top: 12px;
+}
+
+.auth-label-profile{
+  font-weight: 600;
+  color: rgba(2,6,23,.78);
+  margin-top: .25rem;
+}
 
 
 

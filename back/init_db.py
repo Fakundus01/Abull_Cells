@@ -11,11 +11,12 @@ with app.app_context():
 
     # --- Usuario admin por defecto ---
     admin = User(
-        name="Admin Abul",
-        email="admin@abulcells.com",
+        name="Facundo Moreno",
+        email="facumoreno2001@gmail.com",
+        username="Facundomoreno",
         role="admin",
     )
-    admin.set_password("AbulAdmin123")  # contraseña de ejemplo
+    admin.set_password("Kassadin01")  # contraseña de ejemplo
     db.session.add(admin)
 
     # --- Productos de ejemplo ---

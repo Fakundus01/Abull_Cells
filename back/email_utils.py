@@ -269,7 +269,7 @@ def send_admin_product_out_of_stock_email(product):
     )
     return send_email(admin_email, subject, body, cc=None)
 
-def send_buyer_order_email(order, mode: str):
+def send_buyer_order_email(order, items, mode: str):
     """
     mode: "cash_created" | "mp_paid"
     """
@@ -285,15 +285,26 @@ def send_buyer_order_email(order, mode: str):
     if mode == "cash_created":
         subject = f"✅ Pedido #{order.id} registrado - Pago en efectivo al retirar"
         intro = "Tu pedido fue registrado correctamente."
-        pay_line = "💵 **Pagás en efectivo al retirar.**"
-
+        pay_line = "💵 Pagás en efectivo al retirar."
     elif mode == "mp_paid":
         subject = f"✅ Pago aprobado - Pedido #{order.id} confirmado"
         intro = "¡Tu pago fue aprobado! Tu compra fue confirmada."
-        pay_line = "💳 **Pago por Mercado Pago: aprobado.**"
-
+        pay_line = "💳 Pago por Mercado Pago: aprobado."
     else:
         raise ValueError("mode inválido")
+
+    # --- Detalle de items (soporta dicts) ---
+    lines_items = []
+    for it in (items or []):
+        # soporta dicts o modelos
+        name = (it.get("product_name") if isinstance(it, dict) else getattr(it, "product_name", None)) or "Producto"
+        qty = (it.get("quantity") if isinstance(it, dict) else getattr(it, "quantity", 1)) or 1
+        unit = (it.get("unit_price") if isinstance(it, dict) else getattr(it, "unit_price", 0)) or 0
+        sub = (it.get("subtotal") if isinstance(it, dict) else getattr(it, "subtotal", None))
+        if sub is None:
+            sub = int(unit) * int(qty)
+
+        lines_items.append(f"- {name} x{qty} · ${int(unit)} c/u · Subtotal: ${int(sub)}")
 
     lines = [
         intro,
@@ -302,20 +313,32 @@ def send_buyer_order_email(order, mode: str):
         f"Total: ${order.total_amount}",
         pay_line,
         "",
+        "🧾 Detalle:",
+        *(lines_items or ["(Sin items)"]),
+        "",
         "📍 Retiro en:",
         address,
     ]
 
     if hours:
         lines += ["", f"🕒 Horarios: {hours}"]
-
     if whatsapp:
         lines += ["", f"📲 WhatsApp: {whatsapp}"]
 
-    lines += [
-        "",
-        "Gracias por tu compra 🙌",
-    ]
+    lines += ["", "Gracias por tu compra 🙌"]
 
+    body = "\n".join(lines)
+    return send_email(to_email, subject, body, cc=None)
+
+def send_verify_email(to_email: str, verify_url: str, user_name: str = ""):
+    subject = "✅ Verificá tu email - Abul Cells"
+    lines = [
+        f"Hola {user_name or ''}".strip(),
+        "",
+        "Para verificar tu email, abrí este link:",
+        verify_url,
+        "",
+        "Si no fuiste vos, ignorá este mensaje.",
+    ]
     body = "\n".join(lines)
     return send_email(to_email, subject, body, cc=None)

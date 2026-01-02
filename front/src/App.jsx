@@ -15,6 +15,7 @@ import CheckoutSuccess from "./pages/CheckoutSuccess";
 import CheckoutFailure from "./pages/CheckoutFailure";
 import Signup from "./pages/Signup";
 import Profile from "./pages/Profile";
+import VerifyEmail from "./components/VerifyEmail";
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
           <Route path="/checkout/failure" element={<CheckoutFailure />} />
           <Route path="/checkout/pending" element={<CheckoutFailure />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
         </Routes>
       </main>
 

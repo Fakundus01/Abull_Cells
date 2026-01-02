@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { UserPlus, Mail, Lock, User, ArrowRight, BadgeCheck } from "lucide-react";
+import { UserPlus, Mail, Lock, User, ArrowRight } from "lucide-react";
+import { register } from "../services/api";
 
 function getInitialCode() {
   // Mock: código de 6 dígitos
@@ -20,30 +21,14 @@ function Signup() {
   const [status, setStatus] = useState("idle"); // idle | loading
   const [error, setError] = useState("");
 
-  // Email verification (mock)
-  const [codeSent, setCodeSent] = useState(false);
-  const [serverCode, setServerCode] = useState("");
-  const [codeInput, setCodeInput] = useState("");
-  const [emailVerified, setEmailVerified] = useState(false);
-
   const emailOk = useMemo(() => {
     const email = String(form.email || "").trim();
-    // validación simple
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }, [form.email]);
 
   function handleChange(e) {
     const { name, value } = e.target;
-
     setForm((prev) => ({ ...prev, [name]: value }));
-
-    // Si cambia el email, reseteamos verificación
-    if (name === "email") {
-      setCodeSent(false);
-      setServerCode("");
-      setCodeInput("");
-      setEmailVerified(false);
-    }
   }
 
   function handleSendCode() {
@@ -62,20 +47,6 @@ function Signup() {
     console.log("[SIGNUP][mock] Código enviado a:", form.email, "code:", code);
   }
 
-  function handleVerifyCode() {
-    setError("");
-
-    if (!codeSent) return;
-
-    if (codeInput.trim() === serverCode) {
-      setEmailVerified(true);
-      return;
-    }
-
-    setEmailVerified(false);
-    setError("El código no coincide. Revisá e intentá de nuevo.");
-  }
-
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
@@ -85,13 +56,13 @@ function Signup() {
       return;
     }
 
-    if (!emailVerified) {
-      setError("Primero verificá tu email.");
+    if (!emailOk) {
+      setError("Ingresá un email válido.");
       return;
     }
 
-    if (form.password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres.");
+    if (form.password.length < 8) {
+      setError("La contraseña debe tener al menos 8 caracteres.");
       return;
     }
 
@@ -103,10 +74,14 @@ function Signup() {
     try {
       setStatus("loading");
 
-      // ✅ MOCK por ahora (después lo conectamos al backend)
-      await new Promise((r) => setTimeout(r, 700));
+       await register({
+        name: form.name.trim(),
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+      });
 
-      navigate("/login");
+      // backend setea cookies + devuelve user
+      navigate("/");
     } catch (err) {
       setError("Ocurrió un error al crear la cuenta.");
     } finally {
@@ -128,13 +103,6 @@ function Signup() {
               Registrate para seguir tus compras en Abul Cells.
             </p>
           </div>
-
-          {emailVerified && (
-            <span className="verify-badge" title="Email verificado">
-              <BadgeCheck size={16} className="icon" />
-              Verificado
-            </span>
-          )}
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit}>
@@ -166,40 +134,8 @@ function Signup() {
                   required
                 />
               </div>
-
-              <button
-                type="button"
-                className="btn-secondary btn-small"
-                onClick={handleSendCode}
-              >
-                {codeSent ? "Reenviar" : "Verificar"}
-              </button>
             </div>
           </label>
-
-          {codeSent && !emailVerified && (
-            <label className="auth-label">
-              Código de verificación
-              <div className="auth-code-row">
-                <input
-                  className="auth-code-input"
-                  value={codeInput}
-                  onChange={(e) => setCodeInput(e.target.value)}
-                  placeholder="Ingresá el código (6 dígitos)"
-                />
-                <button
-                  type="button"
-                  className="btn-secondary btn-small"
-                  onClick={handleVerifyCode}
-                >
-                  Confirmar
-                </button>
-              </div>
-              <p className="auth-hint">
-                (Mock) El código se imprime en consola por ahora.
-              </p>
-            </label>
-          )}
 
           <label className="auth-label">
             Contraseña

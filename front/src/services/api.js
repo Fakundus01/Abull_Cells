@@ -29,6 +29,10 @@ async function apiFetch(path, options = {}, retry = true) {
     headers,
   };
 
+  if (fetchOptions.body && !fetchOptions.headers["Content-Type"]) {
+  fetchOptions.headers["Content-Type"] = "application/json";
+  }
+
   // ✅ CSRF para métodos con escritura
   const needsCsrf = ["POST", "PUT", "PATCH", "DELETE"].includes(method);
   if (needsCsrf) {
@@ -66,6 +70,18 @@ async function apiFetch(path, options = {}, retry = true) {
 
 export function fetchProducts() {
   return apiFetch("/products");
+}
+
+export async function fetchAdminUsers() {
+  return apiFetch("/admin/users", { method: "GET" });
+}
+
+export async function register(payload) {
+  // payload: { name, email, password }
+  return apiFetch("/auth/register", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }).then((r) => r.user);
 }
 
 export async function fetchMe() {
@@ -108,34 +124,18 @@ export function createProduct(product) {
   });
 }
 
-export async function updateProduct(id, product) {
-  const csrf = getCookie("csrf_access_token");
-
-  const res = await apiFetch(`/admin/products/${id}`, {
+export function updateProduct(id, product) {
+  return apiFetch(`/admin/products/${id}`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRF-TOKEN": csrf,
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(product),
   });
-
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.msg || "Error al actualizar producto");
-  return data;
 }
 
-export async function deleteProduct(id) {
-  const csrf = getCookie("csrf_access_token");
-
-  const res = await apiFetch(`/admin/products/${id}`, {
+export function deleteProduct(id) {
+  return apiFetch(`/admin/products/${id}`, {
     method: "DELETE",
-    headers: { "X-CSRF-TOKEN": csrf },
   });
-
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.msg || "Error al eliminar producto");
-  return data;
 }
 
 export function createOrder(payload) {
@@ -168,20 +168,46 @@ export async function updateOrderStatus(orderId, status) {
   return data;
 }
 
-export async function createMpPreference({ orderId }) {
-  const csrf = getCookie("csrf_access_token");
-
-  const res = await apiFetch("/payments/mp/create_preference", {
+export function createMpPreference({ orderId }) {
+  return apiFetch("/payments/mp/create_preference", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRF-TOKEN": csrf,
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ orderId }),
   });
-
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.msg || "Error al crear preferencia MP");
-  return data;
 }
+
+export function sendVerifyEmail() {
+  return apiFetch("/auth/send-verify-email", { method: "POST" });
+}
+
+export function verifyEmailToken(token) {
+  return apiFetch("/auth/verify-email", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+}
+
+export function fetchAddresses() {
+  return apiFetch("/me/addresses");
+}
+
+export function createAddress(payload) {
+  return apiFetch("/me/addresses", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteAddress(id) {
+  return apiFetch(`/me/addresses/${id}`, { method: "DELETE" });
+}
+
+export function setDefaultAddress(id) {
+  return apiFetch(`/me/addresses/${id}/default`, { method: "PUT" });
+}
+
+
+
 

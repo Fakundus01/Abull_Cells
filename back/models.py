@@ -10,11 +10,23 @@ db = SQLAlchemy()
 class User(db.Model):
     __tablename__ = "users"
 
+    # ✅ Datos básicos
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
+    email = db.Column(db.String(200), unique=True, nullable=False, index=True)
+    username = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
-    role = db.Column(db.String(20), default="customer")  # "admin" o "customer"
+    role = db.Column(db.String(20), default="user")  # "admin" | "user"
+
+    # ✅ Verificación de email
+    email_verified = db.Column(db.Boolean, default=False, nullable=False)
+    email_verify_token = db.Column(db.String(120), nullable=True, index=True)
+    email_verify_sent_at = db.Column(db.DateTime, nullable=True)
+
+    # ✅ Datos de perfil (para checkout/envíos)
+    dni = db.Column(db.String(30), nullable=True)
+    phone = db.Column(db.String(40), nullable=True)
+    recovery_email = db.Column(db.String(200), nullable=True)
 
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
@@ -28,6 +40,11 @@ class User(db.Model):
             "name": self.name,
             "email": self.email,
             "role": self.role,
+            "username": self.username,
+            "emailVerified": bool(self.email_verified),
+            "dni": self.dni,
+            "phone": self.phone,
+            "recoveryEmail": self.recovery_email,
         }
 
 
@@ -67,6 +84,9 @@ class Order(db.Model):
     email = db.Column(db.String(200), nullable=False)
     phone = db.Column(db.String(50), nullable=True)
     email_sent_paid = db.Column(db.Boolean, default=False)
+    delivery_method = db.Column(db.String(20), default="pickup")  # pickup | delivery
+    delivery_address = db.Column(db.Text, nullable=True)  # snapshot JSON
+
 
     notes = db.Column(db.Text, nullable=True)
 
@@ -102,8 +122,6 @@ class Order(db.Model):
             "items": [item.to_dict() for item in self.items],
         }
 
-
-
 class OrderItem(db.Model):
     __tablename__ = "order_items"
 
@@ -126,3 +144,49 @@ class OrderItem(db.Model):
             "subtotal": self.subtotal,
         }
 
+class Address(db.Model):
+    __tablename__ = "addresses"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+
+    label = db.Column(db.String(80), nullable=False)  # Casa, Trabajo, etc.
+    type = db.Column(db.String(20), default="house")
+    street = db.Column(db.String(200), nullable=False)
+    city = db.Column(db.String(120), nullable=False)
+    province = db.Column(db.String(120), nullable=False)
+    postal_code = db.Column(db.String(20), nullable=True)
+
+    apartment = db.Column(db.String(20), nullable=True)
+    floor = db.Column(db.String(20), nullable=True)
+    bell = db.Column(db.String(60), nullable=True)
+    notes = db.Column(db.String(255), nullable=True)
+
+    is_default = db.Column(db.Boolean, default=False, nullable=False)
+
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    user = db.relationship("User", backref=db.backref("addresses", lazy=True))
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "label": self.label,
+            "type": self.type,
+            "street": self.street,
+            "city": self.city,
+            "province": self.province,
+            "postalCode": self.postal_code,
+            "apartment": self.apartment,
+            "floor": self.floor,
+            "bell": self.bell,
+            "notes": self.notes,
+            "isDefault": self.is_default,
+        }
+# --- FIN DE models.py ---

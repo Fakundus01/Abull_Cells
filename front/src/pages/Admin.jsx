@@ -8,6 +8,7 @@ import {
   deleteProduct,
   fetchOrders,
   updateOrderStatus,
+  fetchAdminUsers,
 } from "../services/api";
 
 import {
@@ -36,11 +37,20 @@ import {
 function Admin() {
   const { isAdmin, user, token } = useAuth();
 
+  const [activeTab, setActiveTab] = useState("store"); // "store" | "users" | "gains"
+
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
 
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
+
+  // ✅ Tabs
+  const [tab, setTab] = useState("store"); // store | users | profits
+
+  // ✅ Users tab
+  const [users, setUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -68,6 +78,15 @@ function Admin() {
 
   const PAGE_SIZE = 5;
   const [ordersPage, setOrdersPage] = useState(1);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    if (tab !== "users") return;
+
+    // cargar usuarios al entrar a la pestaña
+    loadUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, isAdmin]);
 
   useEffect(() => {
     async function loadData() {
@@ -167,6 +186,19 @@ function Admin() {
       offerLabel: "",
     });
     setEditingId(null);
+  }
+
+  async function loadUsers() {
+    try {
+      setLoadingUsers(true);
+      setError("");
+      const data = await fetchAdminUsers(); // devuelve { users: [...] }
+      setUsers(data?.users || []);
+    } catch (err) {
+      setError(err.message || "No se pudieron cargar usuarios.");
+    } finally {
+      setLoadingUsers(false);
+    }
   }
 
   function handleChange(e) {
@@ -289,9 +321,122 @@ const pagedOrders = useMemo(() => {
     }
   }
 
+  function toDateKey(d) {
+    // YYYY-MM-DD local
+    const dt = new Date(d);
+    const y = dt.getFullYear();
+    const m = String(dt.getMonth() + 1).padStart(2, "0");
+    const day = String(dt.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function startOfDay(d) {
+    const x = new Date(d);
+    x.setHours(0, 0, 0, 0);
+    return x;
+  }
+
+  function daysAgo(n) {
+    const d = new Date();
+    d.setDate(d.getDate() - n);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+
+  function sumPaidBetween(orders, from, to) {
+    const a = startOfDay(from).getTime();
+    const b = startOfDay(to).getTime();
+    return orders.reduce((acc, o) => {
+      if (o.status !== "paid") return acc;
+      const t = o.createdAt ? new Date(o.createdAt).getTime() : NaN;
+      if (!Number.isFinite(t)) return acc;
+      if (t >= a && t <= b + 24 * 60 * 60 * 1000 - 1) {
+        return acc + Number(o.totalAmount || 0);
+      }
+      return acc;
+    }, 0);
+  }
+
+  const paidOrders = useMemo(() => orders.filter(o => o.status === "paid"), [orders]);
+
+  const revenueToday = useMemo(() => {
+    const today = new Date();
+    return sumPaidBetween(orders, today, today);
+  }, [orders]);
+
+  const revenueWeek = useMemo(() => {
+    const from = daysAgo(6);
+    const to = new Date();
+    return sumPaidBetween(orders, from, to);
+  }, [orders]);
+
+  const revenueMonth = useMemo(() => {
+    const now = new Date();
+    const from = new Date(now.getFullYear(), now.getMonth(), 1);
+    const to = new Date();
+    return sumPaidBetween(orders, from, to);
+  }, [orders]);
+
+  const revenueYear = useMemo(() => {
+    const now = new Date();
+    const from = new Date(now.getFullYear(), 0, 1);
+    const to = new Date();
+    return sumPaidBetween(orders, from, to);
+  }, [orders]);
+
+  // barras últimos 14 días
+  const revenue14d = useMemo(() => {
+    const map = new Map(); // key -> total
+    for (let i = 13; i >= 0; i--) {
+      const key = toDateKey(daysAgo(i));
+      map.set(key, 0);
+    }
+    for (const o of orders) {
+      if (o.status !== "paid") continue;
+      if (!o.createdAt) continue;
+      const key = toDateKey(o.createdAt);
+      if (map.has(key)) map.set(key, map.get(key) + Number(o.totalAmount || 0));
+    }
+    const arr = Array.from(map.entries()).map(([date, total]) => ({ date, total }));
+    return arr;
+  }, [orders]);
+
+  const maxBar = useMemo(() => {
+    return Math.max(1, ...revenue14d.map(x => x.total || 0));
+  }, [revenue14d]);
+
   return (
     <section className="admin-page">
       <header className="admin-top card-animate">
+        {/* ✅ Tabs */}
+      <div className="admin-tabs card-animate">
+        <button
+          type="button"
+          className={`btn-secondary btn-icon ${tab === "store" ? "active" : ""}`}
+          onClick={() => setTab("store")}
+        >
+          <Package size={18} className="icon" />
+          Tienda
+        </button>
+
+        <button
+          type="button"
+          className={`btn-secondary btn-icon ${tab === "users" ? "active" : ""}`}
+          onClick={() => setTab("users")}
+        >
+          <ShieldCheck size={18} className="icon" />
+          Usuarios
+        </button>
+
+        <button
+          type="button"
+          className={`btn-secondary btn-icon ${tab === "profits" ? "active" : ""}`}
+          onClick={() => setTab("profits")}
+        >
+          <ClipboardList size={18} className="icon" />
+          Ganancias
+        </button>
+      </div>
         <div className="admin-top-left">
           <h1 className="admin-title">
             <LayoutGrid size={22} className="icon" />
@@ -301,14 +446,45 @@ const pagedOrders = useMemo(() => {
             Hola, <strong>{user?.name}</strong>. Gestioná productos y órdenes de Abul Cells.
           </p>
           <div className="admin-kpis">
-            <span className="admin-kpi">
-              <Package size={16} className="icon" /> {products.length} productos
-            </span>
-            <span className="admin-kpi">
-              <ClipboardList size={16} className="icon" /> {orders.length} órdenes
-            </span>
-            <span className="admin-kpi subtle">{headerSubtitle}</span>
-          </div>
+          {tab === "store" && (
+            <>
+              <span className="admin-kpi">
+                <Package size={16} className="icon" /> {products.length} productos
+              </span>
+              <span className="admin-kpi">
+                <ClipboardList size={16} className="icon" /> {orders.length} órdenes
+              </span>
+              <span className="admin-kpi subtle">{headerSubtitle}</span>
+            </>
+          )}
+
+          {tab === "users" && (
+            <>
+              <span className="admin-kpi">
+                <ShieldCheck size={16} className="icon" /> {users.length} usuarios
+              </span>
+              {/* después agregamos “admins” y “nuevos 7d” cuando tengamos endpoint */}
+              <span className="admin-kpi subtle">Gestión de usuarios</span>
+            </>
+          )}
+
+          {tab === "gains" && (
+            <>
+              <span className="admin-kpi">
+                <DollarSign size={16} className="icon" /> Hoy: ${Number(revenueToday).toLocaleString("es-AR")}
+              </span>
+              <span className="admin-kpi">
+                <DollarSign size={16} className="icon" /> Semana: ${Number(revenueWeek).toLocaleString("es-AR")}
+              </span>
+              <span className="admin-kpi">
+                <DollarSign size={16} className="icon" /> Mes: ${Number(revenueMonth).toLocaleString("es-AR")}
+              </span>
+              <span className="admin-kpi subtle">
+                Año: ${Number(revenueYear).toLocaleString("es-AR")}
+              </span>
+            </>
+          )}
+        </div>
         </div>
       </header>
 
@@ -329,6 +505,8 @@ const pagedOrders = useMemo(() => {
         </div>
       )}
 
+    {tab === "store" && (
+    <>
       <div className="admin-grid">
         {/* Formulario */}
         <div className={`admin-card admin-form-card ${isEditing ? "editing" : ""} card-animate`}>
@@ -618,20 +796,135 @@ const pagedOrders = useMemo(() => {
           )}
         </div>
       </div>
+    </>
+    )}
 
-      <div className="admin-pagination">
-  <span className="admin-muted">
-    Mostrando{" "}
-    <strong>
-      {orders.length === 0 ? 0 : (ordersPage - 1) * PAGE_SIZE + 1}
-    </strong>
-    {" "}–{" "}
-    <strong>
-      {Math.min(ordersPage * PAGE_SIZE, orders.length)}
-    </strong>
-    {" "}de{" "}
-    <strong>{orders.length}</strong>
-  </span>
+    {tab === "users" && (
+        <div className="admin-card card-animate" style={{ marginTop: 16 }}>
+          <div className="admin-card-header">
+            <h2 className="admin-card-title">
+              <ShieldCheck size={18} className="icon" /> Usuarios
+            </h2>
+
+            <button
+              type="button"
+              className="btn-small btn-icon"
+              onClick={loadUsers}
+              disabled={loadingUsers}
+            >
+              {loadingUsers ? (
+                <>
+                  <Loader2 size={16} className="icon spin" /> Cargando...
+                </>
+              ) : (
+                "Actualizar"
+              )}
+            </button>
+          </div>
+
+          {loadingUsers ? (
+            <p className="admin-muted">
+              <Loader2 size={16} className="icon spin" /> Cargando usuarios...
+            </p>
+          ) : users.length === 0 ? (
+            <p className="admin-muted">No hay usuarios para mostrar.</p>
+          ) : (
+            <div className="admin-users-table modern">
+              <div className="admin-users-header">
+                <span>ID</span>
+                <span>Nombre</span>
+                <span>Email</span>
+                <span>Rol</span>
+              </div>
+
+              {users.map((u) => (
+                <div key={u.id} className="admin-users-row">
+                  <span className="cell-muted">#{u.id}</span>
+                  <span className="cell-strong">{u.name}</span>
+                  <span className="cell-muted">{u.email}</span>
+                  <span>
+                    <span className={`role-pill ${u.role === "admin" ? "admin" : "user"}`}>
+                      {u.role}
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === "profits" && (
+  <div className="admin-card card-animate" style={{ marginTop: 16 }}>
+    <div className="admin-card-header">
+      <h2 className="admin-card-title">
+        <ClipboardList size={18} className="icon" /> Ganancias
+      </h2>
+    </div>
+
+    <p className="admin-muted">
+      Se calculan con órdenes <strong>pagadas</strong> (status = <strong>paid</strong>).
+    </p>
+
+    <div className="gains-grid">
+      <div className="gains-kpis">
+        <div className="gains-kpi">
+          <span>Hoy</span>
+          <strong>${Number(revenueToday || 0).toLocaleString("es-AR")}</strong>
+        </div>
+        <div className="gains-kpi">
+          <span>Semana</span>
+          <strong>${Number(revenueWeek || 0).toLocaleString("es-AR")}</strong>
+        </div>
+        <div className="gains-kpi">
+          <span>Mes</span>
+          <strong>${Number(revenueMonth || 0).toLocaleString("es-AR")}</strong>
+        </div>
+        <div className="gains-kpi">
+          <span>Año</span>
+          <strong>${Number(revenueYear || 0).toLocaleString("es-AR")}</strong>
+        </div>
+      </div>
+
+      <div className="gains-chart">
+        <div className="gains-chart-head">
+          <strong>Últimos 14 días</strong>
+          <span className="admin-muted">Ingresos diarios</span>
+        </div>
+
+        <div className="bars">
+          {revenue14d.map((d) => {
+            const h = maxBar > 0 ? Math.round(((d.total || 0) / maxBar) * 100) : 0;
+            return (
+              <div
+                key={d.date}
+                className="bar-wrap"
+                title={`${d.date} · $${Number(d.total || 0).toLocaleString("es-AR")}`}
+              >
+                <div className="bar" style={{ height: `${h}%` }} />
+                <div className="bar-label">{String(d.date).slice(5)}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+  <div className="admin-pagination">
+    <span className="admin-muted">
+      Mostrando{" "}
+      <strong>
+        {orders.length === 0 ? 0 : (ordersPage - 1) * PAGE_SIZE + 1}
+      </strong>
+      {" "}–{" "}
+      <strong>
+        {Math.min(ordersPage * PAGE_SIZE, orders.length)}
+      </strong>
+      {" "}de{" "}
+      <strong>{orders.length}</strong>
+    </span>
 
   <div className="admin-pagination-actions">
     <button

@@ -8,15 +8,17 @@ export function AuthProvider({ children }) {
   const [loadingAuth, setLoadingAuth] = useState(true);
 
   useEffect(() => {
-  (async () => {
-    try {
-      const u = await fetchMe();
-      setUser(u);
-    } catch {
-      setUser(null);
-    }
-  })();
-}, []);
+    (async () => {
+      try {
+        const u = await fetchMe();
+        setUser(u);
+      } catch {
+        setUser(null);
+      } finally {
+        setLoadingAuth(false);
+      }
+    })();
+  }, []);
 
   function saveSession(user) {
     setUser(user); // listo
@@ -29,16 +31,17 @@ export function AuthProvider({ children }) {
     // si falla igual limpiamos el front
   }
   setUser(null);
-  setToken(null);
   localStorage.removeItem("user");
 }
 
   const isAuthenticated = !!user;
   const isAdmin = user?.role === "admin";
 
+  const logoutUser = clearSession;
+
   return (
     <AuthContext.Provider
-      value={{ user, isAuthenticated, isAdmin, loadingAuth, saveSession, clearSession }}
+      value={{ user, isAuthenticated, isAdmin, loadingAuth, saveSession, clearSession, logout: logoutUser }}
     >
       {children}
     </AuthContext.Provider>

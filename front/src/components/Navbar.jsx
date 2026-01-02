@@ -33,10 +33,10 @@ function Navbar() {
 
   //Cerrar Carrito
 
-  const { user, logout, clearSession  } = useAuth(); // si no tenés logout, te explico abajo
+  const { user, isAuthenticated, loadingAuth, logout, clearSession } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
-  const isLogged = Boolean(user);
+  const isLogged = Boolean(isAuthenticated && user);
 
   const initials = useMemo(() => {
     const name = user?.name || user?.displayName || "";
@@ -150,12 +150,14 @@ function Navbar() {
         )}
         </div>
 
-        <div className="navbar-auth">
-          <NavLink to="/login" className="nav-auth-link">Iniciar sesión</NavLink>
-          <NavLink to="/signup" className="btn-auth">Crear cuenta</NavLink>
-        </div>
+        {!loadingAuth && !isLogged && (
+          <div className="navbar-auth">
+            <NavLink to="/login" className="nav-auth-link">Iniciar sesión</NavLink>
+            <NavLink to="/signup" className="btn-auth">Crear cuenta</NavLink>
+          </div>
+        )}
 
-          {user && initials && (
+        {!loadingAuth && isLogged && initials && (
   <div className="user-menu" ref={userMenuRef}>
     <button
       type="button"

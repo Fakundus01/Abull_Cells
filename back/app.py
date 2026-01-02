@@ -1,5 +1,7 @@
 # app.py
-from flask import Flask, jsonify, request
+from flask import Flask, json, jsonify, request
+from datetime import datetime
+import secrets
 import re
 import mercadopago # type: ignore
 import os
@@ -15,13 +17,15 @@ from flask_jwt_extended import ( #type: ignore
     set_access_cookies,
     set_refresh_cookies,
     unset_jwt_cookies,
+    verify_jwt_in_request
 )
 
+from helpers import get_effective_price, parse_discount_percent
 from dotenv import load_dotenv
 from werkzeug.exceptions import NotFound  # arriba, con los imports
 from config import Config
-from models import db, Product, User, Order, OrderItem
-from email_utils import send_contact_message_to_admin, send_contact_autoreply, send_order_confirmation_email, send_admin_product_out_of_stock_email, send_buyer_order_email
+from models import db, Product, User, Order, OrderItem, Address
+from email_utils import send_contact_message_to_admin, send_contact_autoreply, send_order_confirmation_email, send_admin_product_out_of_stock_email, send_buyer_order_email, send_verify_email
 
 load_dotenv()  # 👈 carga las variables desde .env
 
@@ -101,38 +105,34 @@ def create_app():
         """
         try:
             data = request.get_json() or {}
+
             user_id = get_jwt_identity()
             user = User.query.get(int(user_id)) if user_id else None
             if not user:
                 return jsonify({"msg": "Usuario no encontrado"}), 404
 
             customer = data.get("customer") or {}
-            items_payload  = data.get("items") or []
-            if not items_payload :
+            items_payload = data.get("items") or []
+            if not items_payload:
                 return jsonify({"msg": "Carrito vacío"}), 400
 
             payment_method = (data.get("paymentMethod") or "").strip().lower()
             valid_methods = ["efectivo", "mercadopago"]
-
             if payment_method not in valid_methods:
                 app.logger.warning(f"[ORDER] Método de pago inválido recibido: {payment_method!r}")
                 return jsonify({"msg": "Método de pago inválido"}), 400
-            
-            status = "pending"
-            payment_brand = None
-            payment_last4 = None
-            payment_txid = None
 
+            # ✅ Estado distinto para MP (recomendado)
             if payment_method == "mercadopago":
                 if not mp_client:
                     return jsonify({"msg": "Mercado Pago no está configurado"}), 500
+                status = "pending_payment"   # ✅ recomendado
+            else:
                 status = "pending"
-            elif payment_method == "efectivo":
-                status = "pending" 
 
-            # Validaciones básicas  
-            if not items_payload :
-                return jsonify({"msg": "La orden no tiene ítems"}), 400
+            payment_brand = None
+            payment_last4 = None
+            payment_txid = None
 
             # ---------------------------
             # 1) Validar stock + calcular total (sin descontar aún)
@@ -147,7 +147,6 @@ def create_app():
 
                 if not product_id:
                     return jsonify({"msg": "Cada ítem debe tener productId"}), 400
-
                 if quantity <= 0:
                     return jsonify({"msg": "Cantidad inválida"}), 400
 
@@ -160,67 +159,116 @@ def create_app():
                     product.stock = 0
 
                 if quantity > int(product.stock):
-                    return jsonify({"msg": f"Sin stock suficiente para '{product.name}'. Disponible: {product.stock}"}), 409
+                    return jsonify({
+                        "msg": f"Sin stock suficiente para '{product.name}'. Disponible: {product.stock}"
+                    }), 409
 
-                # ✅ Precio efectivo (oferta si existe)
-                # (si todavía no tenés offer_price, dejalo solo con product.price por ahora)
-                unit_price = int(product.price)
+                # ✅ Precio efectivo (por ahora: price; oferta se resuelve aparte si la tenés en back)
+                unit_price = get_effective_price(product)
 
                 subtotal = unit_price * quantity
                 total_amount += subtotal
 
                 product_map[product.id] = (product, quantity)
 
-                order_items.append(
-                    {
-                        "product_id": product.id,
-                        "product_name": product.name,
-                        "unit_price": unit_price,
-                        "quantity": quantity,
-                        "subtotal": subtotal,
-                    }
-                )
+                order_items.append({
+                    "product_id": product.id,
+                    "product_name": product.name,
+                    "unit_price": unit_price,
+                    "quantity": quantity,
+                    "subtotal": subtotal,
+                })
 
             # ---------------------------
-            # 2) Reservar stock (descontar)
+            # 2) Descontar stock SOLO si es EFECTIVO
+            # (MP: NO tocar stock acá; se descontará al aprobar pago)
             # ---------------------------
             agotados = []
-            for pid, (product, qty) in product_map.items():
-                prev_stock = int(product.stock or 0)
-                product.stock = max(0, prev_stock - int(qty))
-                if prev_stock > 0 and product.stock == 0:
-                    agotados.append(product)
 
+            if payment_method == "efectivo":
+                for pid, (product, qty) in product_map.items():
+                    prev_stock = int(product.stock or 0)
+                    product.stock = max(0, prev_stock - int(qty))
+
+                    if prev_stock > 0 and product.stock == 0:
+                        agotados.append(product)
+
+            delivery_method = data.get("deliveryMethod", "pickup")
+            delivery_address_snapshot = None
+            if delivery_method == "delivery":
+                address_id = data.get("addressId")
+                if not address_id:
+                    return jsonify({"msg": "Dirección requerida para envío"}), 400
+
+                address = Address.query.filter_by(
+                    id=address_id,
+                    user_id=user.id
+                ).first()
+
+                if not address:
+                    return jsonify({"msg": "Dirección inválida"}), 400
+
+                delivery_address_snapshot = json.dumps(address.to_dict(), ensure_ascii=False)
+
+            # ---------------------------
+            # 3) Crear Order + OrderItems
+            # ---------------------------
             order = Order(
                 customer_name=user.name,
                 email=user.email,
-                phone=customer.get("phone"),              
+                phone=customer.get("phone"),
                 notes=customer.get("notes"),
                 payment_method=payment_method,
                 total_amount=total_amount,
-                status=status,
+                status=status,                 # ✅ pending / pending_payment
                 payment_brand=payment_brand,
                 payment_last4=payment_last4,
                 payment_txid=payment_txid,
+                delivery_method=delivery_method,
+                delivery_address=delivery_address_snapshot,
             )
 
             db.session.add(order)
             db.session.flush()  # para tener order.id
 
             for oi in order_items:
-                item = OrderItem(
+                db.session.add(OrderItem(
                     order_id=order.id,
                     product_id=oi["product_id"],
                     product_name=oi["product_name"],
                     unit_price=oi["unit_price"],
                     quantity=oi["quantity"],
                     subtotal=oi["subtotal"],
-                )
-                db.session.add(item)
+                ))
 
             db.session.commit()
 
-            # ✅ 1) Aviso admin por stock agotado (no rompe la orden si falla)
+            # ---------------------------
+            # 4) Mails de orden (admin + comprador)
+            # ---------------------------
+
+            try:
+                # ✅ Mail al admin: “se creó una orden”
+                send_order_confirmation_email(order, order_items)  
+            except Exception as mail_exc:
+                app.logger.exception(f"[MAIL] Error enviando mail admin por nueva orden: {mail_exc}")
+
+                # ✅ Mail al comprador:
+                # - EFECTIVO: se manda ahora (orden confirmada para retiro)
+                # - MP: NO se manda “exitosa” ahora; solo “pendiente de pago” (opcional) o nada
+            try:
+                if payment_method == "efectivo":
+                    send_buyer_order_email(order, order_items, mode="cash_created")
+                elif payment_method == "mercadopago":
+                    # opcional: mail “orden creada, pendiente de pago”
+                    # (si no querés, borrá este bloque)
+                    send_buyer_order_email(order, order_items, mode="mp_paid")
+            except Exception as mail_exc:
+                app.logger.exception(f"[MAIL] Error enviando mail comprador: {mail_exc}")
+
+            # ---------------------------
+            # Mail stock agotado (SOLO si efectivo descontó)
+            # ---------------------------
             if agotados:
                 try:
                     for p in agotados:
@@ -228,20 +276,8 @@ def create_app():
                 except Exception as mail_exc:
                     app.logger.exception(f"[MAIL] Error enviando aviso stock agotado: {mail_exc}")
 
-            # ✅ 2) Aviso admin: se creó una orden (SIEMPRE)
-            try:
-                send_order_confirmation_email(order, items=order_items)
-            except Exception as mail_exc:
-                app.logger.exception(f"[MAIL] Error enviando mail admin nueva orden: {mail_exc}")
-
-            # ✅ 3) Mail comprador: SOLO si es efectivo (MP se manda al aprobar pago)
-            if order.payment_method == "efectivo":
-                try:
-                    send_buyer_order_email(order, mode="cash_created")
-                except Exception as mail_exc:
-                    app.logger.exception(f"[MAIL] Error enviando mail comprador efectivo: {mail_exc}")
-
             return jsonify(order.to_dict()), 201
+
         except Exception as exc:
             app.logger.exception(f"Error inesperado en POST /api/orders: {exc}")
             db.session.rollback()
@@ -348,10 +384,28 @@ def create_app():
             failure_url = os.getenv("MP_FAILURE_URL")
             pending_url = os.getenv("MP_PENDING_URL")
 
+
+            print("[MP] Armando preference_data...")
             preference_data = {
-            "items": mp_items,
             "external_reference": str(order.id),
+            "notification_url": "http://localhost:5000/api/mp/webhook", 
+            "back_urls": {
+                "success": success_url,
+                "failure": failure_url,
+                "pending": pending_url,
+            },
+            "auto_return": "approved",
+            "items": [
+                {
+                "title": oi.product_name,
+                "quantity": oi.quantity,
+                "currency_id": "ARS",
+                "unit_price": float(oi.unit_price),  # <- ya con oferta
+                }
+                for oi in order.items
+            ],
             }
+            print(f"[MP] items para preference: {preference_data['items']}")
 
             back_urls = {}
             if success_url:
@@ -443,7 +497,7 @@ def create_app():
 
                 # ✅ Mail comprador
                 try:
-                    send_buyer_order_email(order, mode="mp_paid")
+                    send_buyer_order_email(order, "order_items", mode="mp_paid")
                 except Exception as mail_exc:
                     app.logger.exception(f"[MAIL] Error enviando mail comprador MP: {mail_exc}")
 
@@ -562,13 +616,103 @@ def create_app():
             return jsonify({"msg": "La orden aún no está pagada"}), 409
 
         return jsonify({"ok": True, "order": order.to_dict()})
+    
+    @app.route("/api/me/addresses", methods=["GET"])
+    @jwt_required()
+    def get_my_addresses():
+        user_id = int(get_jwt_identity())
+        addresses = (
+            Address.query
+            .filter_by(user_id=user_id)
+            .order_by(Address.is_default.desc(), Address.created_at.desc())
+            .all()
+        )
+        return jsonify([a.to_dict() for a in addresses])
+
+    @app.route("/api/me/addresses", methods=["POST"])
+    @jwt_required()
+    def create_my_address():
+        user_id = int(get_jwt_identity())
+        data = request.get_json() or {}
+
+        label = (data.get("label") or "").strip()
+        street = (data.get("street") or "").strip()
+        city = (data.get("city") or "").strip()
+        province = (data.get("province") or "").strip()
+        postal_code = (data.get("postalCode") or "").strip() or None
+
+        if not label or not street or not city or not province:
+            return jsonify({"msg": "Faltan campos obligatorios"}), 400
+
+        is_default = bool(data.get("isDefault"))
+
+        # si viene como predeterminada, desmarcamos las otras
+        if is_default:
+            Address.query.filter_by(user_id=user_id, is_default=True).update({"is_default": False})
+
+        addr = Address(
+            user_id=user_id,
+            label=label,
+            type=(data.get("type") or "house"),
+            street=street,
+            city=city,
+            province=province,
+            postal_code=postal_code,
+            apartment=(data.get("apartment") or "").strip() or None,
+            floor=(data.get("floor") or "").strip() or None,
+            bell=(data.get("bell") or "").strip() or None,
+            notes=(data.get("notes") or "").strip() or None,
+            is_default=is_default,
+        )
+        db.session.add(addr)
+        db.session.commit()
+        return jsonify(addr.to_dict()), 201
+
+    @app.route("/api/me/addresses/<int:address_id>", methods=["DELETE"])
+    @jwt_required()
+    def delete_my_address(address_id):
+        user_id = int(get_jwt_identity())
+        addr = Address.query.filter_by(id=address_id, user_id=user_id).first()
+        if not addr:
+            return jsonify({"msg": "Dirección no encontrada"}), 404
+
+        was_default = addr.is_default
+        db.session.delete(addr)
+        db.session.commit()
+
+        # si borró la default, marcamos otra como default si existe
+        if was_default:
+            next_addr = (
+                Address.query.filter_by(user_id=user_id)
+                .order_by(Address.created_at.desc())
+                .first()
+            )
+            if next_addr:
+                next_addr.is_default = True
+                db.session.commit()
+
+        return jsonify({"ok": True})
+
+    @app.route("/api/me/addresses/<int:address_id>/default", methods=["PUT"])
+    @jwt_required()
+    def set_default_address(address_id):
+        user_id = int(get_jwt_identity())
+
+        addr = Address.query.filter_by(id=address_id, user_id=user_id).first()
+        if not addr:
+            return jsonify({"msg": "Dirección no encontrada"}), 404
+
+        Address.query.filter_by(user_id=user_id, is_default=True).update({"is_default": False})
+        addr.is_default = True
+        db.session.commit()
+        return jsonify(addr.to_dict())
 
     # -------- AUTH --------
 
     _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
     def _claims_for(user: User) -> dict:
-        return {"role": user.role, "name": user.name}
+        return {"role": user.role, "email": user.email}
 
     def _create_tokens_for(user: User) -> dict:
         claims = _claims_for(user)
@@ -594,12 +738,35 @@ def create_app():
 
             if User.query.filter_by(email=email).first():
                 return jsonify({"msg": "Ya existe un usuario con ese email"}), 409
+            
+            base = email.split("@")[0].lower().strip()
+            base = re.sub(r"[^a-z0-9._-]", "", base)
+            username = base
+            i = 2
+            while User.query.filter_by(username=username).first():
+                username = f"{base}{i}"
+                i += 1
 
-            user = User(name=name, email=email, role="customer")
+            user = User(name=name, email=email, role="user", username=username)
             user.set_password(password)
 
             db.session.add(user)
             db.session.commit()
+
+            # ✅ generar token + enviar mail de verificación
+            token = secrets.token_urlsafe(32)
+            user.email_verify_token = token
+            user.email_verify_sent_at = datetime.utcnow()
+            user.email_verified = False
+            db.session.commit()
+
+            frontend_base = os.getenv("FRONTEND_URL", "http://localhost:5173")
+            verify_url = f"{frontend_base}/verify-email?token={token}"
+
+            try:
+                send_verify_email(user.email, verify_url, user.name)
+            except Exception as e:
+                app.logger.exception(f"[MAIL] Error enviando verificación: {e}")
 
             access_token = create_access_token(
                 identity=str(user.id),
@@ -669,6 +836,50 @@ def create_app():
         if not user:
             return jsonify({"msg": "Usuario no encontrado"}), 404
         return jsonify({"user": user.to_dict()})
+    
+    @app.route("/api/auth/send-verify-email", methods=["POST"])
+    @jwt_required()
+    def send_verify_email_endpoint():
+        user_id = get_jwt_identity()
+        user = User.query.get(int(user_id)) if user_id else None
+        if not user:
+            return jsonify({"msg": "Usuario no encontrado"}), 404
+
+        if user.email_verified:
+            return jsonify({"ok": True, "msg": "Ya está verificado"}), 200
+
+        token = secrets.token_urlsafe(32)
+        user.email_verify_token = token
+        user.email_verify_sent_at = datetime.utcnow()
+        db.session.commit()
+
+        frontend_base = os.getenv("FRONTEND_URL", "http://localhost:5173")
+        verify_url = f"{frontend_base}/verify-email?token={token}"
+
+        try:
+            send_verify_email(user.email, verify_url, user.name)
+        except Exception as e:
+            app.logger.exception(f"[MAIL] Error enviando verificación: {e}")
+            return jsonify({"msg": "No se pudo enviar el mail"}), 500
+
+        return jsonify({"ok": True}), 200
+    
+    @app.route("/api/auth/verify-email", methods=["POST"])
+    def verify_email():
+        data = request.get_json() or {}
+        token = (data.get("token") or "").strip()
+        if not token:
+            return jsonify({"msg": "Token requerido"}), 400
+
+        user = User.query.filter_by(email_verify_token=token).first()
+        if not user:
+            return jsonify({"msg": "Token inválido"}), 400
+
+        user.email_verified = True
+        user.email_verify_token = None
+        db.session.commit()
+
+        return jsonify({"ok": True}), 200
 
     @app.route("/api/auth/refresh", methods=["POST"])
     @jwt_required(refresh=True)
@@ -687,6 +898,16 @@ def create_app():
         set_access_cookies(resp, access_token)
         return resp, 200
 
+
+    @app.route("/api/auth/role", methods=["GET"])
+    @jwt_required()
+    def role():
+        user_id = get_jwt_identity()
+        user = db.session.get(User, int(user_id)) if user_id else None
+        if not user:
+            return jsonify({"msg": "Usuario no encontrado"}), 404
+        return jsonify({"role": user.role}), 200
+    
     # -------- HELPERS --------
 
     def role_required(*roles):
@@ -704,6 +925,16 @@ def create_app():
 
     # Decorator específico para admin
     admin_required = role_required("admin")
+
+    def admin_required(fn):
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            verify_jwt_in_request()
+            claims = get_jwt() or {}
+            if claims.get("role") != "admin":
+                return jsonify({"msg": "Admin requerido"}), 403
+            return fn(*args, **kwargs)
+        return wrapper
 
     # -------- RUTAS ADMIN (PROTEGIDAS) --------
 
@@ -861,6 +1092,12 @@ def create_app():
             )
             db.session.rollback()
             return jsonify({"msg": "Error interno al actualizar estado de la orden"}), 500
+        
+    @app.route("/api/admin/users", methods=["GET"])
+    @admin_required
+    def admin_list_users():
+        users = User.query.order_by(User.id.desc()).all()
+        return jsonify({"users": [u.to_dict() for u in users]}), 200
 
     return app
 

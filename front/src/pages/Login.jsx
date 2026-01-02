@@ -6,8 +6,8 @@ import { useAuth } from "../context/AuthContext";
 import { Mail, Lock, Loader2, ShieldCheck } from "lucide-react";
 
 function Login() {
-  const [email, setEmail] = useState("admin@abulcells.com");
-  const [password, setPassword] = useState("AbulAdmin123");
+  const [email, setEmail] = useState("facumoreno2001@gmail.com");
+  const [password, setPassword] = useState("Kassadin01");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -53,7 +53,7 @@ function Login() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@abulcells.com"
+              placeholder="facumoreno2001@gmail.com"
               required
               autoComplete="email"
             />

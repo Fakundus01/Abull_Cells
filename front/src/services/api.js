@@ -245,5 +245,21 @@ export function sendContactMessage(payload) {
   });
 }
 
+// ✅ Forgot / Reset Password
+export async function forgotPassword(payload) {
+  return apiFetch("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function resetPassword(payload) {
+  return apiFetch("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+
 
 

@@ -397,3 +397,23 @@ def send_verify_code_email(to_email: str, code: str, name: str = ""):
         "Si no fuiste vos, ignorá este mail.\n"
     )
     return send_email(to_email, subject, body, cc=None)
+
+def send_password_reset_email(to_email: str, name: str, reset_url: str) -> bool:
+    subject = "Recuperación de contraseña - Abul Cells"
+    body = f"""Hola {name or ""}!
+
+Recibimos una solicitud para restablecer tu contraseña.
+
+Abrí este link para crear una nueva:
+{reset_url}
+
+Si vos no pediste esto, podés ignorar este correo.
+"""
+
+    return send_email(
+        to_email=to_email,
+        subject=subject,
+        body=body,
+        reply_to=None
+    )
+   

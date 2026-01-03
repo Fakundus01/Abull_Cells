@@ -4500,6 +4500,79 @@ a:visited { color: inherit; }
   margin-top: .25rem;
 }
 
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: 0;
+  padding: 4px;
+  cursor: pointer;
+  z-index: 2;
+  color: #64748b; /* o el color que uses */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.password-toggle:hover {
+  opacity: 1;
+}
+
+/* ---- Password toggle (ojo) - funciona para Signup y Login ---- */
+
+/* El contenedor debe ser referencia para el absolute */
+.input-with-icon{
+  position: relative;
+}
+
+/* Dejá espacio a la derecha para el botón */
+.input-with-icon input {
+  padding-right: 42px; 
+}
+
+/* Botón ojo: fijo a la derecha, centrado */
+.input-with-icon .password-toggle{
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 0;
+  line-height: 0;
+  cursor: pointer;
+
+  border: 1px solid rgba(148,163,184,.22);
+  background: rgba(2,6,23,.06);
+  color: rgba(15,23,42,.70);
+}
+
+.input-with-icon .password-toggle:hover{
+  background: rgba(2,6,23,.10);
+}
+
+/* Normaliza el tamaño del icono */
+.input-with-icon .password-toggle svg{
+  width: 18px;
+  height: 18px;
+  display: block;
+  color: black;
+}
+
+/* Si tu auth card es oscura, esto mantiene buen contraste */
+.auth-card .input-with-icon .password-toggle{
+  background: rgba(255,255,255,.06);
+  color: rgba(226,232,240,.85);
+}
+
 
 
 

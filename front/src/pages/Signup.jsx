@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { UserPlus, Mail, Lock, User, ArrowRight } from "lucide-react";
+import { UserPlus, Mail, Lock, User, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { register } from "../services/api";
 
 function getInitialCode() {
@@ -20,6 +20,8 @@ function Signup() {
 
   const [status, setStatus] = useState("idle"); // idle | loading
   const [error, setError] = useState("");
+  const [showPass, setShowPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
 
   const emailOk = useMemo(() => {
     const email = String(form.email || "").trim();
@@ -30,22 +32,6 @@ function Signup() {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   }
-
-  // function handleSendCode() {
-  //   setError("");
-
-  //   if (!emailOk) {
-  //     setError("Ingresá un email válido para poder verificarlo.");
-  //     return;
-  //   }
-
-  //   const code = getInitialCode();
-  //   setServerCode(code);
-  //   setCodeSent(true);
-
-  //   // MOCK: en real lo enviás por backend/email provider
-  //   console.log("[SIGNUP][mock] Código enviado a:", form.email, "code:", code);
-  // }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -83,7 +69,7 @@ function Signup() {
       // backend setea cookies + devuelve user
       navigate("/verify-email");
     } catch (err) {
-      setError("Ocurrió un error al crear la cuenta.");
+      setError(err?.message || "Ocurrió un error al crear la cuenta.");
     } finally {
       setStatus("idle");
     }
@@ -142,13 +128,21 @@ function Signup() {
             <div className="input-with-icon">
               <Lock size={16} className="icon muted" />
               <input
-                type="password"
+                type={showPass ? "text" : "password"}
                 name="password"
                 value={form.password}
                 onChange={handleChange}
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Mínimo 8 caracteres"
                 required
               />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPass((v) => !v)}
+                aria-label={showPass ? "Ocultar contraseña" : "Mostrar contraseña"}
+              >
+                {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
           </label>
 
@@ -157,13 +151,21 @@ function Signup() {
             <div className="input-with-icon">
               <Lock size={16} className="icon muted" />
               <input
-                type="password"
+                type={showConfirmPass ? "text" : "password"}
                 name="confirmPassword"
                 value={form.confirmPassword}
                 onChange={handleChange}
                 placeholder="Repetí tu contraseña"
                 required
               />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowConfirmPass((v) => !v)}
+                aria-label={showConfirmPass ? "Ocultar contraseña" : "Mostrar contraseña"}
+              >
+                {showConfirmPass ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
           </label>
 

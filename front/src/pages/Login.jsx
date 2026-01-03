@@ -3,13 +3,15 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { login } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import { Mail, Lock, Loader2, ShieldCheck } from "lucide-react";
+import { LogIn, Mail, Lock, ArrowRight, Eye, EyeOff, ShieldCheck, Loader2  } from "lucide-react";
 
 function Login() {
-  const [email, setEmail] = useState("facumoreno2001@gmail.com");
-  const [password, setPassword] = useState("Kassadin01");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPass, setShowPass] = useState(false);
+  const [failCount, setFailCount] = useState(0);
 
   const { saveSession } = useAuth();
   const navigate = useNavigate();
@@ -21,10 +23,12 @@ function Login() {
 
     try {
       const data = await login(email, password);
+      setFailCount(0);
       saveSession(data.user, null); // o directamente sin token
       navigate("/admin");
     } catch (err) {
-      setError(err.message);
+      setFailCount((c) => c + 1);
+      setError(err?.message || "Credenciales inválidas.");
     } finally {
       setLoading(false);
     }
@@ -59,20 +63,40 @@ function Login() {
             />
           </div>
 
-          <label className="auth-label">Contraseña</label>
+          <label className="auth-label">Contraseña
           <div className="input-with-icon input-with-icon--auth">
             <Lock size={16} className="icon muted" />
             <input
-              type="password"
+              type={showPass ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
               autoComplete="current-password"
             />
+            <button
+              type="button"
+              className="password-toggle"
+              onClick={() => setShowPass((v) => !v)}
+              aria-label={showPass ? "Ocultar contraseña" : "Mostrar contraseña"}
+            >
+              {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
           </div>
+          </label>
 
           {error && <p className="form-error auth-error">{error}</p>}
+          {failCount >= 5 && (
+          <div className="auth-help">
+            <p className="form-hint">¿No podés entrar? Te conviene recuperar la contraseña.</p>
+            <Link
+              to={`/forgot-password?email=${encodeURIComponent(email || "")}`}
+              className="link-inline--v2"
+            >
+              Recuperar contraseña
+            </Link>
+          </div>
+        )}
 
           <button className="btn-primary btn-icon auth-submit" type="submit" disabled={loading}>
             {loading ? (

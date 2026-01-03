@@ -8,6 +8,7 @@ import mercadopago # type: ignore
 import os
 from functools import wraps
 from flask_cors import CORS
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from flask_jwt_extended import ( #type: ignore
     JWTManager,
     create_access_token,
@@ -28,7 +29,8 @@ from config import Config
 from models import db, Product, User, Order, OrderItem, Address
 from email_utils import (
     send_contact_message_to_admin, send_contact_autoreply, send_order_confirmation_email, 
-    send_admin_product_out_of_stock_email, send_buyer_order_email, send_verify_code_email, send_admin_order_paid_email
+    send_admin_product_out_of_stock_email, send_buyer_order_email, send_verify_code_email, send_admin_order_paid_email,
+    send_password_reset_email
     )
 from werkzeug.security import generate_password_hash, check_password_hash
                          
@@ -36,6 +38,9 @@ load_dotenv()  # 👈 carga las variables desde .env
 
 def create_app():
     app = Flask(__name__)
+    def _get_reset_serializer(app: Flask):
+        secret = app.config.get("SECRET_KEY") or os.getenv("SECRET_KEY") or "dev-secret"
+        return URLSafeTimedSerializer(secret, salt="pwd-reset")
     app.config.from_object(Config)
 
     db.init_app(app)
@@ -1049,6 +1054,82 @@ def create_app():
         if not user:
             return jsonify({"msg": "Usuario no encontrado"}), 404
         return jsonify({"role": user.role}), 200
+    
+    @app.route("/api/auth/forgot-password", methods=["POST"])
+    def forgot_password():
+        try:
+            data = request.get_json() or {}
+            email = (data.get("email") or "").strip().lower()
+
+            if not email:
+                return jsonify({"msg": "Email es obligatorio"}), 400
+
+            user = User.query.filter_by(email=email).first()
+
+            # ✅ respuesta genérica para no filtrar si existe o no
+            if not user:
+                return jsonify({"ok": True}), 200
+
+            s = _get_reset_serializer(app)
+            token = s.dumps({"uid": user.id, "email": user.email})
+
+            front = os.getenv("FRONT_URL") or os.getenv("FRONTEND_URL") or "http://localhost:5173"
+            reset_url = f"{front}/reset-password?token={token}"
+
+            try:
+                # 👇 agregá este import arriba con tus otros imports de email_utils
+                # send_password_reset_email
+                send_password_reset_email(user.email, user.name, reset_url)
+            except Exception as e:
+                app.logger.exception(f"[MAIL] Error password reset: {e}")
+                # igual devolvemos ok (no revelamos internamente)
+                return jsonify({"ok": True}), 200
+
+            return jsonify({"ok": True}), 200
+
+        except Exception as exc:
+            app.logger.exception(f"[AUTH] forgot-password error: {exc}")
+            return jsonify({"msg": "Error interno"}), 500
+
+
+    @app.route("/api/auth/reset-password", methods=["POST"])
+    def reset_password():
+        try:
+            data = request.get_json() or {}
+            token = (data.get("token") or "").strip()
+            new_password = data.get("password") or ""
+
+            if not token:
+                return jsonify({"msg": "Token requerido"}), 400
+
+            if not new_password or len(new_password) < 8:
+                return jsonify({"msg": "La contraseña debe tener al menos 8 caracteres"}), 400
+
+            s = _get_reset_serializer(app)
+
+            try:
+                payload = s.loads(token, max_age=60 * 60)  # 1 hora
+            except SignatureExpired:
+                return jsonify({"msg": "El link expiró. Pedí uno nuevo."}), 400
+            except BadSignature:
+                return jsonify({"msg": "Token inválido. Pedí uno nuevo."}), 400
+
+            uid = payload.get("uid")
+            email = payload.get("email")
+
+            user = User.query.get(int(uid)) if uid else None
+            if not user or user.email != email:
+                return jsonify({"msg": "Token inválido. Pedí uno nuevo."}), 400
+
+            user.set_password(new_password)
+            db.session.commit()
+
+            return jsonify({"ok": True}), 200
+
+        except Exception as exc:
+            app.logger.exception(f"[AUTH] reset-password error: {exc}")
+            db.session.rollback()
+            return jsonify({"msg": "Error interno"}), 500
     
     # -------- HELPERS --------
 

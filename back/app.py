@@ -162,37 +162,34 @@ def create_app():
             # ---------------------------
             total_amount = 0
             order_items = []
-            product_map = {}  # product_id -> (product, quantity)
 
-            for item in items_payload:
-                product_id = item.get("productId")
-                quantity = int(item.get("quantity", 1))
-
-                if not product_id:
+            merged = {}
+            for it in items_payload:
+                pid = it.get("productId")
+                qty = int(it.get("quantity", 1))
+                if not pid:
                     return jsonify({"msg": "Cada ítem debe tener productId"}), 400
-                if quantity <= 0:
+                if qty <= 0:
                     return jsonify({"msg": "Cantidad inválida"}), 400
+                merged[pid] = merged.get(pid, 0) + qty
 
-                product = Product.query.get(product_id)
+            for product_id, quantity in merged.items():
+                product = Product.query.get(int(product_id))
                 if not product:
                     return jsonify({"msg": f"Producto no encontrado (id={product_id})"}), 404
 
-                # Normalizar stock
-                if product.stock is None:
-                    product.stock = 0
-
-                if quantity > int(product.stock):
+                stock = int(product.stock or 0)
+                if quantity > stock:
                     return jsonify({
-                        "msg": f"Sin stock suficiente para '{product.name}'. Disponible: {product.stock}"
+                        "msg": f"Sin stock suficiente para '{product.name}'. Disponible: {stock}",
+                        "productId": product.id,
+                        "available": stock,
+                        "requested": quantity,
                     }), 409
 
-                # ✅ Precio efectivo (por ahora: price; oferta se resuelve aparte si la tenés en back)
                 unit_price = get_effective_price(product)
-
                 subtotal = unit_price * quantity
                 total_amount += subtotal
-
-                product_map[product.id] = (product, quantity)
 
                 order_items.append({
                     "product_id": product.id,
@@ -209,12 +206,25 @@ def create_app():
             agotados = []
 
             if payment_method == "efectivo":
-                for pid, (product, qty) in product_map.items():
-                    prev_stock = int(product.stock or 0)
-                    product.stock = max(0, prev_stock - int(qty))
+                for pid, qty in merged.items():
+                    product = (
+                        db.session.query(Product)
+                        .filter(Product.id == pid)
+                        .with_for_update()
+                        .first()
+                    )
+                    if not product:
+                        return jsonify({"msg": f"Producto no encontrado (id={pid})"}), 404
 
-                    if prev_stock > 0 and product.stock == 0:
-                        agotados.append(product)
+                    prev_stock = int(product.stock or 0)
+                    if qty > prev_stock:
+                        return jsonify({
+                            "msg": f"Sin stock suficiente para '{product.name}'. Disponible: {prev_stock}",
+                            "productId": pid,
+                            "available": prev_stock
+                        }), 409
+
+                    product.stock = prev_stock - qty
 
             delivery_method = data.get("deliveryMethod", "pickup")
             delivery_address_snapshot = None
@@ -907,8 +917,18 @@ def create_app():
                 return jsonify({"msg": "Email y contraseña son obligatorios"}), 400
 
             user = User.query.filter_by(email=email).first()
-            if not user or not user.check_password(password):
-                return jsonify({"msg": "Credenciales inválidas"}), 401
+
+            if not user:
+                return jsonify({
+                    "code": "EMAIL_NOT_FOUND",
+                    "msg": "Ese email no está registrado."
+                }), 404
+
+            if not user.check_password(password):
+                return jsonify({
+                    "code": "INVALID_PASSWORD",
+                    "msg": "Contraseña incorrecta."
+                }), 401
 
             access_token = create_access_token(
                 identity=str(user.id),
@@ -1139,7 +1159,7 @@ def create_app():
             @wraps(fn)
             @jwt_required()
             def wrapper(*args, **kwargs):
-                claims = get_jwt()
+                claims = get_jwt() or {}
                 if claims.get("role") not in roles:
                     return jsonify({"msg": "No autorizado"}), 403
                 return fn(*args, **kwargs)

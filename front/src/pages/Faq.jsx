@@ -41,15 +41,20 @@ function Faq() {
 
   return (
     <main className="home-section faq-page">
-      <header className="faq-head card-animate">
-        <div className="faq-badge">
-          <HelpCircle size={18} className="icon" />
-          FAQ
+      <header className="page-header--v2 card-animate">
+        <div className="page-title-wrap--v2">
+          <div>
+            <div className="page-badge--v2">
+              <HelpCircle size={18} className="icon" />
+              FAQ
+            </div>
+
+            <h1 className="page-title--v2">Preguntas frecuentes</h1>
+            <p className="page-subtitle--v2">
+              Respondemos las dudas más comunes sobre Abul Cell.
+            </p>
+          </div>
         </div>
-        <h1 className="faq-title">Preguntas frecuentes</h1>
-        <p className="section-subtitle">
-          Respondemos las dudas más comunes sobre Abul Cells.
-        </p>
       </header>
 
       <div className="faq-list">

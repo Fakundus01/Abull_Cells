@@ -1,4 +1,5 @@
 // src/pages/Cart.jsx
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -9,11 +10,29 @@ import {
   ArrowLeft,
   CreditCard,
   PackageOpen,
+  Plus,
+  Minus,
+  CheckCircle2,
 } from "lucide-react";
 
 function Cart() {
   const { t } = useLanguage();
-  const { items, totalItems, totalPrice, removeFromCart, clearCart } = useCart();
+  const { items, totalItems, totalPrice, addToCart, decrementFromCart, removeFromCart, clearCart } =
+    useCart();
+
+  const [toast, setToast] = useState(null); // { type: 'ok'|'info'|'error', msg }
+  const [bumpId, setBumpId] = useState(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(null), 1400);
+    return () => clearTimeout(id);
+  }, [toast]);
+
+  const bump = (id) => {
+    setBumpId(id);
+    setTimeout(() => setBumpId(null), 250);
+  };
 
   if (items.length === 0) {
     return (
@@ -64,6 +83,13 @@ function Cart() {
         </button>
       </header>
 
+      {toast && (
+        <div className={`toast toast--${toast.type} toast-animate`} role="status">
+          <CheckCircle2 size={18} className="icon" />
+          <span>{toast.msg}</span>
+        </div>
+      )}
+
       <div className="cart-grid">
         <div className="cart-items">
           {items.map((item) => (
@@ -94,18 +120,59 @@ function Cart() {
                   </p>
                 )}
 
-                <p className="cart-item-qty">
-                  <span className="cart-qty-badge">x{item.quantity}</span>
-                  <span>Cantidad</span>
-                </p>
+                {(() => {
+                  const maxStock = Number(item.stock ?? 0);
+                  const hasCap = Number.isFinite(maxStock) && maxStock > 0;
+                  const isMax = hasCap && Number(item.quantity) >= maxStock;
 
-                <button
-                  className="btn-small btn-danger btn-icon"
-                  onClick={() => removeFromCart(item.id)}
-                >
-                  <X size={16} className="icon" />
-                  {t("cart.remove")}
-                </button>
+                  return (
+                    <div className="cart-qty-controls">
+                      <button
+                        type="button"
+                        className="cart-qty-btn"
+                        onClick={() => {
+                          const wasLast = item.quantity === 1;
+                          decrementFromCart(item.id, 1);
+                          bump(item.id);
+
+                          setToast({
+                            type: "info",
+                            msg: wasLast ? "Producto eliminado del carrito" : "Quitado 1",
+                          });
+                        }}
+                        aria-label="Restar"
+                        title="Restar"
+                      >
+                        <Minus size={16} />
+                      </button>
+
+                      <span className={`cart-qty-badge ${bumpId === item.id ? "bump" : ""}`}>
+                        {item.quantity}
+                      </span>
+
+                      <button
+                        type="button"
+                        className="cart-qty-btn"
+                        disabled={isMax}
+                        onClick={() => {
+                          addToCart(item, 1);
+                          bump(item.id);
+                          setToast({ type: "ok", msg: "Agregado 1" });
+                        }}
+                        aria-label="Sumar"
+                        title={isMax ? "Stock máximo alcanzado" : "Sumar"}
+                      >
+                        <Plus size={16} />
+                      </button>
+
+                      {hasCap && (
+                        <span className="cart-qty-cap">
+                          / {maxStock}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}               
               </div>
 
               <div className="cart-item-subtotal" title="Subtotal">
@@ -133,9 +200,7 @@ function Cart() {
             {t("cart.goToCheckout")}
           </Link>
 
-          <div className="cart-summary-hint">
-            Tip: revisá tu pedido antes de pagar ✨
-          </div>
+          <div className="cart-summary-hint">Tip: revisá tu pedido antes de pagar ✨</div>
         </aside>
       </div>
     </section>

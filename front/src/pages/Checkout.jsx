@@ -4,6 +4,8 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { createOrder, createMpPreference, fetchAddresses } from "../services/api";
+import { useToast } from "../context/ToastContext";
+import LoadingOverlay from "../components/LoadingOverlay";
 import {
   CreditCard,
   MapPin,
@@ -19,25 +21,23 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-
 function Checkout() {
-
   const FIELD_LABELS_ES = {
-  name: "Nombre y apellido",
-  email: "Correo electrónico",
-  phone: "Teléfono",
-  notes: "Notas",
-};
+    name: "Nombre y apellido",
+    email: "Correo electrónico",
+    phone: "Teléfono",
+    notes: "Notas",
+  };
 
   const { items, totalPrice, clearCart } = useCart();
   const navigate = useNavigate();
 
   const [customer, setCustomer] = useState({
-  name: "",
-  email: "",
-  phone: "",
-  notes: "",
-});
+    name: "",
+    email: "",
+    phone: "",
+    notes: "",
+  });
 
   const { user } = useAuth();
 
@@ -52,7 +52,7 @@ function Checkout() {
     city: "",
     province: "",
     postalCode: "",
-    type: "house",      // house | apartment | office | other
+    type: "house", // house | apartment | office | other
     apartment: "",
     floor: "",
     bell: "",
@@ -64,6 +64,7 @@ function Checkout() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [successOrderId, setSuccessOrderId] = useState(null);
+  const { showToast } = useToast();
 
   const requiredFields = useMemo(() => ["name", "email"], []);
 
@@ -134,8 +135,8 @@ function Checkout() {
   }
 
   const selectedAddr = selectedAddressId
-  ? addresses.find((a) => a.id === selectedAddressId)
-  : null;
+    ? addresses.find((a) => a.id === selectedAddressId)
+    : null;
 
   const addressText =
     deliveryMethod !== "delivery"
@@ -162,7 +163,7 @@ function Checkout() {
     if (method === "mercadopago") return "mercadopago";
     if (method === "efectivo") return "efectivo"; // o "cash" si tu backend lo espera así
     return method;
-  } 
+  }
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -174,7 +175,7 @@ function Checkout() {
     setError("");
 
     if (items.length === 0) {
-      setError("Tu carrito está vacío.");
+      showToast({ type: "error", title: "Carrito vacío", message: "Agregá productos antes de continuar." });
       return;
     }
 
@@ -198,16 +199,16 @@ function Checkout() {
     }
 
     if (paymentMethod === "efectivo") {
-        const n = Number(String(cashGiven).replace(/[^\d]/g, ""));
-        if (!n || n <= 0) {
-          setError("Indicá con cuánto vas a abonar (solo números).");
-          return;
-        }
-        if (n < totalPrice) {
-          setError("El monto con el que abonás no puede ser menor al total.");
-          return;
-        }
+      const n = Number(String(cashGiven).replace(/[^\d]/g, ""));
+      if (!n || n <= 0) {
+        setError("Indicá con cuánto vas a abonar (solo números).");
+        return;
       }
+      if (n < totalPrice) {
+        setError("El monto con el que abonás no puede ser menor al total.");
+        return;
+      }
+    }
 
     try {
       setLoading(true);
@@ -244,7 +245,10 @@ function Checkout() {
         console.log("[MP][front] initPoint recibido:", pref.initPoint);
 
         clearCart();
-        window.location.href = pref.initPoint;
+
+        window.open(pref.initPoint, "_blank", "noopener,noreferrer");
+
+        navigate("/");
         return;
       }
 
@@ -281,58 +285,60 @@ function Checkout() {
   }
 
   return (
-    <section className="checkout-page">
-      <header className="checkout-head card-animate">
-        <div className="checkout-head-left">
-          <div className="checkout-badge">
-            <ShieldCheck size={18} className="icon" />
-            Compra segura
-          </div>
-          <h1 className="checkout-title">Checkout</h1>
-          <p className="checkout-subtitle">
-            Completá tus datos y elegí el método de pago.
-          </p>
+  <section className="checkout-page">
+    <LoadingOverlay show={loading} />
+
+    <header className="checkout-head card-animate">
+      <div className="checkout-head-left">
+        <div className="checkout-badge">
+          <ShieldCheck size={18} className="icon" />
+          Compra segura
         </div>
-      </header>
+        <h1 className="checkout-title">Checkout</h1>
+        <p className="checkout-subtitle">
+          Completá tus datos y elegí el método de pago.
+        </p>
+      </div>
+    </header>
 
-      <div className="checkout-grid">
-        {/* Datos del cliente + medios de pago */}
-        <form className="form-card checkout-form card-animate" onSubmit={handleSubmit}>
-          <h2 className="checkout-h2">Datos de facturación y envío</h2>
+    <div className="checkout-grid">
+      {/* Datos del cliente + medios de pago */}
+      <form className="form-card checkout-form card-animate" onSubmit={handleSubmit}>
+        <h2 className="checkout-h2">Datos de facturación y envío</h2>
 
-          <div className="field-grid">
-            <label className="field">
-              <span className="field-label">
-                <User size={16} className="icon" />
-                Nombre y apellido *
-              </span>
-              <input name="name" value={customer.name} onChange={handleChange} required />
-            </label>
+        <div className="field-grid">
+          <label className="field">
+            <span className="field-label">
+              <User size={16} className="icon" />
+              Nombre y apellido *
+            </span>
+            <input name="name" value={customer.name} onChange={handleChange} required />
+          </label>
 
-            <label className="field">
-              <span className="field-label">
-                <Mail size={16} className="icon" />
-                Email *
-              </span>
-              <input
-                type="email"
-                name="email"
-                value={customer.email}
-                onChange={handleChange}
-                required
-              />
-            </label>
+          <label className="field">
+            <span className="field-label">
+              <Mail size={16} className="icon" />
+              Email *
+            </span>
+            <input
+              type="email"
+              name="email"
+              value={customer.email}
+              onChange={handleChange}
+              required
+            />
+          </label>
 
-            <label className="field">
-              <span className="field-label">
-                <Phone size={16} className="icon" />
-                Teléfono
-              </span>
-              <input name="phone" value={customer.phone} onChange={handleChange} />
-            </label>
-          </div>
+          <label className="field">
+            <span className="field-label">
+              <Phone size={16} className="icon" />
+              Teléfono
+            </span>
+            <input name="phone" value={customer.phone} onChange={handleChange} />
+          </label>
+        </div>
 
-          <div className="checkout-section card-animate">
+        <div className="checkout-section card-animate">
           <h2 className="checkout-h2">Entrega</h2>
 
           <div className="delivery-options">
@@ -363,9 +369,7 @@ function Checkout() {
             <div className="delivery-box">
               {user && (
                 <>
-                  <p className="checkout-muted">
-                    Elegí una dirección guardada (o cargá una manual).
-                  </p>
+                  <p className="checkout-muted">Elegí una dirección guardada (o cargá una manual).</p>
 
                   {loadingAddresses ? (
                     <p className="checkout-muted">Cargando direcciones...</p>
@@ -501,138 +505,128 @@ function Checkout() {
               )}
             </div>
           )}
-          </div>
+        </div>
 
-          {/* Medios de pago */}
-          <div className="checkout-section card-animate">
-            <h2 className="checkout-h2">Medios de pago</h2>
+        {/* Medios de pago */}
+        <div className="checkout-section card-animate">
+          <h2 className="checkout-h2">Medios de pago</h2>
 
-            <div className="payment-options">
-              {/* Mercado Pago */}
-              <label className={`payment-option ${paymentMethod === "mercadopago" ? "active" : ""}`}>
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="mercadopago"
-                  checked={paymentMethod === "mercadopago"}
-                  onChange={() => setPaymentMethod("mercadopago")}
-                />
-                <span className="payment-icon">
-                  <CreditCard size={20} className="icon" />
-                </span>
-                <div className="payment-info">
-                  <span className="payment-title">Mercado Pago</span>
-                  <span className="payment-subtitle">
-                    Te redirigimos a Mercado Pago para completar el pago.
-                  </span>
-                </div>
-                <span className="payment-tag">Recomendado</span>
-              </label>
-
-              {/* Efectivo (retiro en local) */}
-              <label className={`payment-option ${paymentMethod === "efectivo" ? "active" : ""}`}>
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="efectivo"
-                  checked={paymentMethod === "efectivo"}
-                  onChange={() => setPaymentMethod("efectivo")}
-                />
-                <span className="payment-icon">💵</span>
-                <div className="payment-info">
-                  <span className="payment-title">Efectivo al retirar</span>
-                  <span className="payment-subtitle">
-                    Pagás en el local cuando venís a buscar tu pedido.
-                  </span>
-                </div>
-              </label>
-            </div>
-          </div>
-          {paymentMethod === "efectivo" && (
-            <label className="field">
-              <span className="field-label">¿Con cuánto abonás?</span>
+          <div className="payment-options">
+            <label className={`payment-option ${paymentMethod === "mercadopago" ? "active" : ""}`}>
               <input
-                inputMode="numeric"
-                placeholder="Ej: 20000"
-                value={cashGiven}
-                onChange={(e) => setCashGiven(e.target.value)}
+                type="radio"
+                name="paymentMethod"
+                value="mercadopago"
+                checked={paymentMethod === "mercadopago"}
+                onChange={() => setPaymentMethod("mercadopago")}
               />
-              <small className="field-hint">
-                Te lo pedimos para preparar el cambio (si hace falta).
-              </small>
+              <span className="payment-icon">
+                <CreditCard size={20} className="icon" />
+              </span>
+              <div className="payment-info">
+                <span className="payment-title">Mercado Pago</span>
+                <span className="payment-subtitle">
+                  Te redirigimos a Mercado Pago para completar el pago.
+                </span>
+              </div>
+              <span className="payment-tag">Recomendado</span>
             </label>
-          )}
 
+            <label className={`payment-option ${paymentMethod === "efectivo" ? "active" : ""}`}>
+              <input
+                type="radio"
+                name="paymentMethod"
+                value="efectivo"
+                checked={paymentMethod === "efectivo"}
+                onChange={() => setPaymentMethod("efectivo")}
+              />
+              <span className="payment-icon">💵</span>
+              <div className="payment-info">
+                <span className="payment-title">Efectivo al retirar</span>
+                <span className="payment-subtitle">
+                  Pagás en el local cuando venís a buscar tu pedido.
+                </span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        {paymentMethod === "efectivo" && (
           <label className="field">
-            <span className="field-label">
-              <StickyNote size={16} className="icon" />
-              Notas (opcional)
-            </span>
-            <textarea
-              name="notes"
-              value={customer.notes}
-              onChange={handleChange}
-              rows={3}
+            <span className="field-label">¿Con cuánto abonás?</span>
+            <input
+              inputMode="numeric"
+              placeholder="Ej: 20000"
+              value={cashGiven}
+              onChange={(e) => setCashGiven(e.target.value)}
             />
+            <small className="field-hint">Te lo pedimos para preparar el cambio (si hace falta).</small>
           </label>
+        )}
 
-          {error && (
-            <div className="alert-error" role="alert">
-              <AlertTriangle size={16} className="icon" />
-              <span>{error}</span>
-            </div>
-          )}
+        <label className="field">
+          <span className="field-label">
+            <StickyNote size={16} className="icon" />
+            Notas (opcional)
+          </span>
+          <textarea name="notes" value={customer.notes} onChange={handleChange} rows={3} />
+        </label>
 
-          {missing.length > 0 && (
+        {error && (
+          <div className="alert-error" role="alert">
+            <AlertTriangle size={16} className="icon" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {missing.length > 0 && (
           <p className="checkout-required-hint">
             Campos obligatorios faltantes: <strong>{missingLabels.join(", ")}</strong>
           </p>
+        )}
+
+        <button className="btn-primary btn-icon" type="submit" disabled={loading}>
+          {loading ? (
+            <>
+              <Loader2 size={18} className="icon spin" />
+              Procesando...
+            </>
+          ) : (
+            <>
+              <CheckCircle2 size={18} className="icon" />
+              Confirmar compra
+            </>
           )}
+        </button>
+      </form>
 
-          <button className="btn-primary btn-icon" type="submit" disabled={loading}>
-            {loading ? (
-              <>
-                <Loader2 size={18} className="icon spin" />
-                Procesando...
-              </>
-            ) : (
-              <>
-                <CheckCircle2 size={18} className="icon" />
-                Confirmar compra
-              </>
-            )}
-          </button>
-        </form>
+      <aside className="checkout-summary card-animate">
+        <h2 className="checkout-h2">Resumen de compra</h2>
 
-        {/* Resumen del carrito */}
-        <aside className="checkout-summary card-animate">
-          <h2 className="checkout-h2">Resumen de compra</h2>
+        <ul className="checkout-items">
+          {items.map((item) => (
+            <li key={item.id} className="checkout-item">
+              <div>
+                <strong>{item.name}</strong>
+                <div className="checkout-item-meta">Cantidad: {item.quantity}</div>
+              </div>
+              <span>${(item.price * item.quantity).toLocaleString("es-AR")}</span>
+            </li>
+          ))}
+        </ul>
 
-          <ul className="checkout-items">
-            {items.map((item) => (
-              <li key={item.id} className="checkout-item">
-                <div>
-                  <strong>{item.name}</strong>
-                  <div className="checkout-item-meta">Cantidad: {item.quantity}</div>
-                </div>
-                <span>${(item.price * item.quantity).toLocaleString("es-AR")}</span>
-              </li>
-            ))}
-          </ul>
+        <div className="checkout-total">
+          <span>Total</span>
+          <strong>${totalPrice.toLocaleString("es-AR")}</strong>
+        </div>
 
-          <div className="checkout-total">
-            <span>Total</span>
-            <strong>${totalPrice.toLocaleString("es-AR")}</strong>
-          </div>
-
-          <Link to="/carrito" className="btn-secondary btn-icon checkout-back">
-            <ArrowRight size={18} className="icon" />
-            Volver al carrito
-          </Link>
-        </aside>
-      </div>
-    </section>
-  );
+        <Link to="/carrito" className="btn-secondary btn-icon checkout-back">
+          <ArrowRight size={18} className="icon" />
+          Volver al carrito
+        </Link>
+      </aside>
+    </div>
+  </section>
+);
 }
-
 export default Checkout;

@@ -5,29 +5,25 @@ import { ShoppingCart, Flame, Image as ImageIcon, Check } from "lucide-react";
 import { getOfferMeta } from "../utils/pricing";
 
 function ProductCard({ product }) {
-  const { addToCart } = useCart();
+  const { addToCart, decrementFromCart, items } = useCart();
+
+  const cartItem = items.find((i) => i.id === product?.id);
+  const qtyInCart = cartItem?.quantity ?? 0;
+
+  const maxStock = Number(product?.stock ?? 0);
+  const hasCap = Number.isFinite(maxStock) && maxStock > 0;
+  const isMaxQty = hasCap && qtyInCart >= maxStock;
+
   const [justAdded, setJustAdded] = useState(false);
 
-  const {
-    id,
-    name,
-    description,
-    category,
-    stock,
-    imageUrl,
-    image_url,
-  } = product || {};
+  const { id, name, description, category, stock, imageUrl, image_url } = product || {};
 
-  // ✅ oferta (según TU helper)
   const { hasOffer, basePrice, finalPrice, offerLabel } = useMemo(
     () => getOfferMeta(product),
     [product]
   );
 
   const finalImage = imageUrl || image_url || "";
-
-  const disabled = Number(stock) === 0;
-
   const stockVariant = useMemo(() => {
     const s = Number(stock);
     if (!Number.isFinite(s)) return "unknown";
@@ -42,28 +38,30 @@ function ProductCard({ product }) {
     return n.toLocaleString("es-AR");
   };
 
-  function handleAddToCart() {
-    // ✅ al carrito va el precio FINAL (oferta) + guardamos original para tachar
-    addToCart(
-      {
-        id,
-        name,
-        price: Number(finalPrice), // ✅ este se paga
-        originalPrice: hasOffer ? Number(basePrice) : null, // ✅ para tachar en carrito/checkout
-        offerLabel: hasOffer ? offerLabel : null,
-        imageUrl: finalImage,
-      },
-      1
-    );
-
-    setJustAdded(true);
-  }
-
   useEffect(() => {
     if (!justAdded) return;
     const t = setTimeout(() => setJustAdded(false), 900);
     return () => clearTimeout(t);
   }, [justAdded]);
+
+  const handleAddOne = () => {
+    if (isMaxQty) return;
+
+    addToCart(
+      {
+        id,
+        name,
+        price: Number(finalPrice),
+        originalPrice: hasOffer ? Number(basePrice) : null,
+        offerLabel: hasOffer ? offerLabel : null,
+        imageUrl: finalImage,
+        stock: Number.isFinite(Number(stock)) ? Number(stock) : undefined,
+      },
+      1
+    );
+
+    setJustAdded(true);
+  };
 
   return (
     <article className="product-card product-card--v2 card-animate">
@@ -78,11 +76,7 @@ function ProductCard({ product }) {
         {stockVariant === "out" && <span className="product-out-badge">Sin stock</span>}
 
         {finalImage ? (
-          <img
-            src={finalImage}
-            alt={name}
-            className="product-card-image product-card-image--v2"
-          />
+          <img src={finalImage} alt={name} className="product-card-image product-card-image--v2" />
         ) : (
           <div className="product-card-image placeholder placeholder--v2">
             <ImageIcon size={18} className="icon" />
@@ -94,7 +88,6 @@ function ProductCard({ product }) {
       <div className="product-card-body product-card-body--v2">
         <div className="product-head">
           <h3 className="product-title">{name}</h3>
-
           {category && <span className="product-category-pill">{category}</span>}
         </div>
 
@@ -131,32 +124,49 @@ function ProductCard({ product }) {
             )}
           </div>
 
-          <button
-            type="button"
-            className={[
-              "btn-primary",
-              "btn-small",
-              "btn-icon",
-              "add-btn",
-              justAdded ? "added" : "",
-            ].join(" ")}
-            onClick={handleAddToCart}
-            disabled={disabled}
-          >
-            {disabled ? (
-              "Sin stock"
-            ) : justAdded ? (
-              <>
-                <Check size={18} className="icon" />
-                Agregado
-              </>
-            ) : (
-              <>
-                <ShoppingCart size={18} className="icon" />
-                Agregar
-              </>
+          <div className="qty-control">
+            {qtyInCart > 0 && (
+              <button
+                type="button"
+                className="qty-btn"
+                onClick={() => decrementFromCart(product.id, 1)}
+                aria-label="Quitar uno"
+                title="Quitar uno"
+              >
+                −
+              </button>
             )}
-          </button>
+
+            <button
+              type="button"
+              className={[
+                "btn-primary",
+                "btn-small",
+                "btn-icon",
+                "add-btn",
+                justAdded ? "added" : "",
+              ].join(" ")}
+              onClick={handleAddOne}
+              disabled={isMaxQty || stockVariant === "out"}
+              title={isMaxQty ? "Stock máximo alcanzado" : "Agregar al carrito"}
+            >
+              {isMaxQty || stockVariant === "out" ? (
+                "Sin stock"
+              ) : justAdded ? (
+                <>
+                  <Check size={18} className="icon" />
+                  Agregado
+                </>
+              ) : (
+                <>
+                  <ShoppingCart size={18} className="icon" />
+                  Agregar
+                </>
+              )}
+
+              {qtyInCart > 0 && <span className="qty-badge">x{qtyInCart}</span>}
+            </button>
+          </div>
         </div>
       </div>
     </article>

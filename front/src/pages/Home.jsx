@@ -24,7 +24,7 @@ function Home() {
           </div>
 
           <h1 className="hero-title">
-            Abul <span className="hero-title-accent">Cells</span>
+            Abul <span className="hero-title-accent">Cell</span>
           </h1>
 
           <p className="hero-subtitle">
@@ -162,7 +162,7 @@ function Home() {
       {/* HIGHLIGHT */}
       <section className="home-section">
         <div className="home-highlight home-highlight--v2">
-          <h2>¿Por qué comprar en Abul Cells?</h2>
+          <h2>¿Por qué comprar en Abul Cell?</h2>
 
           <div className="highlight-grid highlight-grid--v2">
             <div className="highlight-item highlight-item--v2">

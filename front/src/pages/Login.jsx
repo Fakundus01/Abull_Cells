@@ -1,34 +1,49 @@
 // src/pages/Login.jsx
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { Mail, Lock, Eye, EyeOff, ShieldCheck, Loader2 } from "lucide-react";
 import { login } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import { LogIn, Mail, Lock, ArrowRight, Eye, EyeOff, ShieldCheck, Loader2  } from "lucide-react";
+import { useToast } from "../context/ToastContext";
+import LoadingOverlay from "../components/LoadingOverlay";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [failCount, setFailCount] = useState(0);
 
-  const { saveSession } = useAuth();
+  const { saveSession, refreshUser } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError("");
+    if (loading) return;
+
     setLoading(true);
 
     try {
       const data = await login(email, password);
-      setFailCount(0);
-      saveSession(data.user, null); // o directamente sin token
+      saveSession(data);
+      await refreshUser();
+
+      showToast({
+        type: "success",
+        title: "Sesión iniciada",
+        message: "Bienvenido nuevamente " + email,
+      });
+
       navigate("/admin");
     } catch (err) {
-      setFailCount((c) => c + 1);
-      setError(err?.message || "Credenciales inválidas.");
+      setFailCount((n) => n + 1);
+
+      showToast({
+        type: "error",
+        title: "Error al iniciar sesión",
+        message: err?.message || "Email o contraseña incorrectos",
+      });
     } finally {
       setLoading(false);
     }
@@ -36,17 +51,16 @@ function Login() {
 
   return (
     <main className="auth-page">
+      <LoadingOverlay open={loading} label="Ingresando..." />
+
       <section className="auth-card card-animate">
         <header className="auth-header">
           <div className="auth-badge">
             <ShieldCheck size={16} className="icon" />
-            Acceso admin
+            Login seguro
           </div>
 
           <h1 className="auth-title">Iniciar sesión</h1>
-          <p className="auth-subtitle">
-            Usá tu cuenta para entrar al panel de administración.
-          </p>
         </header>
 
         <form className="auth-form" onSubmit={handleSubmit}>
@@ -57,13 +71,13 @@ function Login() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="facumoreno2001@gmail.com"
-              required
+              placeholder="tu@email.com"
               autoComplete="email"
+              required
             />
           </div>
 
-          <label className="auth-label">Contraseña
+          <label className="auth-label">Contraseña</label>
           <div className="input-with-icon input-with-icon--auth">
             <Lock size={16} className="icon muted" />
             <input
@@ -71,8 +85,8 @@ function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              required
               autoComplete="current-password"
+              required
             />
             <button
               type="button"
@@ -83,22 +97,26 @@ function Login() {
               {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
-          </label>
 
-          {error && <p className="form-error auth-error">{error}</p>}
           {failCount >= 5 && (
-          <div className="auth-help">
-            <p className="form-hint">¿No podés entrar? Te conviene recuperar la contraseña.</p>
-            <Link
-              to={`/forgot-password?email=${encodeURIComponent(email || "")}`}
-              className="link-inline--v2"
-            >
-              Recuperar contraseña
-            </Link>
-          </div>
-        )}
+            <div className="auth-help">
+              <p className="form-hint">
+                ¿No podés entrar? Probá recuperar tu contraseña.
+              </p>
+              <Link
+                to={`/forgot-password?email=${encodeURIComponent(email || "")}`}
+                className="link-inline--v2"
+              >
+                Recuperar contraseña
+              </Link>
+            </div>
+          )}
 
-          <button className="btn-primary btn-icon auth-submit" type="submit" disabled={loading}>
+          <button
+            className="btn-primary btn-icon auth-submit"
+            type="submit"
+            disabled={loading}
+          >
             {loading ? (
               <>
                 <Loader2 size={18} className="icon spin" />
@@ -110,7 +128,7 @@ function Login() {
           </button>
 
           <p className="auth-footnote">
-            ¿No tenés acceso? <Link to="/">Volver al inicio</Link>
+            ¿No tenés cuenta? <Link to="/signup">Crear cuenta</Link>
           </p>
         </form>
       </section>

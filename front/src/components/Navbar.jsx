@@ -85,7 +85,7 @@ function Navbar() {
         {/* Logo */}
         <Link to="/" className="navbar-logo">
           <span className="logo-main">Abul</span>
-          <span className="logo-sub">Cells</span>
+          <span className="logo-sub">Cell</span>
         </Link>
 
         {/* Links principales */}

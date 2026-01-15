@@ -1,68 +1,87 @@
 // src/context/CartContext.jsx
-import { createContext, useContext, useReducer, useMemo } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useReducer } from "react";
 
-const CartContext = createContext();
+const CartContext = createContext(null);
 
 const initialState = {
-  items: [], // { id, name, price, imageUrl, quantity }
+  items: [], // { id, name, price, imageUrl, quantity, stock?, originalPrice?, offerLabel? }
 };
 
 function cartReducer(state, action) {
   switch (action.type) {
     case "ADD_ITEM": {
       const { product, quantity } = action.payload;
+
+      const incomingQty = Math.max(1, Number(quantity ?? 1));
+      const maxStock = Number(product?.stock ?? 0); // 0 / null => sin tope
+      const hasStockCap = Number.isFinite(maxStock) && maxStock > 0;
+
       const existing = state.items.find((i) => i.id === product.id);
 
       if (existing) {
+        const nextQtyRaw = existing.quantity + incomingQty;
+        const nextQty = hasStockCap ? Math.min(nextQtyRaw, maxStock) : nextQtyRaw;
+
         return {
           ...state,
           items: state.items.map((i) =>
             i.id === product.id
               ? {
                   ...i,
-                  quantity: i.quantity + quantity,
-
-                  // ✅ si el producto cambió de precio por oferta, mantenemos el precio final
-                  price: product.price,
-
-                  // ✅ para tachar en carrito/checkout
-                  originalPrice: product.originalPrice ?? i.originalPrice ?? null,
-
-                  // ✅ texto tipo "10% OFF"
-                  offerLabel: product.offerLabel ?? i.offerLabel ?? null,
+                  quantity: nextQty,
+                  stock: hasStockCap ? maxStock : i.stock,
                 }
               : i
           ),
         };
       }
 
+      const startQty = hasStockCap ? Math.min(incomingQty, maxStock) : incomingQty;
+
       return {
         ...state,
         items: [
           ...state.items,
           {
-            id: product.id,
-            name: product.name,
-            price: product.price,                 // ✅ precio final
-            originalPrice: product.originalPrice ?? null, // ✅ para tachar
-            offerLabel: product.offerLabel ?? null,       // ✅ badge / texto
-            imageUrl: product.imageUrl,
-            quantity,
+            ...product,
+            quantity: startQty,
+            stock: hasStockCap ? maxStock : product.stock,
           },
         ],
       };
     }
 
-    case "REMOVE_ITEM": {
-      const id = action.payload;
+    case "DECREMENT_ITEM": {
+      const { id, quantity } = action.payload;
+      const dec = Math.max(1, Number(quantity ?? 1));
+
+      const existing = state.items.find((i) => i.id === id);
+      if (!existing) return state;
+
+      const nextQty = existing.quantity - dec;
+
+      if (nextQty <= 0) {
+        return { ...state, items: state.items.filter((i) => i.id !== id) };
+      }
+
       return {
         ...state,
-        items: state.items.filter((i) => i.id !== id),
+        items: state.items.map((i) => (i.id === id ? { ...i, quantity: nextQty } : i)),
       };
     }
 
-    case "CLEAR_CART":
-      return initialState;
+    case "REMOVE_ITEM": {
+      const { id } = action.payload;
+      return { ...state, items: state.items.filter((i) => i.id !== id) };
+    }
+
+    case "CLEAR": {
+      return { ...state, items: [] };
+    }
+
+    case "HYDRATE": {
+      return action.payload ?? state;
+    }
 
     default:
       return state;
@@ -72,49 +91,66 @@ function cartReducer(state, action) {
 export function CartProvider({ children }) {
   const [state, dispatch] = useReducer(cartReducer, initialState);
 
-  const value = useMemo(() => {
-    const totalItems = state.items.reduce(
-      (acc, item) => acc + item.quantity,
-      0
-    );
-    const totalPrice = state.items.reduce(
-      (acc, item) => acc + item.quantity * item.price,
-      0
-    );
-
-    function addToCart(product, quantity = 1) {
-      dispatch({ type: "ADD_ITEM", payload: { product, quantity } });
-    }
-
-    function removeFromCart(id) {
-      dispatch({ type: "REMOVE_ITEM", payload: id });
-    }
-
-    function clearCart() {
-      dispatch({ type: "CLEAR_CART" });
-    }
-
-    return {
-      items: state.items,
-      totalItems,
-      totalPrice,
-      addToCart,
-      removeFromCart,
-      clearCart,
-    };
+  // Persist
+  useEffect(() => {
+    try {
+      localStorage.setItem("cart", JSON.stringify(state));
+    } catch {}
   }, [state]);
 
-  return (
-    <CartContext.Provider value={value}>
-      {children}
-    </CartContext.Provider>
+  // Load
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("cart");
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      dispatch({ type: "HYDRATE", payload: parsed });
+    } catch {}
+  }, []);
+
+  const addToCart = (product, quantity = 1) =>
+    dispatch({ type: "ADD_ITEM", payload: { product, quantity } });
+
+  const decrementFromCart = (id, quantity = 1) =>
+    dispatch({ type: "DECREMENT_ITEM", payload: { id, quantity } });
+
+  const removeFromCart = (id) => dispatch({ type: "REMOVE_ITEM", payload: { id } });
+
+  const clearCart = () => dispatch({ type: "CLEAR" });
+
+  const totalItems = useMemo(
+    () => state.items.reduce((acc, it) => acc + (Number(it.quantity) || 0), 0),
+    [state.items]
   );
+
+  const totalPrice = useMemo(
+    () =>
+      state.items.reduce((acc, it) => {
+        const q = Number(it.quantity) || 0;
+        const p = Number(it.price) || 0;
+        return acc + q * p;
+      }, 0),
+    [state.items]
+  );
+
+  const value = useMemo(
+    () => ({
+      items: state.items,
+      addToCart,
+      decrementFromCart,
+      removeFromCart,
+      clearCart,
+      totalItems,
+      totalPrice,
+    }),
+    [state.items, totalItems, totalPrice]
+  );
+
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 
 export function useCart() {
   const ctx = useContext(CartContext);
-  if (!ctx) {
-    throw new Error("useCart debe usarse dentro de CartProvider");
-  }
+  if (!ctx) throw new Error("useCart must be used within CartProvider");
   return ctx;
 }

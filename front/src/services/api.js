@@ -2,6 +2,19 @@ import { getCookie } from "./helpers.js";
 
 const API_BASE_URL = "http://localhost:5000/api";
 
+// ---------------------------------------------
+// API Error (para UI: toasts, manejo de status)
+// ---------------------------------------------
+export class ApiError extends Error {
+  constructor(message, { status = null, data = null, url = null } = {}) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.data = data;
+    this.url = url;
+  }
+}
+
 export async function refreshSession() {
   const csrf = getCookie("csrf_refresh_token");
 
@@ -62,8 +75,20 @@ async function apiFetch(path, options = {}, retry = true) {
   }
 
   if (!res.ok) {
-    throw new Error(data?.msg || `HTTP ${res.status}`);
-  }
+    // Mensaje por defecto + payload para UI
+    const msg =
+      data?.msg ||
+      data?.message ||
+      (res.status === 413
+        ? "El archivo es demasiado grande"
+        : res.status === 404
+          ? "No encontrado"
+          : res.status === 409
+            ? "Conflicto / stock insuficiente"
+            : `HTTP ${res.status}`);
+
+    throw new ApiError(msg, { status: res.status, data, url });
+    }
 
   return data;
 }
@@ -89,7 +114,13 @@ export async function fetchMe() {
     credentials: "include",
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.msg || "No autenticado");
+  if (!res.ok) {
+    throw new ApiError(data?.msg || "No autenticado", {
+      status: res.status,
+      data,
+      url: `${API_BASE_URL}/auth/me`,
+    });
+  }
   return data.user;
 }
 
@@ -98,11 +129,28 @@ export async function login(email, password) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({
+      email: String(email || "").trim().toLowerCase(),
+      password: String(password || ""),
+    }),
   });
 
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.msg || "Error al iniciar sesión");
+  // Intentar parsear JSON (por si el backend devuelve algo raro)
+  let data = null;
+  try {
+    data = await res.json();
+  } catch {
+    data = null;
+  }
+
+  if (!res.ok) {
+    throw new ApiError(data?.msg || "Login inválido", {
+      status: res.status,
+      data,
+      url: `${API_BASE_URL}/auth/login`,
+    });
+  }
+
   return data; // { user }
 }
 
@@ -112,7 +160,13 @@ export async function logout() {
     credentials: "include",
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.msg || "Error al cerrar sesión");
+  if (!res.ok) {
+    throw new ApiError(data?.msg || "Error al salir", {
+      status: res.status,
+      data,
+      url: `${API_BASE_URL}/auth/logout`,
+    });
+  }
   return true;
 }
 
@@ -164,7 +218,13 @@ export async function updateOrderStatus(orderId, status) {
   });
 
   const data = await res.json();
-  if (!res.ok) throw new Error(data.msg || "Error al actualizar estado");
+  if (!res.ok) {
+    throw new ApiError(data?.msg || "Error actualizando orden", {
+      status: res.status,
+      data,
+      url: `${API_BASE_URL}/orders/${orderId}`,
+    });
+  }
   return data;
 }
 
@@ -233,6 +293,7 @@ export function setDefaultAddress(id) {
 // ✅ Contacto
 export function sendContactMessage(payload) {
   const isFormData = payload instanceof FormData;
+
 
   return apiFetch("/contact", {
     method: "POST",

@@ -83,12 +83,12 @@ function Footer() {
           <div className="footer-contact">
             <p className="contact-row">
               <MapPin size={16} className="icon" />
-              Dirección del local: (acá ponemos la real cuando la tengas)
+              Dirección del local: Azcuenaga 185
             </p>
 
             <p className="contact-row">
               <Phone size={16} className="icon" />
-              Teléfono: +54 11 0000-0000
+              Teléfono: +54 11 50983612
             </p>
 
             <p className="contact-row">

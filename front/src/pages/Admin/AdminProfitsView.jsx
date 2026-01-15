@@ -57,19 +57,19 @@ export default function AdminProfitsView({
         <div className="gains-kpis">
           <div className="gains-kpi">
             <span>Hoy</span>
-            <strong>{formatARS(revenueToday)}</strong>
+            <strong className="gains-kpi-value">{formatARS(revenueToday)}</strong>
           </div>
           <div className="gains-kpi">
             <span>Semana</span>
-            <strong>{formatARS(revenueWeek)}</strong>
+            <strong className="gains-kpi-value">{formatARS(revenueWeek)}</strong>
           </div>
           <div className="gains-kpi">
             <span>Mes</span>
-            <strong>{formatARS(revenueMonth)}</strong>
+            <strong className="gains-kpi-value">{formatARS(revenueMonth)}</strong>
           </div>
           <div className="gains-kpi">
             <span>Año</span>
-            <strong>{formatARS(revenueYear)}</strong>
+            <strong className="gains-kpi-value">{formatARS(revenueYear)}</strong>
           </div>
         </div>
 
@@ -82,11 +82,17 @@ export default function AdminProfitsView({
           <div className="gains-chart-canvas">
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={data} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="gainsGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#38bdf8" />
+                    <stop offset="100%" stopColor="#0ea5e9" />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid vertical={false} />
                 <XAxis dataKey="date" tickMargin={8} />
                 <YAxis tickFormatter={(v) => `${Math.round(v / 1000)}k`} width={40} />
                 <Tooltip content={<TooltipBox />} />
-                <Bar dataKey="total" radius={[10, 10, 10, 10]} />
+                <Bar dataKey="total" radius={[10, 10, 10, 10]} fill="url(#gainsGradient)" />
               </BarChart>
             </ResponsiveContainer>
           </div>

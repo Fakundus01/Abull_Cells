@@ -2,7 +2,7 @@
 import { Link, NavLink, useNavigate  } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
-import { ShoppingCart, Globe, Tag, Home, HelpCircle, Mail, User, LogOut, Settings, Shield } from "lucide-react";
+import { ShoppingCart, Globe, Tag, Home, HelpCircle, Mail, User, LogOut, Settings, Shield, ClipboardList } from "lucide-react";
 import CartMiniPreview from "./CartMiniPreview";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -198,6 +198,18 @@ function Navbar() {
           </button>
         )}
 
+        <button
+          type="button"
+          className="user-menu-item"
+          onClick={() => {
+            setUserMenuOpen(false);
+            navigate("/mis-pedidos");
+          }}
+        >
+          <ClipboardList size={16} className="icon" />
+          Mis pedidos
+        </button>
+        
         <button
           type="button"
           className="user-menu-item"

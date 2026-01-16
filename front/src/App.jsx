@@ -15,6 +15,7 @@ import CheckoutSuccess from "./pages/CheckoutSuccess";
 import CheckoutFailure from "./pages/CheckoutFailure";
 import Signup from "./pages/Signup";
 import Profile from "./pages/Profile";
+import OrdersHistory from "./pages/OrdersHistory";
 import VerifyEmail from "./components/VerifyEmail";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -39,9 +40,9 @@ function App() {
           <Route path="/admin" element={<Admin />} />
           </Route>
           <Route path="/perfil" element={<Profile />} />
-          <Route element={<RequireAuth />}>
+          <Route element={<RequireAuth />} />
           <Route path="/checkout" element={<Checkout />} />
-          </Route>
+          <Route path="/mis-pedidos" element={<OrdersHistory />} />
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
           <Route path="/checkout/failure" element={<CheckoutFailure />} />
           <Route path="/checkout/pending" element={<CheckoutFailure />} />

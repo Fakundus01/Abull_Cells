@@ -1067,6 +1067,10 @@ input:focus, select:focus, textarea:focus{
   background: rgba(245,158,11,.08);
 }
 .profile-verify-msg{ margin: .5rem 0 0; color: var(--muted); }
+.profile-orders-card{
+  display: grid;
+  gap: .6rem;
+}
 
 /* Addresses */
 .address-list{ list-style: none; padding: 0; margin: 0; display: grid; gap: 1rem; }
@@ -1100,6 +1104,111 @@ input:focus, select:focus, textarea:focus{
   gap: .75rem;
 }
 .address-select{ width: 100%; }
+
+/* =========================
+   14.1) PAGES — ORDERS
+========================= */
+.orders-page{ display: grid; gap: 1rem; }
+.orders-hero{ display: grid; gap: 1rem; }
+.orders-hero-actions{ display: flex; gap: .6rem; flex-wrap: wrap; }
+.orders-empty{
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+
+.orders-list{ display: grid; gap: 1rem; }
+.order-card{
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1rem;
+  display: grid;
+  gap: .8rem;
+  background: #fff;
+}
+.order-card-header{
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+.order-id{ font-weight: 900; font-size: 1.05rem; }
+.order-meta{
+  display: flex;
+  gap: .6rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: .25rem;
+}
+.order-status{
+  padding: .2rem .55rem;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: .85rem;
+  border: 1px solid transparent;
+}
+.status-pending{
+  background: rgba(245,158,11,.12);
+  border-color: rgba(245,158,11,.25);
+  color: #7c2d12;
+}
+.status-paid{
+  background: rgba(22,163,74,.12);
+  border-color: rgba(22,163,74,.25);
+  color: #14532d;
+}
+.status-cancelled{
+  background: rgba(239,68,68,.12);
+  border-color: rgba(239,68,68,.25);
+  color: #7f1d1d;
+}
+.order-date{ color: var(--muted); font-weight: 700; }
+.order-total{ font-weight: 900; font-size: 1.15rem; }
+
+.order-details{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: .75rem;
+}
+.order-label{ color: var(--muted); font-weight: 700; font-size: .85rem; }
+.order-value{ display: block; font-weight: 800; margin-top: .15rem; }
+
+.order-actions{ display: flex; justify-content: flex-end; }
+.order-detail-panel{
+  border-top: 1px dashed var(--border);
+  padding-top: .8rem;
+  display: grid;
+  gap: .9rem;
+}
+.order-detail-summary{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: .75rem;
+}
+.order-items{
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: .7rem;
+}
+.order-item{
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: .75rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+.order-item-qty{ display: block; color: var(--muted); font-weight: 700; margin-top: .2rem; }
+.order-item-prices{
+  text-align: right;
+  display: grid;
+  gap: .1rem;
+  font-weight: 800;
+}
+.order-item-subtotal{ color: var(--brand); }
 
 /* =========================
    15) FOOTER

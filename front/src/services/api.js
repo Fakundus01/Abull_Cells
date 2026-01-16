@@ -207,6 +207,14 @@ export function fetchOrders() {
   return apiFetch("/admin/orders");
 }
 
+export function fetchMyOrders() {
+  return apiFetch("/my/orders");
+}
+
+export function fetchMyOrderDetail(orderId) {
+  return apiFetch(`/my/orders/${orderId}`);
+}
+
 export async function updateOrderStatus(orderId, status) {
   const csrf = getCookie("csrf_access_token");
 

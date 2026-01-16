@@ -198,6 +198,13 @@ function Profile() {
         </div>
       )}
       </section>
+      <section className="profile-card card-animate profile-orders-card">
+        <h2 className="profile-title">Mis pedidos</h2>
+        <p className="profile-subtitle">Revisá el historial y el estado de tus compras.</p>
+        <Link to="/mis-pedidos" className="btn-secondary btn-small">
+          Ver historial
+        </Link>
+      </section>
       <section className="profile-card card-animate">
         {isEditing && (
         <button

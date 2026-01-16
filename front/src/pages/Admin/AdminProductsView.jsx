@@ -1,6 +1,7 @@
 // src/components/admin/AdminProductsView.jsx
 export default function AdminProductsView({
   products,
+  pagedProducts,
   loadingProducts,
   saving,
   isEditing,
@@ -11,6 +12,11 @@ export default function AdminProductsView({
   onReset,
   onEdit,
   onDelete,
+  productsPage,
+  totalProductPages,
+  pageSize,
+  onPrevPage,
+  onNextPage,
   icons,
   cardAnimateClass = "",
 }) {
@@ -197,66 +203,92 @@ export default function AdminProductsView({
         ) : products.length === 0 ? (
           <p className="admin-muted">No hay productos cargados todavía.</p>
         ) : (
-          <div className="admin-products-table modern">
-            <div className="admin-products-header">
-              <span>Nombre</span>
-              <span>Categoría</span>
-              <span>Precio</span>
-              <span>Stock</span>
-              <span>Oferta</span>
-              <span>Acciones</span>
-            </div>
+            <>
+            <div className="admin-products-table modern">
+              <div className="admin-products-header">
+                <span>Nombre</span>
+                <span>Categoría</span>
+                <span>Precio</span>
+                <span>Stock</span>
+                <span>Oferta</span>
+                <span>Acciones</span>
+              </div>
+               {pagedProducts.map((p) => (
+                <div key={p.id} className="admin-products-row">
+                  <span className="product-cell">
+                    <span className="product-thumb">
+                      {p.imageUrl ? (
+                        <img src={p.imageUrl} alt={p.name} loading="lazy" />
+                      ) : (
+                        <span className="product-thumb-placeholder" aria-hidden="true">
+                          <Package size={16} />
+                        </span>
+                      )}
+                    </span>
+                    <span className="product-name">
+                      <span className="cell-strong">{p.name}</span>
+                      <span className="cell-muted">#{p.id}</span>
+                    </span>
+                  </span>
+                  <span className="cell-muted">{p.category || "Sin categoría"}</span>
+                  <span>${Number(p.price || 0).toLocaleString("es-AR")}</span>
 
-            {products.map((p) => (
-              <div key={p.id} className="admin-products-row">
-                <span className="product-cell">
-                  <span className="product-thumb">
-                    {p.imageUrl ? (
-                      <img src={p.imageUrl} alt={p.name} loading="lazy" />
-                    ) : (
-                      <span className="product-thumb-placeholder" aria-hidden="true">
-                        <Package size={16} />
+                  <span>
+                    <span className={`stock-pill ${Number(p.stock || 0) > 0 ? "ok" : "low"}`}>
+                      <Boxes size={14} className="icon" />
+                      {p.stock}
+                    </span>
+                  </span>
+
+                  <span>
+                    {p.isOffer ? (
+                      <span className="offer-pill">
+                        <Tag size={14} className="icon" />
+                        {p.offerLabel || "Oferta"}
                       </span>
+                    ) : (
+                      <span className="cell-muted">—</span>
                     )}
                   </span>
-                  <span className="product-name">
-                    <span className="cell-strong">{p.name}</span>
-                    <span className="cell-muted">#{p.id}</span>
+                  <span className="admin-actions">
+                    <button type="button" className="btn-small btn-icon" onClick={() => onEdit(p)}>
+                      <Pencil size={16} className="icon" />
+                    </button>
+                    <button type="button" className="btn-small btn-danger btn-icon" onClick={() => onDelete(p)}>
+                      {/* el icon trash viene en Admin.jsx */}
+                      <span aria-hidden="true">🗑️</span>
+                    </button>                            
                   </span>
-                </span>
-                <span className="cell-muted">{p.category || "Sin categoría"}</span>
-                <span>${Number(p.price || 0).toLocaleString("es-AR")}</span>
+                   </div>
+              ))}
+            </div>  
+             <div className="admin-pagination">
+              <span className="admin-muted">
+                Mostrando{" "}
+                <strong>{products.length === 0 ? 0 : (productsPage - 1) * pageSize + 1}</strong> –{" "}
+                <strong>{Math.min(productsPage * pageSize, products.length)}</strong> de{" "}
+                <strong>{products.length}</strong>
+              </span>
 
-                <span>
-                  <span className={`stock-pill ${Number(p.stock || 0) > 0 ? "ok" : "low"}`}>
-                    <Boxes size={14} className="icon" />
-                    {p.stock}
-                  </span>
-                </span>
-
-                <span>
-                  {p.isOffer ? (
-                    <span className="offer-pill">
-                      <Tag size={14} className="icon" />
-                      {p.offerLabel || "Oferta"}
-                    </span>
-                  ) : (
-                    <span className="cell-muted">—</span>
-                  )}
+              <div className="admin-pagination-actions">
+                <button type="button" className="btn-small" onClick={onPrevPage} disabled={productsPage === 1}>
+                  Anterior
+                </button>   
+                <span className="page-pill">
+                  {productsPage}/{totalProductPages}                      
                 </span>
 
-                <span className="admin-actions">
-                  <button type="button" className="btn-small btn-icon" onClick={() => onEdit(p)}>
-                    <Pencil size={16} className="icon" />
-                  </button>
-                  <button type="button" className="btn-small btn-danger btn-icon" onClick={() => onDelete(p)}>
-                    {/* el icon trash viene en Admin.jsx */}
-                    <span aria-hidden="true">🗑️</span>
-                  </button>
-                </span>
+                <button
+                  type="button"
+                  className="btn-small"
+                  onClick={onNextPage}
+                  disabled={productsPage === totalProductPages}
+                >
+                  Siguiente
+                </button>
               </div>
-            ))}
-          </div>
+            </div>
+          </>
         )}
       </div>
     </div>

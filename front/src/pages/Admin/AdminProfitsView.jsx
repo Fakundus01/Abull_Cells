@@ -86,7 +86,7 @@ export default function AdminProfitsView({
         <div className="gains-chart">
           <div className="gains-chart-head">
            <div>
-              <strong>{chartTitle}</strong>
+              <strong>{chartTitle} </strong>
               <span className="admin-muted">Ingresos por período</span>
             </div>
 
@@ -110,17 +110,29 @@ export default function AdminProfitsView({
 
           <div className="gains-chart-canvas">
             <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={data} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
+              <BarChart data={data} margin={{ top: 12, right: 12, left: 0, bottom: 0 }} barSize={36}>
                 <defs>
                   <linearGradient id="gainsGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#38bdf8" />
                     <stop offset="100%" stopColor="#0ea5e9" />
                   </linearGradient>
                 </defs>
-                <CartesianGrid vertical={false} />
-                <XAxis dataKey="label" tickMargin={8} />
-                <YAxis tickFormatter={(v) => `${Math.round(v / 1000)}k`} width={40} />
-                <Tooltip content={<TooltipBox />} />
+                <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="6 6" />
+                <XAxis
+                  dataKey="label"
+                  tickMargin={8}
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#64748b", fontSize: 12 }}
+                />
+                <YAxis
+                  tickFormatter={(v) => `${Math.round(v / 1000)}k`}
+                  width={40}
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#94a3b8", fontSize: 12 }}
+                />
+                <Tooltip content={<TooltipBox />} cursor={{ fill: "rgba(56,189,248,.08)" }} />
                 <Bar dataKey="total" radius={[10, 10, 10, 10]} fill="url(#gainsGradient)" />
               </BarChart>
             </ResponsiveContainer>

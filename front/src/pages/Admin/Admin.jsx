@@ -53,6 +53,7 @@ export default function Admin() {
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [productsPage, setProductsPage] = useState(1);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -77,6 +78,7 @@ export default function Admin() {
   // Users
   const [users, setUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [usersPage, setUsersPage] = useState(1);
 
   // Feedback
   const [error, setError] = useState("");
@@ -177,6 +179,38 @@ export default function Admin() {
     const start = (ordersPage - 1) * PAGE_SIZE;
     return (orders || []).slice(start, start + PAGE_SIZE);
   }, [orders, ordersPage]);
+
+   // -------------------------
+  // Derived: Users paging
+  // -------------------------
+  const totalUserPages = useMemo(() => {
+    return Math.max(1, Math.ceil((users?.length || 0) / PAGE_SIZE));
+  }, [users?.length]);
+
+  useEffect(() => {
+    setUsersPage((p) => Math.min(Math.max(1, p), totalUserPages));
+  }, [totalUserPages]);
+
+  const pagedUsers = useMemo(() => {
+    const start = (usersPage - 1) * PAGE_SIZE;
+    return (users || []).slice(start, start + PAGE_SIZE);
+  }, [users, usersPage]);
+
+  // -------------------------
+  // Derived: Products paging
+  // -------------------------
+  const totalProductPages = useMemo(() => {
+    return Math.max(1, Math.ceil((products?.length || 0) / PAGE_SIZE));
+  }, [products?.length]);
+
+  useEffect(() => {
+    setProductsPage((p) => Math.min(Math.max(1, p), totalProductPages));
+  }, [totalProductPages]);
+
+  const pagedProducts = useMemo(() => {
+    const start = (productsPage - 1) * PAGE_SIZE;
+    return (products || []).slice(start, start + PAGE_SIZE);
+  }, [products, productsPage]);
 
   // -------------------------
   // Products handlers
@@ -560,6 +594,7 @@ export default function Admin() {
           {tab === "products" && (
             <AdminProductsView
               products={products}
+              pagedProducts={pagedProducts}
               loadingProducts={loadingProducts}
               saving={saving}
               isEditing={isEditing}
@@ -570,6 +605,11 @@ export default function Admin() {
               onReset={resetForm}
               onEdit={handleEditClick}
               onDelete={openConfirmDelete}
+              productsPage={productsPage}
+              totalProductPages={totalProductPages}
+              pageSize={PAGE_SIZE}
+              onPrevPage={() => setProductsPage((p) => Math.max(1, p - 1))}
+              onNextPage={() => setProductsPage((p) => Math.min(totalProductPages, p + 1))}
               icons={{
                 Package,
                 Pencil,
@@ -608,7 +648,13 @@ export default function Admin() {
           {tab === "users" && (
             <AdminUsersView
               users={users}
+              pagedUsers={pagedUsers}
               loadingUsers={loadingUsers}
+              usersPage={usersPage}
+              totalUserPages={totalUserPages}
+              pageSize={PAGE_SIZE}
+              onPrevPage={() => setUsersPage((p) => Math.max(1, p - 1))}
+              onNextPage={() => setUsersPage((p) => Math.min(totalUserPages, p + 1))}
               onReload={loadUsers}
               icons={{ ShieldCheck, Loader2 }}
               cardAnimateClass="card-animate"

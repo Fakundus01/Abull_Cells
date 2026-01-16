@@ -1,4 +1,5 @@
 // src/components/admin/AdminProfitsView.jsx
+import { useMemo, useState } from "react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -30,16 +31,29 @@ export default function AdminProfitsView({
   revenueMonth,
   revenueYear,
   revenue14d,
+  revenueWeekSeries,
+  revenueMonthSeries,
+  revenueYearSeries,
   icons,
   cardAnimateClass = "",
 }) {
   const { ClipboardList } = icons;
+  const [range, setRange] = useState("week");
 
-  const data = (revenue14d || []).map((d) => ({
-    date: String(d.date).slice(5), // MM-DD
-    total: Number(d.total || 0),
-    fullDate: d.date,
-  }));
+  const data = useMemo(() => {
+    if (range === "month") return revenueMonthSeries || [];
+    if (range === "year") return revenueYearSeries || [];
+    return (revenueWeekSeries || []).map((item, idx) => ({
+      ...item,
+      fallbackLabel: String(revenue14d?.[idx]?.date || "").slice(5),
+    }));
+  }, [range, revenueMonthSeries, revenueYearSeries, revenueWeekSeries, revenue14d]);
+
+  const chartTitle = useMemo(() => {
+    if (range === "month") return "Últimos 12 meses";
+    if (range === "year") return "Últimos 5 años";
+    return "Últimos 7 días";
+  }, [range]);
 
   return (
     <div className={`admin-card ${cardAnimateClass}`} style={{ marginTop: 16 }}>
@@ -48,10 +62,6 @@ export default function AdminProfitsView({
           <ClipboardList size={18} className="icon" /> Ganancias
         </h2>
       </div>
-
-      <p className="admin-muted">
-        Se calculan con órdenes <strong>pagadas</strong> (status = <strong>paid</strong>).
-      </p>
 
       <div className="gains-grid">
         <div className="gains-kpis">
@@ -75,8 +85,27 @@ export default function AdminProfitsView({
 
         <div className="gains-chart">
           <div className="gains-chart-head">
-            <strong>Últimos 14 días</strong>
-            <span className="admin-muted">Ingresos diarios</span>
+           <div>
+              <strong>{chartTitle}</strong>
+              <span className="admin-muted">Ingresos por período</span>
+            </div>
+
+            <div className="gains-range">
+              {[
+                { key: "week", label: "Semana" },
+                { key: "month", label: "Mes" },
+                { key: "year", label: "Año" },
+              ].map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  className={`gains-range-btn ${range === item.key ? "active" : ""}`}
+                  onClick={() => setRange(item.key)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div> 
           </div>
 
           <div className="gains-chart-canvas">
@@ -89,7 +118,7 @@ export default function AdminProfitsView({
                   </linearGradient>
                 </defs>
                 <CartesianGrid vertical={false} />
-                <XAxis dataKey="date" tickMargin={8} />
+                <XAxis dataKey="label" tickMargin={8} />
                 <YAxis tickFormatter={(v) => `${Math.round(v / 1000)}k`} width={40} />
                 <Tooltip content={<TooltipBox />} />
                 <Bar dataKey="total" radius={[10, 10, 10, 10]} fill="url(#gainsGradient)" />

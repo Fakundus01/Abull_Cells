@@ -321,6 +321,14 @@ export default function Admin() {
     x.setHours(0, 0, 0, 0);
     return x;
   }
+  function formatShortDate(d) {
+    return d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" });
+  }
+  function formatShortMonth(d) {
+    const month = d.toLocaleDateString("es-AR", { month: "short" });
+    const year = String(d.getFullYear()).slice(-2);
+    return `${month} ${year}`;
+  }
 
   const revenueToday = useMemo(() => {
     const today = startOfDay(new Date());
@@ -386,6 +394,63 @@ export default function Admin() {
       if (it) it.total += Number(o.totalAmount || 0);
     }
     return days;
+  }, [paidOrders]);
+
+  const revenueWeekSeries = useMemo(() => {
+    const today = startOfDay(new Date());
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      days.push({ key, label: formatShortDate(d), total: 0 });
+    }
+    const map = new Map(days.map((x) => [x.key, x]));
+    for (const o of paidOrders) {
+      const dt = o.createdAt ? new Date(o.createdAt) : null;
+      if (!dt) continue;
+      const key = startOfDay(dt).toISOString().slice(0, 10);
+      const it = map.get(key);
+      if (it) it.total += Number(o.totalAmount || 0);
+    }
+    return days;
+  }, [paidOrders]);
+
+  const revenueMonthSeries = useMemo(() => {
+    const now = new Date();
+    const months = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      months.push({ key, label: formatShortMonth(d), total: 0 });
+    }
+    const map = new Map(months.map((x) => [x.key, x]));
+    for (const o of paidOrders) {
+      const dt = o.createdAt ? new Date(o.createdAt) : null;
+      if (!dt) continue;
+      const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+      const it = map.get(key);
+      if (it) it.total += Number(o.totalAmount || 0);
+    }
+    return months;
+  }, [paidOrders]);
+
+  const revenueYearSeries = useMemo(() => {
+    const now = new Date();
+    const years = [];
+    for (let i = 4; i >= 0; i--) {
+      const year = now.getFullYear() - i;
+      years.push({ key: String(year), label: String(year), total: 0 });
+    }
+    const map = new Map(years.map((x) => [x.key, x]));
+    for (const o of paidOrders) {
+      const dt = o.createdAt ? new Date(o.createdAt) : null;
+      if (!dt) continue;
+      const key = String(dt.getFullYear());
+      const it = map.get(key);
+      if (it) it.total += Number(o.totalAmount || 0);
+    }
+    return years;
   }, [paidOrders]);
 
   // -------------------------
@@ -558,6 +623,9 @@ export default function Admin() {
               revenueMonth={revenueMonth}
               revenueYear={revenueYear}
               revenue14d={revenue14d}
+              revenueWeekSeries={revenueWeekSeries}
+              revenueMonthSeries={revenueMonthSeries}
+              revenueYearSeries={revenueYearSeries}
               icons={{ ClipboardList }}
               cardAnimateClass="card-animate"
             />

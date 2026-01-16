@@ -27,6 +27,9 @@ export default function AdminProductsView({
     Save,
     XCircle,
   } = icons;
+  const totalProducts = products.length;
+  const offersCount = products.filter((p) => p.isOffer).length;
+  const lowStockCount = products.filter((p) => Number(p.stock || 0) <= 5).length;
 
   return (
     <div className="admin-grid">
@@ -172,6 +175,21 @@ export default function AdminProductsView({
           </h2>
         </div>
 
+        <div className="admin-products-summary">
+          <div className="summary-pill">
+            <span>Total</span>
+            <strong>{totalProducts}</strong>
+          </div>
+          <div className="summary-pill highlight">
+            <span>Ofertas</span>
+            <strong>{offersCount}</strong>
+          </div>
+          <div className="summary-pill warning">
+            <span>Stock bajo</span>
+            <strong>{lowStockCount}</strong>
+          </div>
+        </div>
+
         {loadingProducts ? (
           <p className="admin-muted">
             <Loader2 size={16} className="icon spin" /> Cargando productos...
@@ -191,8 +209,22 @@ export default function AdminProductsView({
 
             {products.map((p) => (
               <div key={p.id} className="admin-products-row">
-                <span className="cell-strong">{p.name}</span>
-                <span className="cell-muted">{p.category}</span>
+                <span className="product-cell">
+                  <span className="product-thumb">
+                    {p.imageUrl ? (
+                      <img src={p.imageUrl} alt={p.name} loading="lazy" />
+                    ) : (
+                      <span className="product-thumb-placeholder" aria-hidden="true">
+                        <Package size={16} />
+                      </span>
+                    )}
+                  </span>
+                  <span className="product-name">
+                    <span className="cell-strong">{p.name}</span>
+                    <span className="cell-muted">#{p.id}</span>
+                  </span>
+                </span>
+                <span className="cell-muted">{p.category || "Sin categoría"}</span>
                 <span>${Number(p.price || 0).toLocaleString("es-AR")}</span>
 
                 <span>

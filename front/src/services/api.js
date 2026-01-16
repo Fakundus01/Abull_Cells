@@ -98,7 +98,10 @@ export function fetchProducts() {
 }
 
 export async function fetchAdminUsers() {
-  return apiFetch("/admin/users", { method: "GET" });
+  const data = await apiFetch("/admin/users", { method: "GET" });
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.users)) return data.users;
+  return [];
 }
 
 export async function register(payload) {
@@ -320,7 +323,3 @@ export async function resetPassword(payload) {
     body: JSON.stringify(payload),
   });
 }
-
-
-
-

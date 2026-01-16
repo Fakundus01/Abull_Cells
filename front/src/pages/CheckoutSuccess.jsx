@@ -1,24 +1,26 @@
 // src/pages/CheckoutSuccess.jsx
 import { Link } from "react-router-dom";
 import { CheckCircle2, ShieldCheck, ArrowRight, ShoppingBag, Mail } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
 
 function CheckoutSuccess() {
+  const { t } = useLanguage();
   return (
     <section className="home-section checkout-success-page">
       <div className="checkout-success-card card-animate">
         <div className="checkout-success-top">
           <div className="checkout-success-badge">
             <ShieldCheck size={18} className="icon" />
-            Pago acreditado
+            {t("checkoutStatus.success.badge")}
           </div>
 
           <div className="checkout-success-icon">
             <CheckCircle2 size={28} className="icon" />
           </div>
 
-          <h1>Pago exitoso</h1>
+          <h1>{t("checkoutStatus.success.title")}</h1>
           <p className="muted">
-            ¡Gracias por tu compra! En breve recibirás un correo con los detalles.
+            {t("checkoutStatus.success.subtitle")}
           </p>
         </div>
 
@@ -28,8 +30,8 @@ function CheckoutSuccess() {
               <Mail size={16} className="icon" />
             </span>
             <div>
-              <div className="step-title">Confirmación por email</div>
-              <div className="step-sub">Te llega el detalle del pedido y el estado del pago.</div>
+              <div className="step-title">{t("checkoutStatus.success.steps.email.title")}</div>
+              <div className="step-sub">{t("checkoutStatus.success.steps.email.subtitle")}</div>
             </div>
           </div>
 
@@ -38,8 +40,8 @@ function CheckoutSuccess() {
               <ShoppingBag size={16} className="icon" />
             </span>
             <div>
-              <div className="step-title">Preparación del pedido</div>
-              <div className="step-sub">Armamos tu compra y coordinamos el envío/retiro.</div>
+              <div className="step-title">{t("checkoutStatus.success.steps.prep.title")}</div>
+              <div className="step-sub">{t("checkoutStatus.success.steps.prep.subtitle")}</div>
             </div>
           </div>
         </div>
@@ -47,12 +49,12 @@ function CheckoutSuccess() {
         <div className="checkout-success-actions">
           <Link to="/" className="btn-primary btn-icon">
             <ArrowRight size={18} className="icon" />
-            Volver al inicio
+            {t("checkoutStatus.success.actions.home")}
           </Link>
 
           <Link to="/tienda" className="btn-secondary btn-icon">
             <ShoppingBag size={18} className="icon" />
-            Seguir comprando
+            {t("checkoutStatus.success.actions.store")}
           </Link>
         </div>
       </div>

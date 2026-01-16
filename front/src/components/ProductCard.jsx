@@ -3,8 +3,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useCart } from "../context/CartContext";
 import { ShoppingCart, Flame, Image as ImageIcon, Check } from "lucide-react";
 import { getOfferMeta } from "../utils/pricing";
+import { useLanguage } from "../context/LanguageContext";
 
 function ProductCard({ product }) {
+  const { t } = useLanguage();
   const { addToCart, decrementFromCart, items } = useCart();
 
   const cartItem = items.find((i) => i.id === product?.id);
@@ -31,6 +33,21 @@ function ProductCard({ product }) {
     if (s <= 3) return "low";
     return "ok";
   }, [stock]);
+
+  const categoryLabel = useMemo(() => {
+    const raw = String(category || "").trim();
+    if (!raw) return "";
+    const normalized = raw.toLowerCase();
+    if (normalized === "celulares") return t("store.categories.phones");
+    if (normalized === "notebooks") return t("store.categories.laptops");
+    if (normalized === "periféricos" || normalized === "perifericos") {
+      return t("store.categories.peripherals");
+    }
+    if (normalized === "audio") return t("store.categories.audio");
+    if (normalized === "gaming") return t("store.categories.gaming");
+    if (normalized === "accesorios") return t("store.categories.accessories");
+    return raw;
+  }, [category, t]);
 
   const fmt = (v) => {
     const n = Number(v);
@@ -69,18 +86,20 @@ function ProductCard({ product }) {
         {hasOffer && (
           <span className="product-offer-badge product-offer-badge--v2">
             <Flame size={14} className="icon" />
-            {offerLabel || "Oferta"}
+            {offerLabel || t("productCard.offer")}
           </span>
         )}
 
-        {stockVariant === "out" && <span className="product-out-badge">Sin stock</span>}
+         {stockVariant === "out" && (
+          <span className="product-out-badge">{t("productCard.outOfStock")}</span>
+        )}
 
         {finalImage ? (
           <img src={finalImage} alt={name} className="product-card-image product-card-image--v2" />
         ) : (
           <div className="product-card-image placeholder placeholder--v2">
             <ImageIcon size={18} className="icon" />
-            <span>Sin imagen</span>
+            <span>{t("productCard.noImage")}</span>
           </div>
         )}
       </div>
@@ -88,7 +107,7 @@ function ProductCard({ product }) {
       <div className="product-card-body product-card-body--v2">
         <div className="product-head">
           <h3 className="product-title">{name}</h3>
-          {category && <span className="product-category-pill">{category}</span>}
+          {categoryLabel && <span className="product-category-pill">{categoryLabel}</span>}
         </div>
 
         {description && (
@@ -117,9 +136,9 @@ function ProductCard({ product }) {
                   stockVariant === "out" ? "out" : "",
                 ].join(" ")}
               >
-                {stockVariant === "ok" && `Stock: ${stock}`}
-                {stockVariant === "low" && `Últimas ${stock}`}
-                {stockVariant === "out" && "Sin stock"}
+                {stockVariant === "ok" && t("productCard.stock.ok", { stock })}
+                {stockVariant === "low" && t("productCard.stock.low", { stock })}
+                {stockVariant === "out" && t("productCard.outOfStock")}
               </span>
             )}
           </div>
@@ -130,8 +149,8 @@ function ProductCard({ product }) {
                 type="button"
                 className="qty-btn"
                 onClick={() => decrementFromCart(product.id, 1)}
-                aria-label="Quitar uno"
-                title="Quitar uno"
+                aria-label={t("productCard.removeOne")}
+                title={t("productCard.removeOne")}
               >
                 −
               </button>
@@ -148,19 +167,19 @@ function ProductCard({ product }) {
               ].join(" ")}
               onClick={handleAddOne}
               disabled={isMaxQty || stockVariant === "out"}
-              title={isMaxQty ? "Stock máximo alcanzado" : "Agregar al carrito"}
+              title={isMaxQty ? t("productCard.maxStock") : t("productCard.addToCart")}
             >
               {isMaxQty || stockVariant === "out" ? (
-                "Sin stock"
+                t("productCard.outOfStock")
               ) : justAdded ? (
                 <>
                   <Check size={18} className="icon" />
-                  Agregado
+                  {t("productCard.added")}
                 </>
               ) : (
                 <>
                   <ShoppingCart size={18} className="icon" />
-                  Agregar
+                  {t("productCard.add")}
                 </>
               )}
 

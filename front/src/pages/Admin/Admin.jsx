@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { Link } from "react-router-dom";
+import { useLanguage } from "../../context/LanguageContext";
 import {
   createProduct,
   deleteProduct,
@@ -44,6 +45,7 @@ const PAGE_SIZE = 5;
 
 export default function Admin() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const isAdmin = user?.role === "admin";
 
   // ✅ Views: products | payments | users | profits
@@ -96,10 +98,10 @@ export default function Admin() {
   if (!isAdmin) {
     return (
       <section className="home-section card-animate">
-        <h1>Acceso denegado</h1>
-        <p>No tenés permisos para ver esta sección.</p>
+        <h1>{t("admin.accessDenied.title")}</h1>
+        <p>{t("admin.accessDenied.subtitle")}</p>
         <Link className="btn-primary btn-icon" to="/">
-          Volver
+           {t("admin.accessDenied.back")}
         </Link>
       </section>
     );
@@ -115,7 +117,7 @@ export default function Admin() {
       setProducts(Array.isArray(data) ? data : []);
     } catch (e) {
       setProducts([]);
-      setError(e?.message || "No se pudieron cargar los productos.");
+      setError(e?.message || t("admin.errors.loadProducts"));
     } finally {
       setLoadingProducts(false);
     }
@@ -128,8 +130,7 @@ export default function Admin() {
       setOrders(Array.isArray(data) ? data : []);
     } catch (e) {
       setOrders([]);
-      setError(e?.message || "No se pudieron cargar las órdenes.");
-    } finally {
+      setError(e?.message || t("admin.errors.loadOrders"));
       setLoadingOrders(false);
     }
   }
@@ -141,7 +142,7 @@ export default function Admin() {
       setUsers(Array.isArray(data) ? data : []);
     } catch (e) {
       setUsers([]);
-      setError(e?.message || "No se pudieron cargar los usuarios.");
+      setError(e?.message || t("admin.errors.loadUsers"));
     } finally {
       setLoadingUsers(false);
     }
@@ -273,16 +274,16 @@ export default function Admin() {
 
       if (isEditing && editingId) {
         await updateProduct(editingId, payload);
-        setSuccessMsg("Producto actualizado.");
+        setSuccessMsg(t("admin.notifications.productUpdated"));
       } else {
         await createProduct(payload);
-        setSuccessMsg("Producto creado.");
+        setSuccessMsg(t("admin.notifications.productCreated"));
       }
 
       await loadProducts();
       resetForm();
     } catch (err) {
-      setError(err?.message || "No se pudo guardar el producto.");
+      setError(err?.message || t("admin.errors.saveProduct"));
     } finally {
       setSaving(false);
     }
@@ -308,11 +309,11 @@ export default function Admin() {
 
     try {
       await deleteProduct(confirmTarget.id);
-      setSuccessMsg("Producto eliminado.");
+      setSuccessMsg(t("admin.notifications.productDeleted"));
       await loadProducts();
       closeConfirm();
     } catch (err) {
-      setError(err?.message || "No se pudo eliminar el producto.");
+      setError(err?.message || t("admin.errors.deleteProduct"));
       setConfirmLoading(false);
     }
   }
@@ -329,9 +330,9 @@ export default function Admin() {
       setOrders((prev) =>
         prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
       );
-      setSuccessMsg("Estado de la orden actualizado.");
+      setSuccessMsg(t("admin.notifications.orderUpdated"));
     } catch (err) {
-      setError(err?.message || "No se pudo actualizar el estado.");
+      setError(err?.message || t("admin.errors.updateOrderStatus"));
     }
   }
 
@@ -491,12 +492,12 @@ export default function Admin() {
   // UI bits
   // -------------------------
   const headerSubtitle = useMemo(() => {
-    if (tab === "products") return `${products.length} productos`;
-    if (tab === "payments") return `${orders.length} órdenes`;
-    if (tab === "users") return `Gestión de usuarios`;
-    if (tab === "profits") return `Ingresos con órdenes pagadas`;
+   if (tab === "products") return t("admin.headerSubtitle.products", { count: products.length });
+    if (tab === "payments") return t("admin.headerSubtitle.payments", { count: orders.length });
+    if (tab === "users") return t("admin.headerSubtitle.users");
+    if (tab === "profits") return t("admin.headerSubtitle.profits");
     return "";
-  }, [tab, products.length, orders.length]);
+  }, [tab, products.length, orders.length, t]);
 
   function clearFlash() {
     setError("");
@@ -515,36 +516,39 @@ export default function Admin() {
             <div className="admin-top-left">
               <h1 className="admin-title">
                 <LayoutGrid size={22} className="icon" />
-                Panel de administración
+               {t("admin.title")}
               </h1>
 
               <p className="admin-subtitle">
-                Hola, <strong>{user?.name}</strong>. Gestioná Abul Cells.
+                {t("admin.subtitle", { name: user?.name })}
               </p>
 
               <div className="admin-kpis">
                 {tab === "products" && (
                   <>
                     <span className="admin-kpi">
-                      <Package size={16} className="icon" /> {products.length} productos
+                      <Package size={16} className="icon" />{" "}
+                      {t("admin.kpis.products", { count: products.length })}
                     </span>
-                    <span className="admin-kpi subtle">Gestión de catálogo</span>
+                    <span className="admin-kpi subtle">{t("admin.kpis.catalog")}</span>
                   </>
                 )}
 
                 {tab === "payments" && (
                   <>
                     <span className="admin-kpi">
-                      <ClipboardList size={16} className="icon" /> {orders.length} órdenes
+                      <ClipboardList size={16} className="icon" />{" "}
+                      {t("admin.kpis.orders", { count: orders.length })}
                     </span>
-                    <span className="admin-kpi subtle">Pagos y estados</span>
+                    <span className="admin-kpi subtle">{t("admin.kpis.payments")}</span>
                   </>
                 )}
 
                 {tab === "users" && (
                   <>
                     <span className="admin-kpi">
-                      <ShieldCheck size={16} className="icon" /> {users.length} usuarios
+                      <ShieldCheck size={16} className="icon" />{" "}
+                      {t("admin.kpis.users", { count: users.length })}
                     </span>
                     <span className="admin-kpi subtle">{headerSubtitle}</span>
                   </>
@@ -553,19 +557,27 @@ export default function Admin() {
                 {tab === "profits" && (
                   <>
                     <span className="admin-kpi">
-                      <DollarSign size={16} className="icon" /> Hoy: $
-                      {Number(revenueToday).toLocaleString("es-AR")}
+                      <DollarSign size={16} className="icon" />{" "}
+                      {t("admin.kpis.today", {
+                        amount: Number(revenueToday).toLocaleString("es-AR"),
+                      })}
                     </span>
                     <span className="admin-kpi">
-                      <DollarSign size={16} className="icon" /> Semana: $
-                      {Number(revenueWeek).toLocaleString("es-AR")}
+                      <DollarSign size={16} className="icon" />{" "}
+                      {t("admin.kpis.week", {
+                        amount: Number(revenueWeek).toLocaleString("es-AR"),
+                      })}
                     </span>
                     <span className="admin-kpi">
-                      <DollarSign size={16} className="icon" /> Mes: $
-                      {Number(revenueMonth).toLocaleString("es-AR")}
+                      <DollarSign size={16} className="icon" />{" "}
+                      {t("admin.kpis.month", {
+                        amount: Number(revenueMonth).toLocaleString("es-AR"),
+                      })}
                     </span>
                     <span className="admin-kpi subtle">
-                      Año: ${Number(revenueYear).toLocaleString("es-AR")}
+                      {t("admin.kpis.year", {
+                        amount: Number(revenueYear).toLocaleString("es-AR"),
+                      })}
                     </span>
                   </>
                 )}
@@ -696,16 +708,21 @@ export default function Admin() {
 
                   <div className="modal-head-text">
                     <h3 id="confirm-title" className="modal-title">
-                      Confirmar eliminación
+                      {t("admin.confirm.title")}
                     </h3>
                     <p className="modal-subtitle">
-                      Vas a eliminar{" "}
-                      <strong>{confirmTarget?.name ?? "este producto"}</strong>. Esta
-                      acción no se puede deshacer.
+                      {t("admin.confirm.subtitle", {
+                        name: confirmTarget?.name ?? t("admin.confirm.fallbackItem"),
+                      })}
                     </p>
                   </div>
 
-                  <button className="modal-x" type="button" onClick={closeConfirm} aria-label="Cerrar">
+                  <button
+                    className="modal-x"
+                    type="button"
+                    onClick={closeConfirm}
+                    aria-label={t("admin.confirm.close")}
+                  >
                     <X size={18} />
                   </button>
                 </div>
@@ -718,7 +735,7 @@ export default function Admin() {
                     disabled={confirmLoading}
                   >
                     <XCircle size={18} className="icon" />
-                    Cancelar
+                   {t("admin.confirm.cancel")}
                   </button>
 
                   <button
@@ -731,12 +748,12 @@ export default function Admin() {
                     {confirmLoading ? (
                       <>
                         <Loader2 size={18} className="icon spin" />
-                        Eliminando...
+                        {t("admin.confirm.deleting")}
                       </>
                     ) : (
                       <>
                         <Trash2 size={18} className="icon" />
-                        Sí, eliminar
+                        {t("admin.confirm.confirm")}
                       </>
                     )}
                   </button>
@@ -748,7 +765,7 @@ export default function Admin() {
 
         {/* SIDEBAR RIGHT */}
         <aside className="admin-sidebar card-animate">
-          <div className="admin-sidebar-title">Navegación</div>
+          <div className="admin-sidebar-title">{t("admin.sidebar.title")}</div>
 
           <button
             type="button"
@@ -759,7 +776,7 @@ export default function Admin() {
             }}
           >
             <Package size={18} className="icon" />
-            Productos
+            {t("admin.sidebar.products")}
           </button>
 
           <button
@@ -771,7 +788,7 @@ export default function Admin() {
             }}
           >
             <CreditCard size={18} className="icon" />
-            Pagos
+             {t("admin.sidebar.payments")}
           </button>
 
           <button
@@ -783,7 +800,7 @@ export default function Admin() {
             }}
           >
             <ShieldCheck size={18} className="icon" />
-            Usuarios
+            {t("admin.sidebar.users")}
           </button>
 
           <button
@@ -795,7 +812,7 @@ export default function Admin() {
             }}
           >
             <ClipboardList size={18} className="icon" />
-            Ganancias
+            {t("admin.sidebar.profits")}
           </button>
         </aside>
       </div>

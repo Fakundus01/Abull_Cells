@@ -2,8 +2,10 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { resetPassword } from "../services/api";
 import { Lock, ArrowRight, Loader2, CheckCircle2, AlertTriangle, Eye, EyeOff } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function ResetPassword() {
+  const { t } = useLanguage();
   const [params] = useSearchParams();
   const navigate = useNavigate();
 
@@ -22,17 +24,17 @@ export default function ResetPassword() {
     setError("");
 
     if (!token) {
-      setError("Token inválido o faltante. Volvé a pedir el link.");
+      setError(t("auth.resetPassword.errors.missingToken"));
       return;
     }
 
     if (!password || password.length < 8) {
-      setError("La contraseña debe tener al menos 8 caracteres.");
+      setError(t("auth.resetPassword.errors.shortPassword"));
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Las contraseñas no coinciden.");
+      setError(t("auth.resetPassword.errors.passwordMismatch"));
       return;
     }
 
@@ -44,7 +46,7 @@ export default function ResetPassword() {
       // redirigir al login luego de un momento corto
       setTimeout(() => navigate("/login"), 800);
     } catch (err) {
-      setError(err?.message || "No se pudo cambiar la contraseña.");
+      setError(err?.message || t("auth.resetPassword.errors.generic"));
       setStatus("idle");
     }
   }
@@ -52,17 +54,17 @@ export default function ResetPassword() {
   return (
     <section className="auth-page">
       <div className="auth-card card-animate">
-        <h1 className="auth-title">Nueva contraseña</h1>
+        <h1 className="auth-title">{t("auth.resetPassword.title")}</h1>
         <p className="auth-subtitle">
-          Ingresá tu nueva contraseña y confirmala.
+          {t("auth.resetPassword.subtitle")}
         </p>
 
         {status === "success" ? (
           <div className="alert-success" role="status">
             <CheckCircle2 size={16} className="icon" />
             <div>
-              <strong>Contraseña actualizada.</strong>
-              <div className="form-hint">Te redirigimos al login…</div>
+              <strong>{t("auth.resetPassword.successTitle")}</strong>
+              <div className="form-hint">{t("auth.resetPassword.successMessage")}</div>
             </div>
           </div>
         ) : (
@@ -70,27 +72,27 @@ export default function ResetPassword() {
             {!token && (
               <div className="alert-error" role="alert">
                 <AlertTriangle size={16} className="icon" />
-                <span>Falta el token. Pedí nuevamente el link de recuperación.</span>
+                <span>{t("auth.resetPassword.errors.missingTokenInline")}</span>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="auth-form">
               <label className="auth-label">
-                Nueva contraseña
+                {t("auth.resetPassword.passwordLabel")}
                 <div className="input-with-icon">
                   <Lock size={16} className="icon muted" />
                   <input
                     type={showPass ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Mínimo 8 caracteres"
+                    placeholder={t("auth.resetPassword.passwordPlaceholder")}
                     required
                   />
                   <button
                     type="button"
                     className="password-toggle"
                     onClick={() => setShowPass((v) => !v)}
-                    aria-label={showPass ? "Ocultar contraseña" : "Mostrar contraseña"}
+                    aria-label={showPass ? t("auth.resetPassword.hidePassword") : t("auth.resetPassword.showPassword")}
                   >
                     {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -98,21 +100,21 @@ export default function ResetPassword() {
               </label>
 
               <label className="auth-label">
-                Repetir contraseña
+                {t("auth.resetPassword.confirmPasswordLabel")}
                 <div className="input-with-icon">
                   <Lock size={16} className="icon muted" />
                   <input
                     type={showConfirm ? "text" : "password"}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Repetí tu contraseña"
+                    placeholder={t("auth.resetPassword.confirmPasswordPlaceholder")}
                     required
                   />
                   <button
                     type="button"
                     className="password-toggle"
                     onClick={() => setShowConfirm((v) => !v)}
-                    aria-label={showConfirm ? "Ocultar contraseña" : "Mostrar contraseña"}
+                    aria-label={showConfirm ? t("auth.resetPassword.hidePassword") : t("auth.resetPassword.showPassword")}
                   >
                     {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -130,23 +132,23 @@ export default function ResetPassword() {
                 {status === "loading" ? (
                   <>
                     <Loader2 size={18} className="icon spin" />
-                    Guardando...
+                    {t("auth.resetPassword.saving")}
                   </>
                 ) : (
                   <>
                     <ArrowRight size={18} className="icon" />
-                    Cambiar contraseña
+                    {t("auth.resetPassword.submit")}
                   </>
                 )}
               </button>
 
               <p className="auth-footer">
                 <Link className="link-inline--v2" to="/login">
-                  Volver al login
+                  {t("auth.resetPassword.backToLogin")}
                 </Link>
                 {" · "}
                 <Link className="link-inline--v2" to="/forgot-password">
-                  Pedir link de nuevo
+                  {t("auth.resetPassword.requestLink")}
                 </Link>
               </p>
             </form>

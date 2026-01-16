@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { fetchProducts } from "../services/api";
 import ProductCard from "../components/ProductCard";
+import { useLanguage } from "../context/LanguageContext";
 import {
   Store as StoreIcon,
   Search,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react";
 
 function Store() {
+  const { t } = useLanguage();
   const [products, setProducts] = useState([]);
   const [status, setStatus] = useState("idle"); // idle | loading | error | ready
   const [search, setSearch] = useState("");
@@ -94,11 +96,11 @@ function Store() {
     <div>
       <div className="store-badge">
         <StoreIcon size={18} className="icon" />
-        Tienda
+        {t("store.badge")}
       </div>
 
-      <h1 className="store-title">Tienda</h1>
-      <p className="store-subtitle">Explorá todos los productos de Abul Cells.</p>
+      <h1 className="store-title">{t("store.title")}</h1>
+      <p className="store-subtitle">{t("store.subtitle")}</p>
     </div>
   </div>
 
@@ -112,12 +114,12 @@ function Store() {
             {status === "loading" ? (
               <>
                 <Loader2 size={18} className="icon spin" />
-                Cargando...
+                {t("store.actions.loading")}
               </>
             ) : (
               <>
                 <RefreshCw size={18} className="icon" />
-                Actualizar
+                {t("store.actions.refresh")}
               </>
             )}
           </button>
@@ -125,7 +127,7 @@ function Store() {
           {hasFilters && (
             <button type="button" className="btn-secondary btn-icon" onClick={resetFilters}>
               <X size={18} className="icon" />
-              Limpiar
+              {t("store.actions.clear")}
             </button>
           )}
         </div>
@@ -136,14 +138,14 @@ function Store() {
         <div className="filter-group">
           <label className="filter-label">
             <Search size={16} className="icon" />
-            Buscar
+            {t("store.filters.searchLabel")}
           </label>
 
           <div className="input-with-icon">
             <Search size={16} className="icon muted" />
             <input
               type="text"
-              placeholder="Buscar por nombre o descripción..."
+              placeholder={t("store.filters.searchPlaceholder")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -152,7 +154,7 @@ function Store() {
                 type="button"
                 className="clear-input"
                 onClick={() => setSearch("")}
-                aria-label="Limpiar búsqueda"
+                aria-label={t("store.filters.clearSearch")}
               >
                 <X size={16} className="icon" />
               </button>
@@ -163,13 +165,13 @@ function Store() {
         <div className="filter-group">
           <label className="filter-label">
             <SlidersHorizontal size={16} className="icon" />
-            Categoría
+            {t("store.filters.categoryLabel")}
           </label>
 
           <select value={category} onChange={(e) => setCategory(e.target.value)}>
             {categories.map((cat) => (
               <option key={cat} value={cat}>
-                {cat === "todos" ? "Todas las categorías" : cat}
+                {cat === "todos" ? t("store.filters.allCategories") : cat}
               </option>
             ))}
           </select>
@@ -178,21 +180,21 @@ function Store() {
         <div className="filter-group">
           <label className="filter-label">
             <ArrowUpDown size={16} className="icon" />
-            Orden
+           {t("store.filters.sortLabel")}
           </label>
 
           <select value={sort} onChange={(e) => setSort(e.target.value)}>
-            <option value="relevancia">Relevancia</option>
-            <option value="precio-asc">Precio: menor a mayor</option>
-            <option value="precio-desc">Precio: mayor a menor</option>
-            <option value="nombre-asc">Nombre: A-Z</option>
+            <option value="relevancia">{t("store.filters.sort.relevance")}</option>
+            <option value="precio-asc">{t("store.filters.sort.priceAsc")}</option>
+            <option value="precio-desc">{t("store.filters.sort.priceDesc")}</option>
+            <option value="nombre-asc">{t("store.filters.sort.nameAsc")}</option>
           </select>
         </div>
 
         <div className="results-chip">
-          <span className="chip-title">Resultados</span>
+          <span className="chip-title">{t("store.filters.resultsLabel")}</span>
           <span className="chip-value">
-            {status === "ready" ? filtered.length : "—"}
+            {status === "ready" ? filtered.length : t("store.filters.resultsPlaceholder")}
           </span>
         </div>
       </section>
@@ -202,8 +204,8 @@ function Store() {
         <div className="store-state card-animate">
           <Loader2 size={22} className="icon spin" />
           <div>
-            <p className="state-title">Cargando productos…</p>
-            <p className="state-subtitle">Aguantá un toque, ya aparece el catálogo.</p>
+            <p className="state-title">{t("store.states.loadingTitle")}</p>
+            <p className="state-subtitle">{t("store.states.loadingSubtitle")}</p>
           </div>
         </div>
       )}
@@ -212,11 +214,11 @@ function Store() {
         <div className="store-state error card-animate">
           <AlertTriangle size={22} className="icon" />
           <div>
-            <p className="state-title">Ocurrió un error al cargar los productos</p>
-            <p className="state-subtitle">Probá de nuevo. Si persiste, revisamos el endpoint.</p>
+            <p className="state-title">{t("store.states.errorTitle")}</p>
+            <p className="state-subtitle">{t("store.states.errorSubtitle")}</p>
             <button className="btn-primary btn-icon" onClick={load}>
               <RefreshCw size={18} className="icon" />
-              Reintentar
+              {t("store.actions.retry")}
             </button>
           </div>
         </div>
@@ -226,14 +228,12 @@ function Store() {
         <div className="store-state empty card-animate">
           <PackageSearch size={22} className="icon" />
           <div>
-            <p className="state-title">No encontramos productos con esos filtros</p>
-            <p className="state-subtitle">
-              Probá cambiar la categoría o limpiar la búsqueda.
-            </p>
+            <p className="state-title">{t("store.states.emptyTitle")}</p>
+            <p className="state-subtitle">{t("store.states.emptySubtitle")}</p>
             {hasFilters && (
               <button className="btn-secondary btn-icon" onClick={resetFilters}>
                 <X size={18} className="icon" />
-                Limpiar filtros
+               {t("store.actions.clearFilters")}
               </button>
             )}
           </div>

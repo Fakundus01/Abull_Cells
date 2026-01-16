@@ -6,8 +6,10 @@ import { login } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import LoadingOverlay from "../components/LoadingOverlay";
+import { useLanguage } from "../context/LanguageContext";
 
 function Login() {
+  const { t } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
@@ -31,8 +33,8 @@ function Login() {
 
       showToast({
         type: "success",
-        title: "Sesión iniciada",
-        message: "Bienvenido nuevamente " + email,
+        title: t("auth.login.toastSuccessTitle"),
+        message: t("auth.login.toastSuccessMessage", { email }),
       });
 
       navigate("/admin");
@@ -41,8 +43,8 @@ function Login() {
 
       showToast({
         type: "error",
-        title: "Error al iniciar sesión",
-        message: err?.message || "Email o contraseña incorrectos",
+        title: t("auth.login.toastErrorTitle"),
+        message: err?.message || t("auth.login.toastErrorMessage"),
       });
     } finally {
       setLoading(false);
@@ -51,40 +53,40 @@ function Login() {
 
   return (
     <main className="auth-page">
-      <LoadingOverlay open={loading} label="Ingresando..." />
+      <LoadingOverlay open={loading} label={t("auth.login.loading")} />
 
       <section className="auth-card card-animate">
         <header className="auth-header">
           <div className="auth-badge">
             <ShieldCheck size={16} className="icon" />
-            Login seguro
+            {t("auth.login.secureBadge")}
           </div>
 
-          <h1 className="auth-title">Iniciar sesión</h1>
+          <h1 className="auth-title">{t("auth.login.title")}</h1>
         </header>
 
         <form className="auth-form" onSubmit={handleSubmit}>
-          <label className="auth-label">Email</label>
+          <label className="auth-label">{t("auth.login.emailLabel")}</label>
           <div className="input-with-icon input-with-icon--auth">
             <Mail size={16} className="icon muted" />
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="tu@email.com"
+              placeholder={t("auth.login.emailPlaceholder")}
               autoComplete="email"
               required
             />
           </div>
 
-          <label className="auth-label">Contraseña</label>
+          <label className="auth-label">{t("auth.login.passwordLabel")}</label>
           <div className="input-with-icon input-with-icon--auth">
             <Lock size={16} className="icon muted" />
             <input
               type={showPass ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder={t("auth.login.passwordPlaceholder")}
               autoComplete="current-password"
               required
             />
@@ -92,7 +94,7 @@ function Login() {
               type="button"
               className="password-toggle"
               onClick={() => setShowPass((v) => !v)}
-              aria-label={showPass ? "Ocultar contraseña" : "Mostrar contraseña"}
+              aria-label={showPass ? t("auth.login.hidePassword") : t("auth.login.showPassword")}
             >
               {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
@@ -101,13 +103,13 @@ function Login() {
           {failCount >= 5 && (
             <div className="auth-help">
               <p className="form-hint">
-                ¿No podés entrar? Probá recuperar tu contraseña.
+                {t("auth.login.recoverHint")}
               </p>
               <Link
                 to={`/forgot-password?email=${encodeURIComponent(email || "")}`}
                 className="link-inline--v2"
               >
-                Recuperar contraseña
+                {t("auth.login.recoverLink")}
               </Link>
             </div>
           )}
@@ -120,15 +122,15 @@ function Login() {
             {loading ? (
               <>
                 <Loader2 size={18} className="icon spin" />
-                Ingresando...
+                {t("auth.login.loadingButton")}
               </>
             ) : (
-              "Ingresar"
+              t("auth.login.submit")
             )}
           </button>
 
           <p className="auth-footnote">
-            ¿No tenés cuenta? <Link to="/signup">Crear cuenta</Link>
+             {t("auth.login.noAccount")} <Link to="/signup">{t("auth.login.signupLink")}</Link>
           </p>
         </form>
       </section>

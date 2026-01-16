@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Abul Cells — styles.cleaned.css
+   Abul Cell — styles.cleaned.css
    Objetivo:
    - Fondo blanco global
    - Unificar botones / inputs / labels
@@ -3019,4 +3019,44 @@ input:disabled, textarea:disabled, select:disabled{
 @media (max-width: 980px){
   .admin-shell{ grid-template-columns: 1fr; }
   .admin-sidebar{ position: static; order: -1; }
+}
+
+/* =========================
+   PAGE — NOT FOUND
+========================= */
+.not-found-page{
+  display: flex;
+  justify-content: center;
+}
+
+.not-found-card{
+  width: min(560px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 2.5rem 2rem;
+  text-align: center;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 1.25rem;
+}
+
+.not-found-icon{
+  width: 72px;
+  height: 72px;
+  margin: 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 24px;
+  background: rgba(14,165,233,.12);
+  color: var(--brand);
+}
+
+.not-found-card h1{
+  margin: 0;
+  font-size: 1.9rem;
+}
+
+.not-found-card .btn-primary{
+  justify-content: center;
 }

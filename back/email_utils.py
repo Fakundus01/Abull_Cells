@@ -260,14 +260,14 @@ def send_contact_autoreply(email_receiver: str, name: str = "") -> bool:
     if not email_receiver:
         return False
 
-    subject = to_ascii_safe("Recibimos tu consulta - Abul Cells")
+    subject = to_ascii_safe("Recibimos tu consulta - Abul Cell")
 
     greet_name = to_ascii_safe(name) if name else "!"
     body = to_ascii_safe(
         f"Hola {greet_name}\n\n"
         "Recibimos tu mensaje y te vamos a responder lo antes posible.\n\n"
         "Saludos,\n"
-        "Abul Cells"
+        "Abul Cell"
     )
 
     em = EmailMessage()
@@ -390,7 +390,7 @@ def send_buyer_order_email(order, items, mode: str):
     return send_email(to_email, subject, body, cc=None)
 
 def send_verify_code_email(to_email: str, code: str, name: str = ""):
-    subject = "🔐 Verificación de email - Abul Cells"
+    subject = "🔐 Verificación de email - Abul Cell"
     body = (
         f"Hola {name or ''}!\n\n"
         f"Tu código de verificación es: {code}\n\n"
@@ -399,7 +399,7 @@ def send_verify_code_email(to_email: str, code: str, name: str = ""):
     return send_email(to_email, subject, body, cc=None)
 
 def send_password_reset_email(to_email: str, name: str, reset_url: str) -> bool:
-    subject = "Recuperación de contraseña - Abul Cells"
+    subject = "Recuperación de contraseña - Abul Cell"
     body = f"""Hola {name or ""}!
 
 Recibimos una solicitud para restablecer tu contraseña.

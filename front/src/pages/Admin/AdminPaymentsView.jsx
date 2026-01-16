@@ -1,4 +1,5 @@
 // src/components/admin/AdminPaymentsView.jsx
+import { useLanguage } from "../../context/LanguageContext";
 export default function AdminPaymentsView({
   orders,
   pagedOrders,
@@ -12,32 +13,34 @@ export default function AdminPaymentsView({
   icons,
   cardAnimateClass = "",
 }) {
+  const { t, language } = useLanguage();
   const { ClipboardList, Loader2, CreditCard, CalendarDays } = icons;
+  const locale = language === "en" ? "en-US" : "es-AR";
 
   return (
     <>
       <div className={`admin-card ${cardAnimateClass}`} style={{ marginTop: 16 }}>
         <div className="admin-card-header">
           <h2 className="admin-card-title">
-            <ClipboardList size={18} className="icon" /> Pagos / Órdenes
+            <ClipboardList size={18} className="icon" /> {t("admin.payments.title")}
           </h2>
         </div>
 
         {loadingOrders ? (
           <p className="admin-muted">
-            <Loader2 size={16} className="icon spin" /> Cargando órdenes...
+            <Loader2 size={16} className="icon spin" /> {t("admin.payments.loading")}
           </p>
         ) : orders.length === 0 ? (
-          <p className="admin-muted">Todavía no hay órdenes registradas.</p>
+          <p className="admin-muted">{t("admin.payments.empty")}</p>
         ) : (
           <div className="admin-orders-table modern">
             <div className="admin-orders-header">
               <span>#</span>
-              <span>Cliente</span>
-              <span>Método</span>
-              <span>Fecha</span>
-              <span>Estado</span>
-              <span>Total</span>
+              <span>{t("admin.payments.headers.customer")}</span>
+              <span>{t("admin.payments.headers.method")}</span>
+              <span>{t("admin.payments.headers.date")}</span>
+              <span>{t("admin.payments.headers.status")}</span>
+              <span>{t("admin.payments.headers.total")}</span>
             </div>
 
             {pagedOrders.map((o) => (
@@ -51,7 +54,7 @@ export default function AdminPaymentsView({
 
                 <span className="cell-muted">
                   <CalendarDays size={14} className="icon" />{" "}
-                  {o.createdAt ? new Date(o.createdAt).toLocaleString("es-AR") : "—"}
+                  {o.createdAt ? new Date(o.createdAt).toLocaleString(locale) : "—"}
                 </span>
 
                 <span>
@@ -60,9 +63,9 @@ export default function AdminPaymentsView({
                     value={o.status}
                     onChange={(e) => onChangeStatus(o.id, e.target.value)}
                   >
-                    <option value="pending">Pendiente</option>
-                    <option value="paid">Pagada</option>
-                    <option value="cancelled">Cancelada</option>
+                    <option value="pending">{t("admin.payments.status.pending")}</option>
+                    <option value="paid">{t("admin.payments.status.paid")}</option>
+                    <option value="cancelled">{t("admin.payments.status.cancelled")}</option>
                   </select>
                 </span>
 
@@ -76,15 +79,16 @@ export default function AdminPaymentsView({
       {/* Pagination */}
       <div className="admin-pagination">
         <span className="admin-muted">
-          Mostrando{" "}
-          <strong>{orders.length === 0 ? 0 : (ordersPage - 1) * pageSize + 1}</strong> –{" "}
-          <strong>{Math.min(ordersPage * pageSize, orders.length)}</strong> de{" "}
-          <strong>{orders.length}</strong>
+          {t("admin.pagination.showing", {
+            start: orders.length === 0 ? 0 : (ordersPage - 1) * pageSize + 1,
+            end: Math.min(ordersPage * pageSize, orders.length),
+            total: orders.length,
+          })}
         </span>
 
         <div className="admin-pagination-actions">
           <button type="button" className="btn-small" onClick={onPrevPage} disabled={ordersPage === 1}>
-            Anterior
+           {t("admin.pagination.prev")}
           </button>
 
           <span className="page-pill">
@@ -97,7 +101,7 @@ export default function AdminPaymentsView({
             onClick={onNextPage}
             disabled={ordersPage === totalOrderPages}
           >
-            Siguiente
+            {t("admin.pagination.next")}
           </button>
         </div>
       </div>

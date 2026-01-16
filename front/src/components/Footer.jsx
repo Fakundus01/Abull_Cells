@@ -24,7 +24,7 @@ function Footer() {
         <div className="footer-column footer-brand card-animate">
           <div className="footer-logo">
             <span className="logo-main">Abul</span>
-            <span className="logo-sub">Cells</span>
+            <span className="logo-sub">Cell</span>
           </div>
 
           <p className="footer-text">
@@ -93,14 +93,14 @@ function Footer() {
 
             <p className="contact-row">
               <Mail size={16} className="icon" />
-              Email: contacto@abulcells.com
+              Email: contacto@abulcell.com
             </p>
           </div>
         </div>
       </div>
 
       <div className="footer-bottom footer-bottom--v2">
-        <p>© {year} Abul Cells. Todos los derechos reservados.</p>
+        <p>© {year} Abul Cell. Todos los derechos reservados.</p>
       </div>
     </footer>
   );

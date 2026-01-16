@@ -6,10 +6,12 @@ import { sendContactMessage } from "../services/api";
 // ✅ NUEVO
 import { useToast } from "../context/ToastContext";
 import LoadingOverlay from "../components/LoadingOverlay";
+import { useLanguage } from "../context/LanguageContext";
 
 function Contact() {
   // ✅ NUEVO
   const { showToast } = useToast();
+  const { t } = useLanguage();
 
   const [form, setForm] = useState({
     name: "",
@@ -53,8 +55,8 @@ function Contact() {
       // ✅ NUEVO: toast éxito
       showToast({
         type: "success",
-        title: "Mensaje enviado",
-        message: "¡Gracias! Te vamos a responder a la brevedad.",
+        title: t("contact.toastSuccessTitle"),
+        message: t("contact.toastSuccessMessage"),
       });
 
       // opcional: volver a idle después de un rato
@@ -66,8 +68,8 @@ function Contact() {
       // ✅ NUEVO: toast error (si tu api tira err.message, lo usamos)
       showToast({
         type: "error",
-        title: "No se pudo enviar",
-        message: err?.message || "Ocurrió un error al enviar tu mensaje. Probá de nuevo.",
+        title: t("contact.toastErrorTitle"),
+        message: err?.message || t("contact.toastErrorMessage"),
       });
 
       window.setTimeout(() => setStatus("idle"), 800);
@@ -77,19 +79,19 @@ function Contact() {
   return (
     <main className="home-section contact-page">
       {/* ✅ NUEVO: overlay de carga sin mover layout */}
-      <LoadingOverlay open={status === "sending"} label="Enviando mensaje..." />
+      <LoadingOverlay open={status === "sending"} label={t("contact.sending")} />
 
       <header className="page-header--v2 card-animate">
         <div className="page-title-wrap--v2">
           <div>
             <div className="page-badge--v2">
               <MessageSquare size={18} className="icon" />
-              Contacto
+              {t("contact.badge")}
             </div>
 
-            <h1 className="page-title--v2">Contáctanos</h1>
+            <h1 className="page-title--v2">{t("contact.title")}</h1>
             <p className="page-subtitle--v2">
-              ¿Tenés dudas sobre un producto o querés un presupuesto? Escribinos.
+               {t("contact.subtitle")}
             </p>
           </div>
         </div>
@@ -99,11 +101,11 @@ function Contact() {
         <form className="card-v2 card-pad form-grid card-animate" onSubmit={handleSubmit}>
           <div className="badge">
             <Mail size={16} className="icon" />
-            Contacto
+           {t("contact.badge")}
           </div>
 
           <div className="field">
-            <label><User size={16} className="icon muted" /> Nombre</label>
+            <label><User size={16} className="icon muted" /> {t("contact.form.nameLabel")}</label>
             <input
               className="input-v2"
               type="text"
@@ -115,7 +117,7 @@ function Contact() {
           </div>
 
           <div className="field">
-            <label><Mail size={16} className="icon muted" /> Email</label>
+            <label><Mail size={16} className="icon muted" /> {t("contact.form.emailLabel")}</label>
             <input
               className="input-v2"
               type="email"
@@ -127,7 +129,7 @@ function Contact() {
           </div>
 
           <div className="field">
-            <label><MessageSquare size={16} className="icon muted" /> Asunto</label>
+            <label><MessageSquare size={16} className="icon muted" /> {t("contact.form.subjectLabel")}</label>
             <input
               className="input-v2"
               type="text"
@@ -139,7 +141,7 @@ function Contact() {
           </div>
 
           <div className="field">
-            <label><MessageSquare size={16} className="icon muted" /> Mensaje</label>
+            <label><MessageSquare size={16} className="icon muted" /> {t("contact.form.messageLabel")}</label>
             <textarea
               className="textarea-v2"
               name="message"
@@ -151,7 +153,7 @@ function Contact() {
           </div>
 
           <div className="field">
-            <label>Adjuntos (comprobante / fotos)</label>
+            <label>{t("contact.form.attachmentsLabel")}</label>
             <input
               className="input-v2"
               type="file"
@@ -159,7 +161,7 @@ function Contact() {
               accept="image/*,.pdf"
               onChange={handleFilesChange}
             />
-            <small className="muted">Imágenes o PDF. Máx 8MB total.</small>
+            <small className="muted">{t("contact.form.attachmentsHint")}</small>
           </div>
 
           <button
@@ -168,7 +170,7 @@ function Contact() {
             disabled={status === "sending"}
           >
             <Send size={18} className="icon" />
-            {status === "sending" ? "Enviando..." : "Enviar mensaje"}
+            {status === "sending" ? t("contact.form.sending") : t("contact.form.submit")}
           </button>
 
           {/* 🔻 Recomendado: NO mostrar mensajes inline para que no mueva el contenedor */}
@@ -181,18 +183,20 @@ function Contact() {
         <aside className="card-v2 card-pad item-hover card-animate">
           <div className="badge">
             <MapPin size={16} className="icon" />
-            Datos del local
+            {t("contact.storeDetailsTitle")}
           </div>
 
           <p style={{ marginTop: ".75rem" }}>
-            <strong>Dirección:</strong> (acá va la dirección real de Abul Cells)
+            <strong>{t("contact.storeAddressLabel")}</strong> {t("contact.storeAddressValue")}
           </p>
           <p>
-            <strong>Horario:</strong> <Clock size={16} className="icon muted" /> Lunes a viernes de 10 a 19 hs.
+            <strong>{t("contact.storeHoursLabel")}</strong>{" "}
+            <Clock size={16} className="icon muted" /> {t("contact.storeHoursValue")}
           </p>
-          <p><strong>Email:</strong> contacto@abulcells.com</p>
+          <p><strong>{t("contact.storeEmailLabel")}</strong> contacto@abulcells.com</p>
           <p>
-            <strong>Teléfono:</strong> <Phone size={16} className="icon muted" /> +54 11 0000-0000
+            <strong>{t("contact.storePhoneLabel")}</strong>{" "}
+            <Phone size={16} className="icon muted" /> +54 11 0000-0000
           </p>
         </aside>
       </div>

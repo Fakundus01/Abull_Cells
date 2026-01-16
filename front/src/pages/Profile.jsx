@@ -1,11 +1,13 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { BadgeCheck, Mail, User } from "lucide-react";
-import { sendVerifyEmail, fetchAddresses, createAddress, deleteAddress, updateAddress, setDefaultAddress, resendVerifyEmail} from "../services/api";
+import { BadgeCheck, User } from "lucide-react";
+import { fetchAddresses, createAddress, deleteAddress, updateAddress, setDefaultAddress, resendVerifyEmail} from "../services/api";
 import { useEffect, useState, useMemo } from "react";
+import { useLanguage } from "../context/LanguageContext";
 
 function Profile() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [addresses, setAddresses] = useState([]);
   const [loadingAddresses, setLoadingAddresses] = useState(true);
   const [addrError, setAddrError] = useState("");
@@ -50,9 +52,9 @@ function Profile() {
   if (!user) {
     return (
       <main className="home-section">
-        <h1>Perfil</h1>
-        <p>Necesitás iniciar sesión para ver tu perfil.</p>
-        <Link to="/login" className="btn-primary">Ir a login</Link>
+        <h1>{t("profile.title")}</h1>
+        <p>{t("profile.loginRequired")}</p>
+        <Link to="/login" className="btn-primary">{t("profile.goToLogin")}</Link>
       </main>
     );
   }
@@ -73,7 +75,7 @@ function Profile() {
       const data = await fetchAddresses();
       setAddresses(data);
     } catch (e) {
-      setAddrError("No se pudieron cargar las direcciones");
+      setAddrError(t("profile.addressErrors.load"));
     } finally {
       setLoadingAddresses(false);
     }
@@ -116,7 +118,7 @@ function Profile() {
       await deleteAddress(id);
       setAddresses((prev) => prev.filter((a) => a.id !== id));
     } catch (e) {
-      setAddrError("No se pudo eliminar la dirección");
+      setAddrError(t("profile.addressErrors.delete"));
     }
   }
 
@@ -126,7 +128,7 @@ function Profile() {
     await setDefaultAddress(addressId); // <-- tenés que importarlo
     await loadAddresses();
   } catch (e) {
-    setAddrError(e.message || "No se pudo marcar como predeterminada.");
+    setAddrError(e.message || t("profile.addressErrors.setDefault"));
   }
 }
 
@@ -138,35 +140,35 @@ function Profile() {
             <User size={18} />
           </div>
           <div>
-            <h1 className="profile-title">Mi perfil</h1>
-            <p className="profile-subtitle">Gestioná tus datos de cuenta.</p>
+            <h1 className="profile-title">{t("profile.title")}</h1>
+            <p className="profile-subtitle">{t("profile.subtitle")}</p>
           </div>
         </div>
 
         <div className="profile-grid">
           <div className="profile-item">
-            <span className="profile-label">Nombre</span>
+            <span className="profile-label">{t("profile.labels.name")}</span>
             <span className="profile-value">{user?.name || "—"}</span>
           </div>
 
           <div className="profile-item">
-            <span className="profile-label">Email</span>
+            <span className="profile-label">{t("profile.labels.email")}</span>
             <span className="profile-value">{user?.email || "—"}</span>
           </div>
 
           <div className="profile-item">
-            <span className="profile-label">Verificación</span>
+            <span className="profile-label">{t("profile.labels.verification")}</span>
             <span className={`profile-badge ${isEmailVerified ? "ok" : "pending"}`}>
               <BadgeCheck size={16} />
-              {isEmailVerified ? "Verificado" : "Pendiente"}
+              {isEmailVerified ? t("profile.verified") : t("profile.pending")}
             </span>
           </div>
         </div>
 
         {!isEmailVerified && (
         <div className="profile-verify card-animate" role="alert">
-          <strong>Tu email todavía no está verificado.</strong>
-          <p>Revisá tu casilla. Si no te llegó el código, podés reenviarlo.</p>
+          <strong>{t("profile.verify.title")}</strong>
+          <p>{t("profile.verify.subtitle")}</p>
 
           {verifMsg && <p className="profile-verify-msg">{verifMsg}</p>}
 
@@ -179,31 +181,24 @@ function Profile() {
                 setVerifStatus("loading");
                 setVerifMsg("");
                 await resendVerifyEmail();
-                setVerifMsg("Listo ✅ Te reenviamos el código. Revisá tu mail.");
+                setVerifMsg(t("profile.verify.success"));
               } catch (e) {
-                setVerifMsg(e.message || "No se pudo reenviar el código.");
+                setVerifMsg(e.message || t("profile.verify.error"));
               } finally {
                 setVerifStatus("idle");
               }
             }}
           >
-            {verifStatus === "loading" ? "Reenviando..." : "Reenviar verificación"}
+           {verifStatus === "loading" ? t("profile.verify.loading") : t("profile.verify.resend")}
           </button>
 
           <div style={{ marginTop: 10 }}>
             <Link to="/verify-email" className="link-inline--v2">
-              Ingresar código ahora
+              {t("profile.verify.enterCode")}
             </Link>
           </div>
         </div>
       )}
-      </section>
-      <section className="profile-card card-animate profile-orders-card">
-        <h2 className="profile-title">Mis pedidos</h2>
-        <p className="profile-subtitle">Revisá el historial y el estado de tus compras.</p>
-        <Link to="/mis-pedidos" className="btn-secondary btn-small">
-          Ver historial
-        </Link>
       </section>
       <section className="profile-card card-animate">
         {isEditing && (
@@ -227,34 +222,40 @@ function Profile() {
             });
           }}
         >
-          Cancelar edición
+          {t("profile.addresses.cancelEdit")}
         </button>
       )}
-        <h2 className="profile-title">Mis direcciones</h2>
+        <h2 className="profile-title">{t("profile.addresses.title")}</h2>
 
         {loadingAddresses ? (
-          <p className="profile-muted">Cargando direcciones...</p>
+          <p className="profile-muted">{t("profile.addresses.loading")}</p>
         ) : addresses.length === 0 ? (
-          <p className="profile-muted">No tenés direcciones guardadas.</p>
+          <p className="profile-muted">{t("profile.addresses.empty")}</p>
         ) : (
           <ul className="address-list">
             {pagedAddresses.map((a) => (
               <li key={a.id} className="address-item">
                 <div>
                   <strong>{a.label}</strong>
-                  {a.isDefault && <span className="pill-default">Predeterminada</span>}
+                  {a.isDefault && <span className="pill-default">{t("profile.addresses.default")}</span>}
                   <p className="address-line">
                     {a.street}, {a.city}, {a.province}
                   </p>
-                  {a.postalCode && <p className="address-muted">CP: {a.postalCode}</p>}
+                  {a.postalCode && (
+                    <p className="address-muted">{t("profile.addresses.postalCode")} {a.postalCode}</p>
+                  )}
                 </div>
 
                 {(a.type === "apartment" || a.apartment || a.floor || a.bell) && (
                   <div className="address-muted">
-                    {a.type === "apartment" ? "Depto" : a.type === "office" ? "Oficina" : "Casa"}
-                    {a.apartment ? ` · Depto: ${a.apartment}` : ""}
-                    {a.floor ? ` · Piso: ${a.floor}` : ""}
-                    {a.bell ? ` · Timbre: ${a.bell}` : ""}
+                    {a.type === "apartment"
+                      ? t("profile.addresses.types.apartment")
+                      : a.type === "office"
+                        ? t("profile.addresses.types.office")
+                        : t("profile.addresses.types.house")}
+                    {a.apartment ? ` · ${t("profile.addresses.apartment")}: ${a.apartment}` : ""}
+                    {a.floor ? ` · ${t("profile.addresses.floor")}: ${a.floor}` : ""}
+                    {a.bell ? ` · ${t("profile.addresses.bell")}: ${a.bell}` : ""}
                   </div>
                 )}
 
@@ -264,11 +265,11 @@ function Profile() {
                 <div className="address-actions">
                   {!a.isDefault && (
                     <button
-                      type="button"
-                      className="btn-small btn-secondary"
-                      onClick={() => handleSetDefault(a.id)}
+                    type="button"
+                    className="btn-small btn-secondary"
+                    onClick={() => handleSetDefault(a.id)}
                     >
-                      Hacer predeterminada
+                      {t("profile.addresses.makeDefault")}
                     </button>
                   )}
 
@@ -292,7 +293,7 @@ function Profile() {
                       });
                     }}
                   >
-                    Editar
+                    {t("profile.addresses.edit")}
                   </button>
 
                   <button
@@ -300,7 +301,7 @@ function Profile() {
                     className="btn-small btn-danger"
                     onClick={() => handleDeleteAddress(a.id)}
                   >
-                    Eliminar
+                    {t("profile.addresses.delete")}
                   </button>
 
                 </div>
@@ -334,12 +335,12 @@ function Profile() {
       </div>
       </section>
       <section className="profile-card card-animate">
-        <h3 className="profile-subtitle">Agregar dirección</h3>
+        <h3 className="profile-subtitle">{t("profile.addressForm.title")}</h3>
 
         <form onSubmit={handleAddAddress} className="address-form">
           <input
             name="label"
-            placeholder="Casa, Trabajo..."
+            placeholder={t("profile.addressForm.labelPlaceholder")}
             value={addrForm.label}
             onChange={handleAddrChange}
             required
@@ -347,7 +348,7 @@ function Profile() {
 
           <input
             name="street"
-            placeholder="Calle y número"
+            placeholder={t("profile.addressForm.streetPlaceholder")}
             value={addrForm.street}
             onChange={handleAddrChange}
             required
@@ -355,7 +356,7 @@ function Profile() {
 
           <input
             name="city"
-            placeholder="Ciudad"
+            placeholder={t("profile.addressForm.provincePlaceholder")}
             value={addrForm.city}
             onChange={handleAddrChange}
             required
@@ -363,7 +364,7 @@ function Profile() {
 
           <input
             name="province"
-            placeholder="Provincia"
+            placeholder={t("profile.addressForm.provincePlaceholder")}
             value={addrForm.province}
             onChange={handleAddrChange}
             required
@@ -371,67 +372,67 @@ function Profile() {
 
           <input
             name="postalCode"
-            placeholder="Código postal"
+            placeholder={t("profile.addressForm.postalCodePlaceholder")}
             value={addrForm.postalCode}
             onChange={handleAddrChange}
           />
 
-          <div className="address-form-row">
+        <div className="address-form-row">
           <label className="auth-label-profile">
-            Tipo
+            {t("profile.addressForm.typeLabel")}
             <select
               name="type"
               value={addrForm.type}
               onChange={handleAddrChange}
               className="address-select"
             >
-              <option value="house">Casa</option>
-              <option value="apartment">Departamento</option>
-              <option value="office">Oficina</option>
-              <option value="other">Otro</option>
+              <option value="house">{t("profile.addressForm.types.house")}</option>
+              <option value="apartment">{t("profile.addressForm.types.apartment")}</option>
+              <option value="office">{t("profile.addressForm.types.office")}</option>
+              <option value="other">{t("profile.addressForm.types.other")}</option>
             </select>
           </label>
 
           <label className="auth-label-profile">
-            Depto (opcional)
+            {t("profile.addressForm.apartmentLabel")}
             <input
               name="apartment"
               value={addrForm.apartment}
               onChange={handleAddrChange}
-              placeholder="A, 2B, etc."
+              placeholder={t("profile.addressForm.apartmentPlaceholder")}
             />
           </label>
         </div>
 
         <div className="address-form-row">
           <label className="auth-label-profile">
-            Piso (opcional)
+            {t("profile.addressForm.floorLabel")}
             <input
               name="floor"
               value={addrForm.floor}
               onChange={handleAddrChange}
-              placeholder="3"
+              placeholder={t("profile.addressForm.floorPlaceholder")}           
             />
           </label>
 
           <label className="auth-label-profile">
-            Timbre (opcional)
+            {t("profile.addressForm.bellLabel")}
             <input
               name="bell"
               value={addrForm.bell}
               onChange={handleAddrChange}
-              placeholder="Moreno / 3B"
+              placeholder={t("profile.addressForm.bellPlaceholder")}
             />
           </label>
         </div>
 
         <label className="auth-label-profile">
-          Indicaciones (opcional)
+          {t("profile.addressForm.notesLabel")}
           <input
             name="notes"
             value={addrForm.notes}
             onChange={handleAddrChange}
-            placeholder="Entre calles..., portón negro, etc."
+            placeholder={t("profile.addressForm.notesPlaceholder")}
           />
         </label>
 
@@ -442,13 +443,13 @@ function Profile() {
               checked={addrForm.isDefault}
               onChange={handleAddrChange}
             />
-            Usar como predeterminada
+           {t("profile.addressForm.setDefault")}
           </label>
 
           {addrError && <p className="form-error">{addrError}</p>}
 
           <button className="btn-primary" type="submit">
-            Guardar dirección
+           {t("profile.addressForm.submit")}
           </button>
         </form>
       </section>

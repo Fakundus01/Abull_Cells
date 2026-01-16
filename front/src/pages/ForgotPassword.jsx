@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { forgotPassword } from "../services/api";
 import { Mail, ArrowRight, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function ForgotPassword() {
+  const { t } = useLanguage();
   const [params] = useSearchParams();
   const initialEmail = params.get("email") || "";
 
@@ -21,7 +23,7 @@ export default function ForgotPassword() {
 
     const clean = (email || "").trim().toLowerCase();
     if (!clean) {
-      setError("Ingresá tu correo.");
+      setError(t("auth.forgotPassword.errors.missingEmail"));
       return;
     }
 
@@ -30,7 +32,7 @@ export default function ForgotPassword() {
       await forgotPassword({ email: clean });
       setStatus("success");
     } catch (err) {
-      setError(err?.message || "No se pudo procesar la solicitud.");
+      setError(err?.message || t("auth.forgotPassword.errors.generic"));
       setStatus("idle");
     }
   }
@@ -38,39 +40,39 @@ export default function ForgotPassword() {
   return (
     <section className="auth-page">
       <div className="auth-card card-animate">
-        <h1 className="auth-title">Recuperar contraseña</h1>
+        <h1 className="auth-title">{t("auth.forgotPassword.title")}</h1>
         <p className="auth-subtitle">
-          Te vamos a mandar un link para que puedas crear una contraseña nueva.
+          {t("auth.forgotPassword.subtitle")}
         </p>
 
         {status === "success" ? (
           <div className="alert-success" role="status">
             <CheckCircle2 size={16} className="icon" />
             <div>
-              <strong>Listo.</strong>
+              <strong>{t("auth.forgotPassword.successTitle")}</strong>
               <div className="form-hint">
-                Si el mail existe, te va a llegar un correo con el link de recuperación.
+                {t("auth.forgotPassword.successMessage")}
               </div>
             </div>
 
             <div style={{ marginTop: 12 }}>
               <Link to="/login" className="btn-secondary btn-icon">
                 <ArrowRight size={18} className="icon" />
-                Volver al login
+                {t("auth.forgotPassword.backToLogin")}
               </Link>
             </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="auth-form">
             <label className="auth-label">
-              Email
+               {t("auth.forgotPassword.emailLabel")}
               <div className="input-with-icon">
                 <Mail size={16} className="icon muted" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="tu@email.com"
+                  placeholder={t("auth.forgotPassword.emailPlaceholder")}
                   required
                 />
               </div>
@@ -87,19 +89,19 @@ export default function ForgotPassword() {
               {status === "loading" ? (
                 <>
                   <Loader2 size={18} className="icon spin" />
-                  Enviando...
+                   {t("auth.forgotPassword.sending")}
                 </>
               ) : (
                 <>
                   <ArrowRight size={18} className="icon" />
-                  Enviar link
+                  {t("auth.forgotPassword.submit")}
                 </>
               )}
             </button>
 
             <p className="auth-footer">
               <Link className="link-inline--v2" to="/login">
-                Volver al login
+                {t("auth.forgotPassword.backToLogin")}
               </Link>
             </p>
           </form>

@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BadgeCheck, Mail, ArrowRight, RefreshCw } from "lucide-react";
-import { confirmVerifyEmail, sendVerifyEmail, fetchMe, resendVerifyEmail } from "../services/api";
+import { Mail, ArrowRight, RefreshCw } from "lucide-react";
+import { confirmVerifyEmail, resendVerifyEmail } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function VerifyEmail() {
   const navigate = useNavigate();
   const { user, refreshUser } = useAuth(); // si no existe refreshUser, te digo abajo
+  const { t } = useLanguage();
   const [code, setCode] = useState("");
   const [status, setStatus] = useState("idle"); // idle | loading
   const [error, setError] = useState("");
@@ -23,7 +25,7 @@ export default function VerifyEmail() {
 
     const clean = String(code || "").trim();
     if (clean.length < 6) {
-      setError("Ingresá el código de 6 dígitos.");
+      setError(t("auth.verifyEmail.errors.shortCode"));
       return;
     }
 
@@ -36,7 +38,7 @@ export default function VerifyEmail() {
 
       navigate("/profile");
     } catch (e) {
-      setError(e.message || "Código inválido.");
+      setError(e.message || t("auth.verifyEmail.errors.invalidCode"));
     } finally {
       setStatus("idle");
     }
@@ -48,9 +50,9 @@ export default function VerifyEmail() {
     try {
       setStatus("loading");
       await resendVerifyEmail();
-      setInfo("Listo ✅ Te enviamos un nuevo código.");
+      setInfo(t("auth.verifyEmail.resendSuccess"));
     } catch (e) {
-      setError(e.message || "No se pudo reenviar.");
+      setError(e.message || t("auth.verifyEmail.errors.resendFailed"));
     } finally {
       setStatus("idle");
     }
@@ -64,20 +66,20 @@ export default function VerifyEmail() {
             <Mail size={18} className="icon" />
           </div>
           <div className="auth-header-text">
-            <h1 className="auth-title">Verificá tu email</h1>
+            <h1 className="auth-title">{t("auth.verifyEmail.title")}</h1>
             <p className="auth-subtitle">
-              Te enviamos un código a <strong>{user?.email}</strong>.
+              {t("auth.verifyEmail.subtitle", { email: user?.email })}
             </p>
           </div>
         </div>
 
         <div className="auth-form">
           <label className="auth-label">
-            Código (6 dígitos)
+            {t("auth.verifyEmail.codeLabel")}
             <input
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              placeholder="123456"
+              placeholder={t("auth.verifyEmail.codePlaceholder")}
               inputMode="numeric"
             />
           </label>
@@ -92,9 +94,9 @@ export default function VerifyEmail() {
               onClick={onConfirm}
               disabled={status === "loading"}
             >
-              {status === "loading" ? "Verificando..." : (
+              {status === "loading" ? t("auth.verifyEmail.verifying") : (
                 <>
-                  Confirmar <ArrowRight size={18} className="icon" />
+                  {t("auth.verifyEmail.confirm")} <ArrowRight size={18} className="icon" />
                 </>
               )}
             </button>
@@ -106,7 +108,7 @@ export default function VerifyEmail() {
               disabled={status === "loading"}
             >
               <RefreshCw size={18} className="icon" />
-              Reenviar código
+              {t("auth.verifyEmail.resend")}
             </button>
 
             <button
@@ -114,12 +116,12 @@ export default function VerifyEmail() {
               className="btn-secondary"
               onClick={() => navigate("/perfil")}
             >
-              Verificar más tarde
+              {t("auth.verifyEmail.later")}
             </button>
           </div>
 
           <p className="auth-hint">
-            Podés verificarlo más tarde desde <strong>Mi perfil</strong>.
+            {t("auth.verifyEmail.hint")} <strong>{t("auth.verifyEmail.profileLink")}</strong>.
           </p>
         </div>
       </section>

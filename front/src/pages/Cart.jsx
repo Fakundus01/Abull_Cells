@@ -137,11 +137,13 @@ function Cart() {
 
                           setToast({
                             type: "info",
-                            msg: wasLast ? "Producto eliminado del carrito" : "Quitado 1",
+                            msg: wasLast
+                              ? t("cart.toastRemoved")
+                              : t("cart.toastRemovedOne"),
                           });
                         }}
-                        aria-label="Restar"
-                        title="Restar"
+                        aria-label={t("cart.decrease")}
+                        title={t("cart.decrease")}
                       >
                         <Minus size={16} />
                       </button>
@@ -157,10 +159,10 @@ function Cart() {
                         onClick={() => {
                           addToCart(item, 1);
                           bump(item.id);
-                          setToast({ type: "ok", msg: "Agregado 1" });
+                          setToast({ type: "ok", msg: t("cart.toastAddedOne") });
                         }}
-                        aria-label="Sumar"
-                        title={isMax ? "Stock máximo alcanzado" : "Sumar"}
+                        aria-label={t("cart.increase")}
+                        title={isMax ? t("cart.maxStock") : t("cart.increase")}
                       >
                         <Plus size={16} />
                       </button>
@@ -175,7 +177,7 @@ function Cart() {
                 })()}               
               </div>
 
-              <div className="cart-item-subtotal" title="Subtotal">
+              <div className="cart-item-subtotal" title={t("cart.subtotal")}>
                 ${(item.price * item.quantity).toLocaleString("es-AR")}
               </div>
             </article>
@@ -200,7 +202,7 @@ function Cart() {
             {t("cart.goToCheckout")}
           </Link>
 
-          <div className="cart-summary-hint">Tip: revisá tu pedido antes de pagar ✨</div>
+          <div className="cart-summary-hint">{t("cart.tip")}</div>
         </aside>
       </div>
     </section>

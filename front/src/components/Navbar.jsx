@@ -1,22 +1,25 @@
 // src/components/Navbar.jsx
-import { Link, NavLink, useNavigate  } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
-import { ShoppingCart, Globe, Tag, Home, HelpCircle, Mail, User, LogOut, Settings, Shield, ClipboardList } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
+import { ShoppingCart, Globe, Tag, Home, HelpCircle, Mail, LogOut, Settings, Shield, ClipboardList } from "lucide-react";
 import CartMiniPreview from "./CartMiniPreview";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 function Navbar() {
   const navigate = useNavigate();
+  const { language, setLanguage, t } = useLanguage();
 
   //Carrito
 
   const { items } = useCart(); // o useCartContext
 
   const totalItems = (Array.isArray(items) ? items : []).reduce(
-  (acc, it) => acc + Number(it?.quantity ?? 1),
-  0
-);
+    (acc, it) => acc + Number(it?.quantity ?? 1),
+    0
+  );
+
 
   const [cartOpen, setCartOpen] = useState(false);
   const closeT = useRef(null);
@@ -24,12 +27,12 @@ function Navbar() {
   const openCart = () => {
     if (closeT.current) clearTimeout(closeT.current);
     setCartOpen(true);
-};
+ };
 
   const closeCart = () => {
     if (closeT.current) clearTimeout(closeT.current);
     closeT.current = setTimeout(() => setCartOpen(false), 140);
-};
+ };
 
   //Cerrar Carrito
 
@@ -63,21 +66,25 @@ function Navbar() {
 
   useEffect(() => {
   function onDown(e) {
-    if (!userMenuRef.current) return;
-    if (!userMenuRef.current.contains(e.target)) setUserMenuOpen(false);
+      if (!userMenuRef.current) return;
+      if (!userMenuRef.current.contains(e.target)) setUserMenuOpen(false);
+    }
+    function onEsc(e) {
+      if (e.key === "Escape") setUserMenuOpen(false);
+    }
+    if (userMenuOpen) {
+      document.addEventListener("mousedown", onDown);
+      document.addEventListener("keydown", onEsc);
+    }
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, [userMenuOpen]);
+
+  function handleLanguageToggle() {
+    setLanguage((prev) => (prev === "es" ? "en" : "es"));
   }
-  function onEsc(e) {
-    if (e.key === "Escape") setUserMenuOpen(false);
-  }
-  if (userMenuOpen) {
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onEsc);
-  }
-  return () => {
-    document.removeEventListener("mousedown", onDown);
-    document.removeEventListener("keydown", onEsc);
-  };
-}, [userMenuOpen]);
 
   return (
     <header className="navbar">
@@ -92,27 +99,27 @@ function Navbar() {
         <nav className="navbar-links">
           <NavLink to="/" end className="nav-link">
             <Home size={16} className="icon" />
-            Home
+           {t("nav.home")}
           </NavLink>
 
           <NavLink to="/ofertas" className="nav-link">
             <Tag size={16} className="icon" />
-            Ofertas
+            {t("nav.offers")}
           </NavLink>
 
           <NavLink to="/tienda" className="nav-link">
             <ShoppingCart size={16} className="icon" />
-            Tienda
+            {t("nav.store")}
           </NavLink>
 
           <NavLink to="/faq" className="nav-link">
             <HelpCircle size={16} className="icon" />
-            FAQ
+            {t("nav.faq")}
           </NavLink>
 
           <NavLink to="/contacto" className="nav-link">
             <Mail size={16} className="icon" />
-            Contáctanos
+            {t("nav.contact")}
           </NavLink>
         </nav>
 
@@ -121,11 +128,11 @@ function Navbar() {
           <button
             type="button"
             className="lang-btn lang-pill"
-            onClick={() => console.log("[LANG] acá después cambiamos idioma")}
-            aria-label="Cambiar idioma"
+            onClick={handleLanguageToggle}
+            aria-label={t("nav.changeLanguage")}
           >
             <Globe size={16} className="icon" />
-            ES
+            {language.toUpperCase()}
           </button>
 
         <div
@@ -133,9 +140,9 @@ function Navbar() {
           onMouseEnter={openCart}
           onMouseLeave={closeCart}
         >
-        <Link to="/carrito" className="cart-btn cart-pill" aria-label="Ir al carrito">
+        <Link to="/carrito" className="cart-btn cart-pill" aria-label={t("nav.goToCart")}>
           <ShoppingCart size={16} className="icon" />
-          <span>Carrito</span>
+          <span>{t("nav.cart")}</span>
           {totalItems > 0 && <span className="cart-count">{totalItems}</span>}
         </Link>
 
@@ -152,88 +159,93 @@ function Navbar() {
 
         {!loadingAuth && !isLogged && (
           <div className="navbar-auth">
-            <NavLink to="/login" className="nav-auth-link">Iniciar sesión</NavLink>
-            <NavLink to="/signup" className="btn-auth">Crear cuenta</NavLink>
+            <NavLink to="/login" className="nav-auth-link">
+              {t("nav.login")}
+            </NavLink>
+            <NavLink to="/signup" className="btn-auth">
+              {t("nav.signup")}
+            </NavLink>
           </div>
         )}
 
         {!loadingAuth && isLogged && initials && (
   <div className="user-menu" ref={userMenuRef}>
-    <button
-      type="button"
-      className="user-pill"
-      onClick={() => setUserMenuOpen((v) => !v)}
-      aria-haspopup="menu"
-      aria-expanded={userMenuOpen}
-      title={user?.email || "Cuenta"}
-    >
-      {initials}
-    </button>
+            <button
+              type="button"
+              className="user-pill"
+              onClick={() => setUserMenuOpen((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={userMenuOpen}
+              title={user?.email || t("nav.account")}
+            >
+              {initials}
+            </button>
 
-    {userMenuOpen && (
-      <div className="user-menu-panel" role="menu">
-        <div className="user-menu-header">
-          <div className="user-pill user-pill--sm">{initials}</div>
-          <div className="user-menu-meta">
-            <div className="user-menu-name">
-              {user?.name || user?.displayName || "Mi cuenta"}
-            </div>
-            <div className="user-menu-email">{user?.email || ""}</div>
+            {userMenuOpen && (
+              <div className="user-menu-panel" role="menu">
+                <div className="user-menu-header">
+                  <div className="user-pill user-pill--sm">{initials}</div>
+                  <div className="user-menu-meta">
+                    <div className="user-menu-name">
+                      {user?.name || user?.displayName || t("nav.account")}
+                    </div>
+                    <div className="user-menu-email">{user?.email || ""}</div>
+                  </div>
+                </div>
+
+                <div className="user-menu-sep" />
+
+                {isAdmin && (
+                  <button
+                    type="button"
+                    className="user-menu-item"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      navigate("/admin");
+                    }}
+                  >
+                    <Shield size={16} className="icon" />
+                    {t("nav.adminPanel")}
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  className="user-menu-item"
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    navigate("/perfil"); // si todavía no existe, lo cambiamos o lo sacamos
+                  }}
+                >
+                  <Settings size={16} className="icon" />
+                  {t("nav.profile")}
+                </button>
+
+                <button
+                  type="button"
+                  className="user-menu-item"
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    navigate("/mis-pedidos");
+                  }}
+                >
+                  <ClipboardList size={16} className="icon" />
+                  {t("nav.myOrders")}
+                </button>
+
+                <button
+                  type="button"
+                  className="user-menu-item danger"
+                  onClick={handleLogout}
+                >
+                  <LogOut size={16} className="icon" />
+                  {t("nav.logout")}
+                </button>
+              </div>
+            )}
           </div>
-        </div>
-
-        <div className="user-menu-sep" />
-
-        {isAdmin && (
-          <button
-            type="button"
-            className="user-menu-item"
-            onClick={() => {
-              setUserMenuOpen(false);
-              navigate("/admin");
-            }}
-          >
-            <Shield size={16} className="icon" />
-            Panel admin
-          </button>
         )}
 
-        <button
-          type="button"
-          className="user-menu-item"
-          onClick={() => {
-            setUserMenuOpen(false);
-            navigate("/mis-pedidos");
-          }}
-        >
-          <ClipboardList size={16} className="icon" />
-          Mis pedidos
-        </button>
-        
-        <button
-          type="button"
-          className="user-menu-item"
-          onClick={() => {
-            setUserMenuOpen(false);
-            navigate("/perfil"); // si todavía no existe, lo cambiamos o lo sacamos
-          }}
-        >
-          <Settings size={16} className="icon" />
-          Mi perfil
-        </button>
-
-        <button
-          type="button"
-          className="user-menu-item danger"
-          onClick={handleLogout}
-        >
-          <LogOut size={16} className="icon" />
-          Cerrar sesión
-        </button>
-      </div>
-    )}
-  </div>
-)}
         </div>
       </div>
     </header>

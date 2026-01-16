@@ -9,6 +9,7 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
+import { useLanguage } from "../../context/LanguageContext";
 
 function formatARS(value) {
   return `$${Number(value || 0).toLocaleString("es-AR")}`;
@@ -37,6 +38,7 @@ export default function AdminProfitsView({
   icons,
   cardAnimateClass = "",
 }) {
+  const { t } = useLanguage();
   const { ClipboardList } = icons;
   const [range, setRange] = useState("week");
 
@@ -50,31 +52,31 @@ export default function AdminProfitsView({
   }, [range, revenueMonthSeries, revenueYearSeries, revenueWeekSeries, revenue14d]);
 
   const chartTitle = useMemo(() => {
-    if (range === "month") return "Últimos 12 meses";
-    if (range === "year") return "Últimos 5 años";
-    return "Últimos 7 días";
-  }, [range]);
+     if (range === "month") return t("admin.profits.chartTitle.month");
+    if (range === "year") return t("admin.profits.chartTitle.year");
+    return t("admin.profits.chartTitle.week");
+  }, [range, t]);
 
   return (
     <div className={`admin-card ${cardAnimateClass}`} style={{ marginTop: 16 }}>
       <div className="admin-card-header">
         <h2 className="admin-card-title">
-          <ClipboardList size={18} className="icon" /> Ganancias
+          <ClipboardList size={18} className="icon" /> {t("admin.profits.title")}
         </h2>
       </div>
 
       <div className="gains-grid">
         <div className="gains-kpis">
           <div className="gains-kpi">
-            <span>Hoy</span>
+           <span>{t("admin.profits.kpis.today")}</span>
             <strong className="gains-kpi-value">{formatARS(revenueToday)}</strong>
           </div>
           <div className="gains-kpi">
-            <span>Semana</span>
+            <span>{t("admin.profits.kpis.week")}</span>
             <strong className="gains-kpi-value">{formatARS(revenueWeek)}</strong>
           </div>
           <div className="gains-kpi">
-            <span>Mes</span>
+            <span>{t("admin.profits.kpis.month")}</span>
             <strong className="gains-kpi-value">{formatARS(revenueMonth)}</strong>
           </div>
           <div className="gains-kpi">
@@ -87,14 +89,14 @@ export default function AdminProfitsView({
           <div className="gains-chart-head">
            <div>
               <strong>{chartTitle} </strong>
-              <span className="admin-muted">Ingresos por período</span>
+              <span className="admin-muted">{t("admin.profits.chartSubtitle")}</span>
             </div>
 
             <div className="gains-range">
               {[
-                { key: "week", label: "Semana" },
-                { key: "month", label: "Mes" },
-                { key: "year", label: "Año" },
+                { key: "week", label: t("admin.profits.range.week") },
+                { key: "month", label: t("admin.profits.range.month") },
+                { key: "year", label: t("admin.profits.range.year") },
               ].map((item) => (
                 <button
                   key={item.key}

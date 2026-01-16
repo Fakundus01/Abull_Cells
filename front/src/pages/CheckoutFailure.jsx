@@ -1,57 +1,58 @@
 // src/pages/CheckoutFailure.jsx
 import { Link } from "react-router-dom";
 import { XCircle, AlertTriangle, ArrowRight, ShoppingBag, RefreshCw } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
 
 function CheckoutFailure() {
+  const { t } = useLanguage();
   return (
     <section className="home-section checkout-failure-page">
       <div className="checkout-failure-card card-animate">
         <div className="checkout-failure-top">
           <div className="checkout-failure-badge">
             <AlertTriangle size={18} className="icon" />
-            Pago no completado
+            {t("checkoutStatus.failure.badge")}
           </div>
 
           <div className="checkout-failure-icon">
             <XCircle size={28} className="icon" />
           </div>
 
-          <h1>Pago no completado</h1>
+          <h1>{t("checkoutStatus.failure.title")}</h1>
           <p className="muted">
-            Tu pago no se pudo completar. No te preocupes: no se confirma la compra
-            hasta que el pago se acredite.
+            {t("checkoutStatus.failure.subtitle")}
           </p>
         </div>
 
         <div className="checkout-failure-help">
           <div className="failure-tip">
             <span className="tip-dot" />
-            Revisá que tengas saldo / límite disponible.
+            {t("checkoutStatus.failure.tips.balance")}
           </div>
           <div className="failure-tip">
             <span className="tip-dot" />
-            Probá con otra tarjeta o método dentro de Mercado Pago.
+            {t("checkoutStatus.failure.tips.method")}
           </div>
           <div className="failure-tip">
             <span className="tip-dot" />
-            Si se trabó el flujo, volvé al carrito y reintentá.
+            {t("checkoutStatus.failure.tips.retry")}
           </div>
         </div>
 
         <div className="checkout-failure-actions">
           <Link to="/checkout" className="btn-primary btn-icon">
             <RefreshCw size={18} className="icon" />
-            Reintentar pago
+            {t("checkoutStatus.failure.actions.retry")}
           </Link>
 
           <Link to="/carrito" className="btn-secondary btn-icon">
             <ArrowRight size={18} className="icon" />
-            Volver al carrito
+            {t("checkoutStatus.failure.actions.cart")}
           </Link>
 
           <Link to="/tienda" className="btn-secondary btn-icon">
             <ShoppingBag size={18} className="icon" />
-            Ir a la tienda
+            {t("checkoutStatus.failure.actions.store")}
           </Link>
         </div>
       </div>

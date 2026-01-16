@@ -1,28 +1,37 @@
 import { Link } from "react-router-dom";
 import { ShoppingCart, Trash2 } from "lucide-react";
 import { useCart } from "../context/CartContext"; // ajustá ruta
+import { useLanguage } from "../context/LanguageContext";
 
 export default function CartMiniPreview() {
   const { items, totalItems, totalPrice, removeFromCart } = useCart();
+  const { t } = useLanguage();
+  const itemsCount = totalItems || 0;
+  const itemLabel =
+    itemsCount === 1
+      ? t("cartMini.items_one", { count: itemsCount })
+      : t("cartMini.items_other", { count: itemsCount });
 
   return (
     <div className="cart-mini">
       <div className="cart-mini-head">
         <div className="cart-mini-title">
           <ShoppingCart size={16} className="icon" />
-          <strong>Carrito</strong>
+          <strong>{t("cart.title")}</strong>
         </div>
 
         <span className="cart-mini-pill">
-          {totalItems || 0} ítem{(totalItems || 0) === 1 ? "" : "s"}
+          {itemLabel}
         </span>
       </div>
 
       {(!items || items.length === 0) ? (
         <div className="cart-mini-empty">
-          <p><strong>Carrito vacío</strong></p>
-          <p>Agregá productos y aparecen acá.</p>
-          <Link to="/tienda" className="cart-mini-btn">Ir a la tienda</Link>
+          <p><strong>{t("cartMini.emptyTitle")}</strong></p>
+          <p>{t("cartMini.emptySubtitle")}</p>
+          <Link to="/tienda" className="cart-mini-btn">
+            {t("cartMini.goToStore")}
+          </Link>
         </div>
       ) : (
         <>
@@ -44,7 +53,7 @@ export default function CartMiniPreview() {
                   type="button"
                   className="cart-mini-remove"
                   onClick={() => removeFromCart(it.id)}
-                  aria-label={`Quitar ${it.name}`}
+                  aria-label={t("cartMini.removeItem", { name: it.name })}
                 >
                   <Trash2 size={16} />
                 </button>
@@ -52,18 +61,18 @@ export default function CartMiniPreview() {
             ))}
           </div>
 
-          {items.length > 4 && (
-            <div className="cart-mini-more">+{items.length - 4} más…</div>
-          )}
+         <div className="cart-mini-more">
+              {t("cartMini.moreItems", { count: items.length - 4 })}
+            </div>
 
           <div className="cart-mini-foot">
             <div className="cart-mini-total">
-              <span>Total</span>
+              <span>{t("cart.total")}</span>
               <strong>${Number(totalPrice || 0).toLocaleString("es-AR")}</strong>
             </div>
 
             <Link to="/carrito" className="cart-mini-btn primary">
-              Ver carrito
+             {t("cartMini.viewCart")}
             </Link>
           </div>
         </>

@@ -12,7 +12,7 @@ email_sender = os.getenv("EMAIL_SENDER")
 email_password = os.getenv("EMAIL_PASSWORD")
 email_receiver = os.getenv("EMAIL_TEST_RECEIVER", email_sender)
 
-subject = "Test Abul Cells"
+subject = "Test Abul Cell"
 body = """
 Este es un correo de PRUEBA enviado desde Python con Gmail.
 Si ves este mensaje, el SMTP esta funcionando :)

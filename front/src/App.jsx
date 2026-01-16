@@ -19,6 +19,7 @@ import OrdersHistory from "./pages/OrdersHistory";
 import VerifyEmail from "./components/VerifyEmail";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import NotFound from "./pages/NotFound";
 import { RequireAuth, RequireAdmin } from "./routes/guards";
 
 function App() {
@@ -49,6 +50,7 @@ function App() {
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
 

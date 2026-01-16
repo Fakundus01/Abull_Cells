@@ -1,5 +1,6 @@
 // src/pages/Home.jsx
 import { Link } from "react-router-dom";
+import { useLanguage } from "../context/LanguageContext";
 import {
   FaShieldAlt,
   FaTruck,
@@ -13,6 +14,8 @@ import {
 } from "react-icons/fa";
 
 function Home() {
+  const { t } = useLanguage();
+
   return (
     <main className="home">
       {/* HERO */}
@@ -20,7 +23,7 @@ function Home() {
         <div className="home-hero-content">
           <div className="hero-chip">
             <FaShieldAlt />
-            Compra segura • Soporte real
+            {t("home.heroChip")}
           </div>
 
           <h1 className="hero-title">
@@ -28,34 +31,33 @@ function Home() {
           </h1>
 
           <p className="hero-subtitle">
-            Tu tienda de confianza para celulares, notebooks y periféricos gamers.
-            Comprá fácil, rápido y seguro.
+            {t("home.heroSubtitle")}
           </p>
 
           <div className="home-hero-actions hero-actions">
             <Link to="/tienda" className="btn-primary btn-icon">
               <FaMobileAlt />
-              Ver tienda
+              {t("home.viewStore")}
             </Link>
 
             <Link to="/ofertas" className="btn-secondary btn-icon">
               <FaGamepad />
-              Ver ofertas
+              {t("home.viewDeals")}
             </Link>
           </div>
 
           <ul className="hero-benefits--v2">
             <li>
               <FaTruck />
-              Envíos a todo el país
+              {t("home.benefits.shipping")}
             </li>
             <li>
               <FaCreditCard />
-              Pagos seguros con Mercado Pago
+              {t("home.benefits.payment")}
             </li>
             <li>
               <FaShieldAlt />
-              Atención personalizada
+              {t("home.benefits.support")}
             </li>
           </ul>
         </div>
@@ -83,9 +85,9 @@ function Home() {
                 </div>
 
                 <div className="device-pills">
-                  <span className="pill">Celulares</span>
-                  <span className="pill">Notebooks</span>
-                  <span className="pill">Gaming</span>
+                  <span className="pill">{t("home.devicePills.phones")}</span>
+                  <span className="pill">{t("home.devicePills.laptops")}</span>
+                  <span className="pill">{t("home.devicePills.gaming")}</span>
                 </div>
               </div>
             </div>
@@ -97,14 +99,14 @@ function Home() {
       <section className="home-section">
         <div className="home-section-header">
           <div>
-            <h2>Categorías principales</h2>
+            <h2>{t("home.categories.title")}</h2>
             <p className="section-subtitle">
-              Todo lo que necesitás para tu setup y tu día a día.
+              {t("home.categories.subtitle")}
             </p>
           </div>
 
           <Link to={"/tienda"} className="link-inline link-inline--v2">
-            Ver todo <FaArrowRight />
+           {t("home.categories.viewAll")} <FaArrowRight />
           </Link>
         </div>
 
@@ -113,48 +115,48 @@ function Home() {
             <div className="cat-icon">
               <FaMobileAlt />
             </div>
-            <h3>Celulares</h3>
-            <p>Gama alta, media y opciones económicas.</p>
+            <h3>{t("home.categories.items.phones.title")}</h3>
+            <p>{t("home.categories.items.phones.description")}</p>
           </Link>
 
           <Link to={`/tienda?category=${encodeURIComponent("Notebooks")}`} className="category-card category-card--v2">
             <div className="cat-icon">
               <FaLaptop />
             </div>
-            <h3>Notebooks</h3>
-            <p>Equipos para estudio, trabajo y gaming.</p>
+            <h3>{t("home.categories.items.laptops.title")}</h3>
+            <p>{t("home.categories.items.laptops.description")}</p>
           </Link>
 
           <Link to={`/tienda?category=${encodeURIComponent("Periféricos")}`} className="category-card category-card--v2">
             <div className="cat-icon">
               <FaPlug />
             </div>
-            <h3>Periféricos</h3>
-            <p>Teclados, mouse, pads y más.</p>
+            <h3>{t("home.categories.items.peripherals.title")}</h3>
+            <p>{t("home.categories.items.peripherals.description")}</p>
           </Link>
 
           <Link to={`/tienda?category=${encodeURIComponent("Audio")}`} className="category-card category-card--v2">
             <div className="cat-icon">
               <FaHeadphones />
             </div>
-            <h3>Audio</h3>
-            <p>Auriculares, parlantes y soundbars.</p>
+            <h3>{t("home.categories.items.audio.title")}</h3>
+            <p>{t("home.categories.items.audio.description")}</p>
           </Link>
 
           <Link to={`/tienda?category=${encodeURIComponent("Gaming")}`} className="category-card category-card--v2">
             <div className="cat-icon">
               <FaGamepad />
             </div>
-            <h3>Gaming</h3>
-            <p>Monitores, sillas gamers y accesorios.</p>
+            <h3>{t("home.categories.items.gaming.title")}</h3>
+            <p>{t("home.categories.items.gaming.description")}</p>
           </Link>
 
           <Link to={`/tienda?category=${encodeURIComponent("Accesorios")}`} className="category-card category-card--v2">
             <div className="cat-icon">
               <FaPlug />
             </div>
-            <h3>Accesorios</h3>
-            <p>Fundas, cargadores, cables y mucho más.</p>
+            <h3>{t("home.categories.items.accessories.title")}</h3>
+            <p>{t("home.categories.items.accessories.description")}</p>
           </Link>
         </div>
       </section>
@@ -162,31 +164,31 @@ function Home() {
       {/* HIGHLIGHT */}
       <section className="home-section">
         <div className="home-highlight home-highlight--v2">
-          <h2>¿Por qué comprar en Abul Cell?</h2>
+          <h2>{t("home.highlight.title")}</h2>
 
           <div className="highlight-grid highlight-grid--v2">
             <div className="highlight-item highlight-item--v2">
               <div className="hi-icon">
                 <FaShieldAlt />
               </div>
-              <h3>Productos seleccionados</h3>
-              <p>Solo marcas confiables y modelos probados, nada de humo.</p>
+              <h3>{t("home.highlight.items.curated.title")}</h3>
+              <p>{t("home.highlight.items.curated.description")}</p>
             </div>
 
             <div className="highlight-item highlight-item--v2">
               <div className="hi-icon">
                 <FaTruck />
               </div>
-              <h3>Asesoramiento real</h3>
-              <p>Te ayudamos a elegir el equipo ideal para tu uso y presupuesto.</p>
+               <h3>{t("home.highlight.items.advice.title")}</h3>
+              <p>{t("home.highlight.items.advice.description")}</p>
             </div>
 
             <div className="highlight-item highlight-item--v2">
               <div className="hi-icon">
                 <FaCreditCard />
               </div>
-              <h3>Pagos flexibles</h3>
-              <p>Mercado Pago, cuotas y distintos métodos para que sea más fácil.</p>
+              <h3>{t("home.highlight.items.payments.title")}</h3>
+              <p>{t("home.highlight.items.payments.description")}</p>
             </div>
           </div>
         </div>

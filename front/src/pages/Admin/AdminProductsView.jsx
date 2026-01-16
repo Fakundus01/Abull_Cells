@@ -1,4 +1,5 @@
 // src/components/admin/AdminProductsView.jsx
+import { useLanguage } from "../../context/LanguageContext";
 export default function AdminProductsView({
   products,
   pagedProducts,
@@ -20,6 +21,7 @@ export default function AdminProductsView({
   icons,
   cardAnimateClass = "",
 }) {
+   const { t } = useLanguage();
   const {
     Package,
     Pencil,
@@ -45,39 +47,39 @@ export default function AdminProductsView({
           <h2 className="admin-card-title">
             {isEditing ? (
               <>
-                <Pencil size={18} className="icon" /> Editar producto
+                <Pencil size={18} className="icon" /> {t("admin.products.form.editTitle")}
               </>
             ) : (
               <>
-                <PlusCircle size={18} className="icon" /> Nuevo producto
+                <PlusCircle size={18} className="icon" /> {t("admin.products.form.newTitle")}
               </>
             )}
           </h2>
 
           {isEditing && (
             <span className="admin-chip">
-              <Hash size={14} className="icon" /> ID {editingId}
+              <Hash size={14} className="icon" /> {t("admin.products.form.idLabel", { id: editingId })}
             </span>
           )}
         </div>
 
         <p className="admin-card-desc">
           {isEditing
-            ? "Modificá los datos del producto y guardá los cambios."
-            : "Completá los datos para agregar un producto a la tienda."}
+            ? t("admin.products.form.editDescription")
+            : t("admin.products.form.newDescription")}
         </p>
 
         <form className="form-card admin-form" onSubmit={onSubmit}>
           <label>
             <span className="label-row">
-              <Package size={16} className="icon" /> Nombre
+              <Package size={16} className="icon" /> {t("admin.products.form.name")}
             </span>
             <input name="name" value={form.name} onChange={onChange} required />
           </label>
 
           <label>
             <span className="label-row">
-              <Hash size={16} className="icon" /> Slug (identificador único)
+              <Hash size={16} className="icon" /> {t("admin.products.form.slug")}
             </span>
             <input name="slug" value={form.slug} onChange={onChange} required />
           </label>
@@ -85,60 +87,71 @@ export default function AdminProductsView({
           <div className="admin-form-row">
             <label>
               <span className="label-row">
-                <DollarSign size={16} className="icon" /> Precio (ARS)
+                <DollarSign size={16} className="icon" /> {t("admin.products.form.price")}
               </span>
               <input type="number" name="price" value={form.price} onChange={onChange} required />
             </label>
 
             <label>
               <span className="label-row">
-                <Boxes size={16} className="icon" /> Stock
+                <Boxes size={16} className="icon" /> {t("admin.products.form.stock")}
               </span>
-              <input type="number" name="stock" value={form.stock} onChange={onChange} placeholder="0" />
+              <input
+                type="number"
+                name="stock"
+                value={form.stock}
+                onChange={onChange}
+                placeholder={t("admin.products.form.stockPlaceholder")}
+              />
             </label>
           </div>
 
           <label>
             <span className="label-row">
-              <Tag size={16} className="icon" /> Categoría
+              <Tag size={16} className="icon" /> {t("admin.products.form.category")}
             </span>
             <input
               name="category"
               value={form.category}
               onChange={onChange}
-              placeholder="Celulares, Notebooks, Accesorios..."
+              placeholder={t("admin.products.form.categoryPlaceholder")}
             />
           </label>
 
           <label>
             <span className="label-row">
-              <ImageIcon size={16} className="icon" /> URL de imagen
+              <ImageIcon size={16} className="icon" /> {t("admin.products.form.imageUrl")}
             </span>
-            <input name="imageUrl" value={form.imageUrl} onChange={onChange} placeholder="https://..." />
+            <input
+              name="imageUrl"
+              value={form.imageUrl}
+              onChange={onChange}
+              placeholder={t("admin.products.form.imageUrlPlaceholder")}
+            />
           </label>
 
           <label>
-            <span className="label-row">Descripción</span>
+            <span className="label-row">{t("admin.products.form.description")}</span>
             <textarea name="description" value={form.description} onChange={onChange} rows={3} />
           </label>
 
           <label className="checkbox-row admin-checkbox">
             <input type="checkbox" name="isOffer" checked={form.isOffer} onChange={onChange} />
             <span className="label-row">
-              <Tag size={16} className="icon" /> Marcar como oferta
+              <Tag size={16} className="icon" /> {t("admin.products.form.isOffer")}
             </span>
           </label>
 
           {form.isOffer && (
             <label>
               <span className="label-row">
-                <Tag size={16} className="icon" /> Etiqueta de oferta
+                <Tag size={16} className="icon" /> {t("admin.products.form.offerLabel")}
               </span>
               <input
                 name="offerLabel"
                 value={form.offerLabel}
                 onChange={onChange}
-                placeholder="10% OFF, OFERTA, etc."
+                placeholder={t("admin.products.form.offerPlaceholder")}
               />
             </label>
           )}
@@ -148,17 +161,17 @@ export default function AdminProductsView({
               {saving ? (
                 <>
                   <Loader2 size={18} className="icon spin" />
-                  Guardando...
+                  {t("admin.products.form.saving")}
                 </>
               ) : isEditing ? (
                 <>
                   <Save size={18} className="icon" />
-                  Guardar cambios
+                  {t("admin.products.form.save")}
                 </>
               ) : (
                 <>
                   <PlusCircle size={18} className="icon" />
-                  Crear producto
+                  {t("admin.products.form.create")}
                 </>
               )}
             </button>
@@ -166,7 +179,7 @@ export default function AdminProductsView({
             {isEditing && (
               <button type="button" className="btn-secondary btn-icon" onClick={onReset}>
                 <XCircle size={18} className="icon" />
-                Cancelar
+                {t("admin.products.form.cancel")}
               </button>
             )}
           </div>
@@ -177,41 +190,41 @@ export default function AdminProductsView({
       <div className={`admin-card ${cardAnimateClass}`}>
         <div className="admin-card-header">
           <h2 className="admin-card-title">
-            <Package size={18} className="icon" /> Productos actuales
+            <Package size={18} className="icon" /> {t("admin.products.list.title")}
           </h2>
         </div>
 
         <div className="admin-products-summary">
           <div className="summary-pill">
-            <span>Total</span>
+            <span>{t("admin.products.summary.total")}</span>
             <strong>{totalProducts}</strong>
           </div>
           <div className="summary-pill highlight">
-            <span>Ofertas</span>
+            <span>{t("admin.products.summary.offers")}</span>
             <strong>{offersCount}</strong>
           </div>
           <div className="summary-pill warning">
-            <span>Stock bajo</span>
+            <span>{t("admin.products.summary.lowStock")}</span>
             <strong>{lowStockCount}</strong>
           </div>
         </div>
 
         {loadingProducts ? (
           <p className="admin-muted">
-            <Loader2 size={16} className="icon spin" /> Cargando productos...
+            <Loader2 size={16} className="icon spin" /> {t("admin.products.list.loading")}
           </p>
         ) : products.length === 0 ? (
-          <p className="admin-muted">No hay productos cargados todavía.</p>
+          <p className="admin-muted">{t("admin.products.list.empty")}</p>
         ) : (
             <>
             <div className="admin-products-table modern">
               <div className="admin-products-header">
-                <span>Nombre</span>
-                <span>Categoría</span>
-                <span>Precio</span>
-                <span>Stock</span>
-                <span>Oferta</span>
-                <span>Acciones</span>
+                <span>{t("admin.products.list.headers.name")}</span>
+                <span>{t("admin.products.list.headers.category")}</span>
+                <span>{t("admin.products.list.headers.price")}</span>
+                <span>{t("admin.products.list.headers.stock")}</span>
+                <span>{t("admin.products.list.headers.offer")}</span>
+                <span>{t("admin.products.list.headers.actions")}</span>
               </div>
                {pagedProducts.map((p) => (
                 <div key={p.id} className="admin-products-row">
@@ -230,7 +243,7 @@ export default function AdminProductsView({
                       <span className="cell-muted">#{p.id}</span>
                     </span>
                   </span>
-                  <span className="cell-muted">{p.category || "Sin categoría"}</span>
+                  <span className="cell-muted">{p.category || t("admin.products.list.uncategorized")}</span>
                   <span>${Number(p.price || 0).toLocaleString("es-AR")}</span>
 
                   <span>
@@ -244,7 +257,7 @@ export default function AdminProductsView({
                     {p.isOffer ? (
                       <span className="offer-pill">
                         <Tag size={14} className="icon" />
-                        {p.offerLabel || "Oferta"}
+                        {p.offerLabel || t("admin.products.list.offer")}
                       </span>
                     ) : (
                       <span className="cell-muted">—</span>
@@ -264,15 +277,16 @@ export default function AdminProductsView({
             </div>  
              <div className="admin-pagination">
               <span className="admin-muted">
-                Mostrando{" "}
-                <strong>{products.length === 0 ? 0 : (productsPage - 1) * pageSize + 1}</strong> –{" "}
-                <strong>{Math.min(productsPage * pageSize, products.length)}</strong> de{" "}
-                <strong>{products.length}</strong>
+                {t("admin.pagination.showing", {
+                  start: products.length === 0 ? 0 : (productsPage - 1) * pageSize + 1,
+                  end: Math.min(productsPage * pageSize, products.length),
+                  total: products.length,
+                })}
               </span>
 
               <div className="admin-pagination-actions">
                 <button type="button" className="btn-small" onClick={onPrevPage} disabled={productsPage === 1}>
-                  Anterior
+                  {t("admin.pagination.prev")}
                 </button>   
                 <span className="page-pill">
                   {productsPage}/{totalProductPages}                      
@@ -284,7 +298,7 @@ export default function AdminProductsView({
                   onClick={onNextPage}
                   disabled={productsPage === totalProductPages}
                 >
-                  Siguiente
+                  {t("admin.pagination.next")}
                 </button>
               </div>
             </div>

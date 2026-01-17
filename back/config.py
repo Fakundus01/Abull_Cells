@@ -1,13 +1,21 @@
 # config.py
 import os
 from datetime import timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class Config:
-    SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///app.db")
+    SECRET_KEY = os.getenv("SECRET_KEY")
+    #SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
+    DATABASE_URL = os.getenv(
+        "DATABASE_URL",
+        "postgresql+psycopg://postgres:postgres@localhost:5432/abul_cells",
+    )
+    SQLALCHEMY_DATABASE_URI = DATABASE_URL
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "jwt-dev-secret")
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 
     # ✅ Tokens en cookies (no en headers)
     JWT_TOKEN_LOCATION = ["cookies"]
@@ -31,8 +39,11 @@ class Config:
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=14)       # ✅ 14 días (ok)
 
     #✅ Configuraciones de subida de archivos
-    UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", "uploads")
     MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "8"))
     ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp", "application/pdf"}
-
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    
+    UPLOAD_STORAGE_BACKEND = os.getenv("UPLOAD_STORAGE_BACKEND", "local").lower()
+    UPLOAD_TEMP_DIR = os.getenv("UPLOAD_TEMP_DIR", "/tmp/abul_cells_uploads")
+    UPLOAD_BUCKET = os.getenv("UPLOAD_BUCKET", "")
+    UPLOAD_PREFIX = os.getenv("UPLOAD_PREFIX", "contact-uploads/")
+    UPLOAD_PUBLIC_BASE_URL = os.getenv("UPLOAD_PUBLIC_BASE_URL", "")

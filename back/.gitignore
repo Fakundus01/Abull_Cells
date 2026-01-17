@@ -1,14 +1,5 @@
 # Abul_Cell
 
-## Variables de entorno requeridas
-
-Backend requiere estas variables antes de iniciar:
-
-* `SECRET_KEY`
-* `JWT_SECRET_KEY`
-* `DATABASE_URL`
-* `FRONTEND_URL`
-
 ## Backend
 
 ### Base de datos (Postgres)

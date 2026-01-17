@@ -10,18 +10,24 @@ from dotenv import load_dotenv
 from config import Config
 from models import db
 from routes import admin_bp, auth_bp, orders_bp, payments_bp, products_bp
+from flask_migrate import Migrate # type: ignore
 
                          
 load_dotenv()  # 👈 carga las variables desde .env
+migrate = Migrate()
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
     db.init_app(app)
+    migrate.init_app(app, db)
+    frontend_url = os.getenv("FRONTEND_URL")
+    if not frontend_url:
+        raise RuntimeError("FRONTEND_URL no configurado para CORS.")
     CORS(
         app,
-        resources={r"/api/*": {"origins": ["http://localhost:5173"]}},
+        resources={r"/api/*": {"origins": [frontend_url]}},
         supports_credentials=True
     )
 
@@ -43,9 +49,9 @@ def create_app():
     def _revoked_token(jwt_header, jwt_payload):
         return jsonify({"msg": "Token revocado"}), 401
     
-    app.config["UPLOAD_FOLDER"] = os.getenv("UPLOAD_FOLDER", "uploads")
-    app.config["MAX_UPLOAD_MB"] = int(os.getenv("MAX_UPLOAD_MB", "8"))
-    app.config["ALLOWED_MIME"] = {"image/jpeg", "image/png", "image/webp", "application/pdf"}
+    # app.config["UPLOAD_FOLDER"] = os.getenv("UPLOAD_FOLDER", "uploads")
+    # app.config["MAX_UPLOAD_MB"] = int(os.getenv("MAX_UPLOAD_MB", "8"))
+    # app.config["ALLOWED_MIME"] = {"image/jpeg", "image/png", "image/webp", "application/pdf"}
 
     mp_access_token = os.getenv("MP_ACCESS_TOKEN")
 

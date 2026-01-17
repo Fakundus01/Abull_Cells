@@ -172,7 +172,8 @@ def send_contact_message_to_admin(
     email: str,
     subject: str,
     message: str,
-    attachments: list[str] | None = None
+    attachments: list[str] | None = None,
+    attachment_links: list[str] | None = None,
 ) -> bool:
     """
     Envía al EMAIL_ADMIN el mensaje del formulario "Contáctanos".
@@ -200,6 +201,9 @@ def send_contact_message_to_admin(
         "Mensaje:",
         to_ascii_safe(message),
     ]
+    if attachment_links:
+        body_lines += ["", "Adjuntos cargados:", *attachment_links]
+
     body = "\n".join(body_lines)
 
     em = EmailMessage()
@@ -416,4 +420,3 @@ Si vos no pediste esto, podés ignorar este correo.
         body=body,
         reply_to=None
     )
-   

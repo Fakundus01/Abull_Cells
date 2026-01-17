@@ -22,6 +22,8 @@ const TRANSLATIONS = {
       changeLanguage: "Cambiar idioma",
       goToCart: "Ir al carrito",
       myOrders: "Mis pedidos",
+      theme: "Tema",
+      toggleTheme: "Cambiar tema",
     },
     home: {
       title: "Bienvenido a Abul Cell",
@@ -333,6 +335,13 @@ const TRANSLATIONS = {
       subtitle: "Gestioná tus datos de cuenta.",
       loginRequired: "Necesitás iniciar sesión para ver tu perfil.",
       goToLogin: "Ir a login",
+      theme: {
+        title: "Tema",
+        description: "Elegí cómo querés ver la app.",
+        toggle: "Cambiar tema",
+        light: "Modo claro",
+        dark: "Modo oscuro",
+      },
       labels: {
         name: "Nombre",
         email: "Email",
@@ -714,6 +723,8 @@ const TRANSLATIONS = {
       changeLanguage: "Change language",
       goToCart: "Go to cart",
       myOrders: "My orders",
+      theme: "Theme",
+      toggleTheme: "Toggle theme",
     },
     home: {
       title: "Welcome to Abul Cell",
@@ -1025,6 +1036,13 @@ const TRANSLATIONS = {
       subtitle: "Manage your account details.",
       loginRequired: "You need to log in to view your profile.",
       goToLogin: "Go to login",
+      theme: {
+        title: "Theme",
+        description: "Choose how the app looks for you.",
+        toggle: "Toggle theme",
+        light: "Light mode",
+        dark: "Dark mode",
+      },
       labels: {
         name: "Name",
         email: "Email",

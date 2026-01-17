@@ -5,10 +5,10 @@ import re
 
 from flask import current_app, jsonify, request
 from flask_jwt_extended import get_jwt_identity # type: ignore
-from werkzeug.utils import secure_filename
 
 from email_utils import send_contact_autoreply, send_contact_message_to_admin
 from models import User
+from services.upload_storage import UploadStorage
 
 
 def _total_upload_size(file_list):
@@ -54,6 +54,8 @@ def contact():
         return jsonify({"msg": "El mensaje debe tener al menos 10 caracteres"}), 400
 
     saved_files = []
+    stored_attachments = []
+    attachment_links = []
     if files:
         total = _total_upload_size(files)
         max_upload_mb = current_app.config.get("MAX_UPLOAD_MB", 8)
@@ -73,34 +75,30 @@ def contact():
             if mt not in allowed_mime:
                 return jsonify({"msg": "Tipo de archivo no permitido (solo imágenes o PDF)"}), 400
 
-        upload_folder = current_app.config.get("UPLOAD_FOLDER", "uploads")
-        os.makedirs(upload_folder, exist_ok=True)
-
-        for file in files:
-            if not file or not file.filename:
-                continue
-
-            filename = secure_filename(file.filename)
-            base, ext = os.path.splitext(filename)
-            final_path = os.path.join(upload_folder, filename)
-
-            i = 1
-            while os.path.exists(final_path):
-                final_path = os.path.join(upload_folder, f"{base}_{i}{ext}")
-                i += 1
-
-            file.save(final_path)
-            saved_files.append(final_path)
+        storage = UploadStorage.from_app()
+        stored_attachments = storage.save(files)
+        saved_files = [item.local_path for item in stored_attachments]
+        attachment_links = [item.remote_url for item in stored_attachments if item.remote_url]
 
     ok_admin = send_contact_message_to_admin(
-        name, email, subject, message, attachments=saved_files
+        name,
+        email,
+        subject,
+        message,
+        attachments=saved_files,
+        attachment_links=attachment_links,
     )
     if not ok_admin:
+        if stored_attachments:
+            storage.cleanup(stored_attachments)
         return jsonify({"msg": "No se pudo enviar el mensaje (config mail)"}), 500
 
     try:
         send_contact_autoreply(email, name)
     except Exception as exc:
         current_app.logger.exception(f"[MAIL] Error autoreply contacto: {exc!r}")
+    finally:
+        if stored_attachments:
+            storage.cleanup(stored_attachments)
 
     return jsonify({"ok": True}), 200

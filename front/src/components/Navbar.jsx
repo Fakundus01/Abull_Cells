@@ -3,7 +3,8 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
-import { ShoppingCart, Globe, Tag, Home, HelpCircle, Mail, LogOut, Settings, Shield, ClipboardList } from "lucide-react";
+import { useTheme } from "../context/ThemeContext";
+import { ShoppingCart, Globe, Tag, Home, HelpCircle, Mail, LogOut, Settings, Shield, ClipboardList} from "lucide-react";
 import CartMiniPreview from "./CartMiniPreview";
 import { useEffect, useMemo, useRef, useState } from "react";
 

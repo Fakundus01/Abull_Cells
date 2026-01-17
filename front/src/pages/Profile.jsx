@@ -1,13 +1,15 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { BadgeCheck, User } from "lucide-react";
+import { BadgeCheck, Moon, Sun, User } from "lucide-react";
 import { fetchAddresses, createAddress, deleteAddress, updateAddress, setDefaultAddress, resendVerifyEmail} from "../services/api";
 import { useEffect, useState, useMemo } from "react";
 import { useLanguage } from "../context/LanguageContext";
+import { useTheme } from "../context/ThemeContext";
 
 function Profile() {
   const { user } = useAuth();
   const { t } = useLanguage();
+  const { theme, toggleTheme } = useTheme();
   const [addresses, setAddresses] = useState([]);
   const [loadingAddresses, setLoadingAddresses] = useState(true);
   const [addrError, setAddrError] = useState("");
@@ -165,6 +167,24 @@ function Profile() {
           </div>
         </div>
 
+        <div className="profile-theme">
+          <div>
+            <h2 className="profile-title">{t("profile.theme.title")}</h2>
+            <p className="profile-subtitle">{t("profile.theme.description")}</p>
+          </div>
+          <button
+            type="button"
+            className="btn-secondary btn-small"
+            onClick={toggleTheme}
+            aria-label={t("profile.theme.toggle")}
+          >
+            {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+            {theme === "dark"
+              ? t("profile.theme.light")
+              : t("profile.theme.dark")}
+          </button>
+        </div>
+        
         {!isEmailVerified && (
         <div className="profile-verify card-animate" role="alert">
           <strong>{t("profile.verify.title")}</strong>

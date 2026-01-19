@@ -1,6 +1,6 @@
 import { getCookie } from "./helpers.js";
 
-const API_BASE_URL = "http://localhost:5000/api";
+export const API_BASE_URL = "http://localhost:5000/api";
 
 // ---------------------------------------------
 // API Error (para UI: toasts, manejo de status)
@@ -174,18 +174,20 @@ export async function logout() {
 }
 
 export function createProduct(product) {
+  const isFormData = product instanceof FormData;
   return apiFetch("/admin/products", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(product),
+    headers: isFormData ? {} : { "Content-Type": "application/json" },
+    body: isFormData ? product : JSON.stringify(product),
   });
 }
 
 export function updateProduct(id, product) {
+  const isFormData = product instanceof FormData;
   return apiFetch(`/admin/products/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(product),
+    headers: isFormData ? {} : { "Content-Type": "application/json" },
+    body: isFormData ? product : JSON.stringify(product),
   });
 }
 
@@ -217,6 +219,7 @@ export function fetchMyOrderDetail(orderId) {
 
 export async function updateOrderStatus(orderId, status) {
   const csrf = getCookie("csrf_access_token");
+  const payload = typeof status === "string" ? { status } : status;
 
   const res = await fetch(`${API_BASE_URL}/admin/orders/${orderId}/status`, {
     method: "PUT",
@@ -225,7 +228,7 @@ export async function updateOrderStatus(orderId, status) {
       "Content-Type": "application/json",
       "X-CSRF-TOKEN": csrf,
     },
-    body: JSON.stringify({ status }),
+    body: JSON.stringify(payload),
   });
 
   const data = await res.json();

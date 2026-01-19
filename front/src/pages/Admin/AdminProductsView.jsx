@@ -1,5 +1,6 @@
 // src/components/admin/AdminProductsView.jsx
 import { useLanguage } from "../../context/LanguageContext";
+import { resolveImageUrl } from "../../utils/imageUrl";
 export default function AdminProductsView({
   products,
   pagedProducts,
@@ -118,6 +119,19 @@ export default function AdminProductsView({
             />
           </label>
 
+         <label>
+            <span className="label-row">
+              <ImageIcon size={16} className="icon" /> {t("admin.products.form.imageFile")}
+            </span>
+            <input
+              type="file"
+              name="imageFile"
+              accept="image/png, image/jpeg, image/webp"
+              onChange={onChange}
+            />
+            <small className="field-hint">{t("admin.products.form.imageFileHint")}</small>
+          </label>
+
           <label>
             <span className="label-row">
               <ImageIcon size={16} className="icon" /> {t("admin.products.form.imageUrl")}
@@ -231,7 +245,7 @@ export default function AdminProductsView({
                   <span className="product-cell">
                     <span className="product-thumb">
                       {p.imageUrl ? (
-                        <img src={p.imageUrl} alt={p.name} loading="lazy" />
+                        <img src={resolveImageUrl(p.imageUrl)} alt={p.name} loading="lazy" />
                       ) : (
                         <span className="product-thumb-placeholder" aria-hidden="true">
                           <Package size={16} />

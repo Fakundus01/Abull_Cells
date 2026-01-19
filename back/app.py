@@ -1,5 +1,5 @@
 # app.py
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 import mercadopago  # type: ignore
 import os
 from functools import wraps
@@ -75,6 +75,12 @@ def create_app():
     app.register_blueprint(payments_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
+
+    @app.route("/uploads/products/<path:filename>")
+    def product_uploads(filename: str):
+        upload_dir = app.config["PRODUCT_UPLOAD_DIR"]
+        return send_from_directory(upload_dir, filename)
+
 
     return app
 

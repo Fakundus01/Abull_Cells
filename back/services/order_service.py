@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import json
+
 from flask import current_app, jsonify, request
 from flask_jwt_extended import get_jwt, get_jwt_identity # type: ignore
 
 from email_utils import (
     send_order_confirmation_email,
+    send_admin_product_out_of_stock_email,
+    send_buyer_order_email,
 )
 from helpers import get_effective_price, parse_discount_percent
 from models import Order, OrderItem, Product, User, db
@@ -54,6 +58,7 @@ def create_order():
 
         total_amount = 0
         order_items = []
+        stock_updates = []
 
         merged = {}
         for item in items_payload:
@@ -90,32 +95,39 @@ def create_order():
                 "quantity": quantity,
                 "subtotal": subtotal,
             })
+            stock_updates.append((product, quantity))
 
         subtotal = total_amount
         total = total_amount
-        applied_discount_percent = None
-
         promo_code = (data.get("promoCode") or "").strip().upper()
         if promo_code:
             discount_percent = parse_discount_percent(promo_code)
             if discount_percent is not None:
-                applied_discount_percent = discount_percent
                 total = int(subtotal * (1 - discount_percent / 100))
 
+        delivery_method = (data.get("deliveryMethod") or "").strip().lower()
+        if delivery_method not in {"pickup", "delivery"}:
+            delivery_method = "pickup"
+        delivery_snapshot = None
+        if delivery_method == "delivery":
+            delivery_snapshot = {
+                "addressId": data.get("addressId"),
+                "manualAddress": data.get("manualAddress"),
+            }
+
         order = Order(
-            user_id=user.id,
-            name=user.name,
-            email=user.email,
+            customer_name=(customer.get("name") or user.name),
+            email=(customer.get("email") or user.email),
             phone=(customer.get("phone") or user.phone),
             status=status,
             total_amount=total,
-            subtotal_amount=subtotal,
-            discount_percent=applied_discount_percent,
             payment_method=payment_method,
             payment_brand=payment_brand,
             payment_last4=payment_last4,
             payment_txid=payment_txid,
             notes=(customer.get("notes") or "").strip() or None,
+            delivery_method=delivery_method,
+            delivery_address=json.dumps(delivery_snapshot) if delivery_snapshot else None,
         )
         db.session.add(order)
         db.session.flush()
@@ -123,12 +135,33 @@ def create_order():
         for item in order_items:
             db.session.add(OrderItem(order_id=order.id, **item))
 
+        agotados = []
+        if payment_method == "efectivo":
+            for product, quantity in stock_updates:
+                prev_stock = int(product.stock or 0)
+                product.stock = max(0, prev_stock - int(quantity))
+                if prev_stock > 0 and product.stock == 0:
+                    agotados.append(product)    
+
         db.session.commit()
 
         try:
             send_order_confirmation_email(order, order.items)
         except Exception as exc:
             current_app.logger.exception(f"[MAIL] Error mail confirmación: {exc}")
+
+        if payment_method == "efectivo":
+            try:
+                send_buyer_order_email(order, order.items, mode="cash_created")
+            except Exception as exc:
+                current_app.logger.exception(f"[MAIL] Error mail comprador efectivo: {exc}")
+
+            if agotados:
+                try:
+                    for product in agotados:
+                        send_admin_product_out_of_stock_email(product)
+                except Exception as exc:
+                    current_app.logger.exception(f"[MAIL] Error mail stock agotado: {exc}")
 
         return jsonify({"order": order.to_dict()}), 201
 
@@ -163,5 +196,4 @@ def my_order_detail(order_id: int):
     is_admin = get_jwt().get("role") == "admin"
     if not is_admin and order.email != user.email:
         return jsonify({"msg": "No tenés permiso para ver esta orden"}), 403
-
     return jsonify(order.to_dict())

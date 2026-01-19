@@ -67,6 +67,7 @@ export default function Admin() {
     stock: "",
     category: "",
     imageUrl: "",
+    imageFile: null,
     description: "",
     isOffer: false,
     offerLabel: "",
@@ -131,6 +132,7 @@ export default function Admin() {
     } catch (e) {
       setOrders([]);
       setError(e?.message || t("admin.errors.loadOrders"));
+    } finally{
       setLoadingOrders(false);
     }
   }
@@ -218,6 +220,11 @@ export default function Admin() {
   // -------------------------
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
+    if (type === "file") {
+      const file = e.target.files?.[0] || null;
+      setForm((prev) => ({ ...prev, [name]: file }));
+      return;
+    }
     setForm((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -234,6 +241,7 @@ export default function Admin() {
       stock: "",
       category: "",
       imageUrl: "",
+      imageFile: null,
       description: "",
       isOffer: false,
       offerLabel: "",
@@ -250,6 +258,7 @@ export default function Admin() {
       stock: p.stock ?? "",
       category: p.category || "",
       imageUrl: p.imageUrl || "",
+      imageFile: null,
       description: p.description || "",
       isOffer: !!p.isOffer,
       offerLabel: p.offerLabel || "",
@@ -266,11 +275,31 @@ export default function Admin() {
     try {
       setSaving(true);
 
-      const payload = {
-        ...form,
+      const hasImageFile = form.imageFile instanceof File;
+      const payload = hasImageFile ? new FormData() : {
+        name: form.name,
+        slug: form.slug,
         price: Number(form.price || 0),
         stock: Number(form.stock || 0),
+        category: form.category,
+        imageUrl: form.imageUrl,
+        description: form.description,
+        isOffer: form.isOffer,
+        offerLabel: form.offerLabel,
       };
+
+      if (hasImageFile) {
+        payload.append("name", form.name);
+        payload.append("slug", form.slug);
+        payload.append("price", String(form.price || 0));
+        payload.append("stock", String(form.stock || 0));
+        payload.append("category", form.category || "");
+        payload.append("description", form.description || "");
+        payload.append("offerLabel", form.offerLabel || "");
+        payload.append("imageUrl", form.imageUrl || "");
+        payload.append("isOffer", String(form.isOffer));
+        payload.append("image", form.imageFile);
+      }
 
       if (isEditing && editingId) {
         await updateProduct(editingId, payload);
@@ -326,7 +355,7 @@ export default function Admin() {
     setSuccessMsg("");
 
     try {
-      await updateOrderStatus(orderId, { status: newStatus });
+      await updateOrderStatus(orderId, newStatus);
       setOrders((prev) =>
         prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
       );

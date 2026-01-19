@@ -1,12 +1,72 @@
+import os
+import uuid
+
 from flask import current_app, jsonify, request
 from werkzeug.exceptions import NotFound
+from werkzeug.utils import secure_filename
 
 from models import Order, Product, User, db
 
 
+def _parse_bool(value):
+    if value is None:
+        return None
+    return str(value).strip().lower() in {"1", "true", "on", "yes"}
+
+
+def _parse_product_payload():
+    is_multipart = request.content_type and "multipart/form-data" in request.content_type
+    image_file = None
+
+    if is_multipart:
+        data = request.form or {}
+        image_file = request.files.get("image")
+    else:
+        data = request.get_json() or {}
+
+    payload = {
+        "name": data.get("name"),
+        "slug": data.get("slug"),
+        "price": data.get("price"),
+        "category": data.get("category"),
+        "imageUrl": data.get("imageUrl"),
+        "isOffer": data.get("isOffer"),
+        "offerLabel": data.get("offerLabel"),
+        "stock": data.get("stock"),
+        "description": data.get("description"),
+    }
+
+    if is_multipart:
+        payload["isOffer"] = _parse_bool(payload["isOffer"])
+
+    return payload, image_file
+
+
+def _save_product_image(image_file):
+    if not image_file or not image_file.filename:
+        return None
+
+    allowed_mime = current_app.config.get("ALLOWED_PRODUCT_IMAGE_MIME", set())
+    mime_type = (image_file.mimetype or "").lower()
+    if allowed_mime and mime_type not in allowed_mime:
+        raise ValueError("Tipo de imagen no permitido (solo JPG/PNG/WEBP).")
+
+    upload_dir = current_app.config["PRODUCT_UPLOAD_DIR"]
+    os.makedirs(upload_dir, exist_ok=True)
+
+    filename = secure_filename(image_file.filename)
+    if not filename:
+        raise ValueError("Nombre de archivo inválido.")
+
+    unique_name = f"{uuid.uuid4().hex}_{filename}"
+    image_file.save(os.path.join(upload_dir, unique_name))
+
+    base_url = current_app.config.get("PRODUCT_IMAGE_BASE_URL", "/uploads/products")
+    return f"{base_url.rstrip('/')}/{unique_name}"
+
 def admin_create_product():
     try:
-        data = request.get_json() or {}
+        data, image_file = _parse_product_payload()
         name = data.get("name")
         slug = data.get("slug")
         price = data.get("price")
@@ -22,22 +82,27 @@ def admin_create_product():
 
         if Product.query.filter_by(slug=slug).first():
             return jsonify({"msg": "Ya existe un producto con ese slug"}), 400
+        
+        if image_file:
+            image_url = _save_product_image(image_file)
 
         product = Product(
             name=name,
             slug=slug,
-            price=price,
+            price=int(price),
             category=category,
             image_url=image_url,
             is_offer=is_offer,
             offer_label=offer_label,
-            stock=stock,
+            stock=int(stock or 0),
             description=description,
         )
         db.session.add(product)
         db.session.commit()
 
         return jsonify(product.to_dict()), 201
+    except ValueError as exc:
+        return jsonify({"msg": str(exc)}), 400
     except Exception as exc:
         current_app.logger.exception(f"Error inesperado en POST /api/admin/products: {exc}")
         db.session.rollback()
@@ -47,7 +112,7 @@ def admin_create_product():
 def admin_update_product(product_id: int):
     try:
         product = Product.query.get_or_404(product_id)
-        data = request.get_json() or {}
+        data, image_file = _parse_product_payload()
         name = data.get("name")
         slug = data.get("slug")
         price = data.get("price")
@@ -67,17 +132,20 @@ def admin_update_product(product_id: int):
                 return jsonify({"msg": "Ya existe otro producto con ese slug"}), 400
             product.slug = slug
 
-        if price is not None:
-            product.price = price
+        if price is not None and price != "":
+            product.price = int(price)
 
         if category is not None:
             product.category = category
 
-        if image_url is not None:
+        if image_file:
+            image_url = _save_product_image(image_file)
+
+        if image_url is not None and image_url != "":
             product.image_url = image_url
 
-        if stock is not None:
-            product.stock = stock
+        if stock is not None and stock != "":
+            product.stock = int(stock)
 
         if description is not None:
             product.description = description
@@ -91,6 +159,8 @@ def admin_update_product(product_id: int):
         return jsonify(product.to_dict())
     except NotFound:
         return jsonify({"msg": "Producto no encontrado"}), 404
+    except ValueError as exc:
+        return jsonify({"msg": str(exc)}), 400
     except Exception as exc:
         current_app.logger.exception(
             f"Error inesperado en PUT /api/admin/products/{product_id}: {exc}"

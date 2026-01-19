@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     SECRET_KEY = os.getenv("SECRET_KEY")
     #SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
     DATABASE_URL = os.getenv(
@@ -47,3 +48,14 @@ class Config:
     UPLOAD_BUCKET = os.getenv("UPLOAD_BUCKET", "")
     UPLOAD_PREFIX = os.getenv("UPLOAD_PREFIX", "contact-uploads/")
     UPLOAD_PUBLIC_BASE_URL = os.getenv("UPLOAD_PUBLIC_BASE_URL", "")
+
+    PRODUCT_UPLOAD_DIR = os.getenv(
+        "PRODUCT_UPLOAD_DIR",
+        os.path.join(BASE_DIR, "uploads", "products"),
+    )
+    PRODUCT_IMAGE_BASE_URL = os.getenv("PRODUCT_IMAGE_BASE_URL", "/uploads/products")
+    ALLOWED_PRODUCT_IMAGE_MIME = {
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+    }

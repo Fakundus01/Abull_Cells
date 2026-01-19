@@ -373,6 +373,8 @@ function Checkout() {
 
           {deliveryMethod === "delivery" && (
             <div className="delivery-box">
+              <p className="delivery-hint">{t("checkout.delivery.areaNote")}</p>
+
               {user && (
                 <>
                   <p className="checkout-muted">
@@ -399,9 +401,14 @@ function Checkout() {
                       </label>
                     </div>
                   ) : (
-                    <p className="checkout-muted">
-                      {t("checkout.delivery.noSavedAddresses")}
-                    </p>
+                    <div className="delivery-empty">
+                      <p className="checkout-muted">
+                        {t("checkout.delivery.noSavedAddresses")}
+                      </p>
+                      <p className="checkout-muted">
+                        {t("checkout.delivery.manualHint")}
+                      </p>
+                    </div>
                   )}
                 </>
               )}

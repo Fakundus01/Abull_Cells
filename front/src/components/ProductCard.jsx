@@ -4,6 +4,7 @@ import { useCart } from "../context/CartContext";
 import { ShoppingCart, Flame, Image as ImageIcon, Check } from "lucide-react";
 import { getOfferMeta } from "../utils/pricing";
 import { useLanguage } from "../context/LanguageContext";
+import { resolveImageUrl } from "../utils/imageUrl";
 
 function ProductCard({ product }) {
   const { t } = useLanguage();
@@ -25,7 +26,7 @@ function ProductCard({ product }) {
     [product]
   );
 
-  const finalImage = imageUrl || image_url || "";
+  const finalImage = resolveImageUrl(imageUrl || image_url || "");
   const stockVariant = useMemo(() => {
     const s = Number(stock);
     if (!Number.isFinite(s)) return "unknown";

@@ -4,6 +4,7 @@ import os
 
 from flask import current_app, jsonify, request
 from flask_jwt_extended import get_jwt_identity # type: ignore
+from sqlalchemy import update
 
 from email_utils import (
     send_admin_order_paid_email,
@@ -152,16 +153,19 @@ def mp_webhook():
         if status == "approved":
             order.status = "paid"
             agotados = []
-            for item in order.items or []:
-                product = Product.query.get(item.product_id)
-                if not product:
-                    continue
+            if not order.stock_reserved:
+                for item in order.items or []:
+                    product = Product.query.get(item.product_id)
+                    if not product:
+                        continue
 
-                prev_stock = int(product.stock or 0)
-                product.stock = max(0, prev_stock - int(item.quantity or 0))
+                    prev_stock = int(product.stock or 0)
+                    product.stock = max(0, prev_stock - int(item.quantity or 0))
 
-                if prev_stock > 0 and product.stock == 0:
-                    agotados.append(product)
+                    if prev_stock > 0 and product.stock == 0:
+                        agotados.append(product)
+            else:
+                order.stock_reserved = False
 
             try:
                 send_admin_order_paid_email(order)
@@ -184,6 +188,14 @@ def mp_webhook():
             order.status = "pending"
         else:
             order.status = "cancelled"
+            if order.stock_reserved:
+                for item in order.items or []:
+                    db.session.execute(
+                        update(Product)
+                        .where(Product.id == item.product_id)
+                        .values(stock=Product.stock + int(item.quantity or 0))
+                    )
+                order.stock_reserved = False
 
         order.payment_txid = f"MP_PAY:{payment_id}"
         order.payment_brand = payment_data.get("payment_method_id")

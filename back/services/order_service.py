@@ -4,6 +4,7 @@ import json
 
 from flask import current_app, jsonify, request
 from flask_jwt_extended import get_jwt, get_jwt_identity # type: ignore
+from sqlalchemy import update
 
 from email_utils import (
     send_order_confirmation_email,
@@ -58,7 +59,6 @@ def create_order():
 
         total_amount = 0
         order_items = []
-        stock_updates = []
 
         merged = {}
         for item in items_payload:
@@ -70,19 +70,19 @@ def create_order():
                 return jsonify({"msg": "Cantidad inválida"}), 400
             merged[product_id] = merged.get(product_id, 0) + qty
 
-        for product_id, quantity in merged.items():
-            product = Product.query.get(int(product_id))
-            if not product:
-                return jsonify({"msg": f"Producto no encontrado (id={product_id})"}), 404
+        product_ids = [int(pid) for pid in merged.keys()]
+        products = Product.query.filter(Product.id.in_(product_ids)).all()
+        products_by_id = {product.id: product for product in products}
 
-            stock = int(product.stock or 0)
-            if quantity > stock:
-                return jsonify({
-                    "msg": f"Sin stock suficiente para '{product.name}'. Disponible: {stock}",
-                    "productId": product.id,
-                    "available": stock,
-                    "requested": quantity,
-                }), 409
+        missing_ids = [pid for pid in product_ids if pid not in products_by_id]
+        if missing_ids:
+            return jsonify({
+                "msg": f"Producto no encontrado (id={missing_ids[0]})",
+            }), 404
+
+        agotados = []
+        for product_id, quantity in merged.items():
+            product = products_by_id[product_id]   
 
             unit_price = get_effective_price(product)
             subtotal = unit_price * quantity
@@ -95,7 +95,31 @@ def create_order():
                 "quantity": quantity,
                 "subtotal": subtotal,
             })
-            stock_updates.append((product, quantity))
+
+            result = db.session.execute(
+                    update(Product)
+                    .where(
+                        Product.id == product.id,
+                        Product.stock >= quantity,
+                    )
+                    .values(stock=Product.stock - quantity)
+                    .returning(Product.stock)
+                )
+            row = result.fetchone()
+            if row is None:
+                db.session.rollback()
+                return jsonify({
+                    "msg": (
+                        f"Sin stock suficiente para '{product.name}'. "
+                        "Intentá nuevamente."
+                    ),
+                    "productId": product.id,
+                    "requested": quantity,
+                }), 409
+
+            new_stock = int(row[0])
+            if new_stock == 0:
+                agotados.append(product)
 
         subtotal = total_amount
         total = total_amount
@@ -125,6 +149,7 @@ def create_order():
             payment_brand=payment_brand,
             payment_last4=payment_last4,
             payment_txid=payment_txid,
+            stock_reserved=payment_method == "mercadopago",
             notes=(customer.get("notes") or "").strip() or None,
             delivery_method=delivery_method,
             delivery_address=json.dumps(delivery_snapshot) if delivery_snapshot else None,
@@ -134,14 +159,6 @@ def create_order():
 
         for item in order_items:
             db.session.add(OrderItem(order_id=order.id, **item))
-
-        agotados = []
-        if payment_method == "efectivo":
-            for product, quantity in stock_updates:
-                prev_stock = int(product.stock or 0)
-                product.stock = max(0, prev_stock - int(quantity))
-                if prev_stock > 0 and product.stock == 0:
-                    agotados.append(product)    
 
         db.session.commit()
 

@@ -96,6 +96,8 @@ class Order(db.Model):
     # 🔹 NUEVO: método de pago
     payment_method = db.Column(db.String(50), nullable=False, default="tarjeta")
 
+    stock_reserved = db.Column(db.Boolean, default=False, nullable=False)
+    
     total_amount = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(50), default="pending")  # pending, paid, cancelled, etc.
 

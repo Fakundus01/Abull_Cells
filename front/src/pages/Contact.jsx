@@ -196,7 +196,7 @@ function Contact() {
           <p><strong>{t("contact.storeEmailLabel")}</strong> contacto@abulcells.com</p>
           <p>
             <strong>{t("contact.storePhoneLabel")}</strong>{" "}
-            <Phone size={16} className="icon muted" /> +54 11 0000-0000
+            <Phone size={16} className="icon muted" /> {t("contact.storePhoneValue")}
           </p>
         </aside>
       </div>

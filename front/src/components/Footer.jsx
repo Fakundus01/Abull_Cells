@@ -13,8 +13,10 @@ import {
   Twitter,
   ArrowRight,
 } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
 
 function Footer() {
+  const { t } = useLanguage();
   const year = new Date().getFullYear();
 
   return (
@@ -28,8 +30,7 @@ function Footer() {
           </div>
 
           <p className="footer-text">
-            Tienda de tecnología y productos electrónicos. Celulares, notebooks y
-            periféricos.
+            {t("footer.description")}
           </p>
 
           <div className="footer-social">
@@ -45,32 +46,32 @@ function Footer() {
           </div>
 
           <Link to="/tienda" className="footer-cta">
-            Ver tienda <ArrowRight size={16} className="icon" />
+            {t("footer.cta")} <ArrowRight size={16} className="icon" />
           </Link>
         </div>
 
         {/* Links */}
         <div className="footer-column card-animate">
-          <h4 className="footer-title">Secciones</h4>
+          <h4 className="footer-title">{t("footer.sectionsTitle")}</h4>
           <ul className="footer-links">
             <li>
               <Link to="/tienda" className="footer-link">
-                <ShoppingBag size={16} className="icon" /> Tienda
+                <ShoppingBag size={16} className="icon" /> {t("footer.sections.store")}
               </Link>
             </li>
             <li>
               <Link to="/ofertas" className="footer-link">
-                <Tag size={16} className="icon" /> Ofertas
+                <Tag size={16} className="icon" /> {t("footer.sections.offers")}
               </Link>
             </li>
             <li>
               <Link to="/faq" className="footer-link">
-                <HelpCircle size={16} className="icon" /> FAQ
+                <HelpCircle size={16} className="icon" /> {t("footer.sections.faq")}
               </Link>
             </li>
             <li>
               <Link to="/contacto" className="footer-link">
-                <MessageCircle size={16} className="icon" /> Contáctanos
+                <MessageCircle size={16} className="icon" /> {t("footer.sections.contact")}
               </Link>
             </li>
           </ul>
@@ -78,29 +79,29 @@ function Footer() {
 
         {/* Contact */}
         <div className="footer-column card-animate">
-          <h4 className="footer-title">Contacto</h4>
+          <h4 className="footer-title">{t("footer.contactTitle")}</h4>
 
           <div className="footer-contact">
             <p className="contact-row">
               <MapPin size={16} className="icon" />
-              Dirección del local: Azcuenaga 185
+              {t("footer.addressLabel")} {t("contact.storeAddressValue")}
             </p>
 
             <p className="contact-row">
               <Phone size={16} className="icon" />
-              Teléfono: +54 11 50983612
+              {t("footer.phoneLabel")} {t("contact.storePhoneValue")}
             </p>
 
             <p className="contact-row">
               <Mail size={16} className="icon" />
-              Email: contacto@abulcell.com
+              {t("footer.emailLabel")} contacto@abulcell.com
             </p>
           </div>
         </div>
       </div>
 
       <div className="footer-bottom footer-bottom--v2">
-        <p>© {year} Abul Cell. Todos los derechos reservados.</p>
+        <p>{t("footer.copyright", { year })}</p>
       </div>
     </footer>
   );

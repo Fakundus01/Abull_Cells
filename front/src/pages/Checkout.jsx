@@ -1,5 +1,5 @@
 // src/pages/Checkout.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
@@ -48,6 +48,8 @@ function Checkout() {
   const [addresses, setAddresses] = useState([]);
   const [loadingAddresses, setLoadingAddresses] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const [useManualAddress, setUseManualAddress] = useState(false);
+  const useManualAddressRef = useRef(useManualAddress);
 
   const [manualAddress, setManualAddress] = useState({
     street: "",
@@ -92,6 +94,10 @@ function Checkout() {
     }));
   }, [user]);
 
+  useEffect(() => {
+    useManualAddressRef.current = useManualAddress;
+  }, [useManualAddress]);
+
   // Cargar direcciones si eligió envío
   useEffect(() => {
     async function load() {
@@ -100,9 +106,15 @@ function Checkout() {
       try {
         setLoadingAddresses(true);
         const data = await fetchAddresses();
-        setAddresses(Array.isArray(data) ? data : []);
+        const nextAddresses = Array.isArray(data) ? data : [];
+        setAddresses(nextAddresses);
         const def = (data || []).find((a) => a.isDefault);
-        setSelectedAddressId(def?.id ?? (data?.[0]?.id ?? null));
+        if (nextAddresses.length === 0) {
+          setSelectedAddressId(null);
+          setUseManualAddress(true);
+        } else if (!useManualAddressRef.current) {
+          setSelectedAddressId(def?.id ?? (data?.[0]?.id ?? null));
+        }
       } catch {
         setAddresses([]);
         setSelectedAddressId(null);
@@ -134,6 +146,18 @@ function Checkout() {
   function handleManualAddrChange(e) {
     const { name, value } = e.target;
     setManualAddress((prev) => ({ ...prev, [name]: value }));
+  }
+
+  function handleManualToggle() {
+    if (useManualAddress) {
+      const def = addresses.find((a) => a.isDefault) ?? addresses[0];
+      setSelectedAddressId(def?.id ?? null);
+      setUseManualAddress(false);
+      return;
+    }
+
+    setSelectedAddressId(null);
+    setUseManualAddress(true);
   }
 
   const selectedAddr = selectedAddressId
@@ -356,7 +380,7 @@ function Checkout() {
                 checked={deliveryMethod === "pickup"}
                 onChange={() => setDeliveryMethod("pickup")}
               />
-              {t("checkout.delivery.pickup")}
+              <span className="delivery-option-text">{t("checkout.delivery.pickup")}</span>
             </label>
 
             <label className={`delivery-option ${deliveryMethod === "delivery" ? "active" : ""}`}>
@@ -367,14 +391,13 @@ function Checkout() {
                 checked={deliveryMethod === "delivery"}
                 onChange={() => setDeliveryMethod("delivery")}
               />
-              {t("checkout.delivery.delivery")}
+              <span className="delivery-option-text">{t("checkout.delivery.delivery")}</span>
+              <span className="delivery-option-note">{t("checkout.delivery.areaNote")}</span>
             </label>
           </div>
 
           {deliveryMethod === "delivery" && (
             <div className="delivery-box">
-              <p className="delivery-hint">{t("checkout.delivery.areaNote")}</p>
-
               {user && (
                 <>
                   <p className="checkout-muted">
@@ -390,6 +413,7 @@ function Checkout() {
                         <select
                           className="address-select"
                           value={selectedAddressId ?? ""}
+                          disabled={useManualAddress}
                           onChange={(e) => setSelectedAddressId(Number(e.target.value))}
                         >
                           {addresses.map((a) => (
@@ -399,6 +423,15 @@ function Checkout() {
                           ))}
                         </select>
                       </label>
+                      <button
+                        type="button"
+                        className={`delivery-toggle ${useManualAddress ? "active" : ""}`}
+                        onClick={handleManualToggle}
+                      >
+                        {useManualAddress
+                          ? t("checkout.delivery.savedToggle")
+                          : t("checkout.delivery.manualToggle")}
+                      </button>
                     </div>
                   ) : (
                     <div className="delivery-empty">
@@ -414,8 +447,11 @@ function Checkout() {
               )}
 
               {/* Manual */}
-              {(!user || addresses.length === 0 || !selectedAddressId) && (
+              {(!user || addresses.length === 0 || useManualAddress || !selectedAddressId) && (
                 <div className="delivery-manual">
+                  <p className="delivery-manual-title">
+                    {t("checkout.delivery.manualTitle")}
+                  </p>
                   <div className="delivery-row">
                     <label className="auth-label">
                       {t("checkout.delivery.typeLabel")}

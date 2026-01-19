@@ -1,21 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchMyOrderDetail, fetchMyOrders } from "../services/api";
+import { useLanguage } from "../context/LanguageContext";
 
-const STATUS_LABELS = {
-  pending: "Pendiente",
-  paid: "Pagada",
-  cancelled: "Cancelada",
-};
-
-const formatCurrency = (value) =>
-  Number(value || 0).toLocaleString("es-AR", {
+function formatCurrency(value, locale) {
+  return Number(value || 0).toLocaleString(locale, {
     style: "currency",
     currency: "ARS",
     maximumFractionDigits: 0,
   });
+}
 
 function OrdersHistory() {
+  const { t, language } = useLanguage();
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [ordersError, setOrdersError] = useState("");
@@ -23,6 +20,15 @@ function OrdersHistory() {
   const [detailById, setDetailById] = useState({});
   const [detailLoadingId, setDetailLoadingId] = useState(null);
   const [detailErrorById, setDetailErrorById] = useState({});
+
+  const statusLabels = useMemo(
+    () => ({
+      pending: t("orders.status.pending"),
+      paid: t("orders.status.paid"),
+      cancelled: t("orders.status.cancelled"),
+    }),
+    [t]
+  );
 
   useEffect(() => {
     loadOrders();
@@ -43,7 +49,7 @@ function OrdersHistory() {
       const data = await fetchMyOrders();
       setOrders(Array.isArray(data) ? data : []);
     } catch (e) {
-      setOrdersError(e.message || "No se pudieron cargar tus órdenes.");
+      setOrdersError(e.message || t("orders.errors.load"));
     } finally {
       setLoadingOrders(false);
     }
@@ -66,7 +72,7 @@ function OrdersHistory() {
       } catch (e) {
         setDetailErrorById((prev) => ({
           ...prev,
-          [orderId]: e.message || "No se pudo cargar el detalle.",
+          [orderId]: e.message || t("orders.errors.detail"),
         }));
       } finally {
         setDetailLoadingId(null);
@@ -80,32 +86,32 @@ function OrdersHistory() {
         <div className="profile-head">
           <div className="profile-icon">🧾</div>
           <div>
-            <h1 className="profile-title">Mis pedidos</h1>
+            <h1 className="profile-title">{t("orders.title")}</h1>
             <p className="profile-subtitle">
-              Consultá el estado y detalle de tus compras recientes.
+              {t("orders.subtitle")}
             </p>
           </div>
         </div>
         <div className="orders-hero-actions">
           <Link to="/tienda" className="btn-secondary btn-small">
-            Seguir comprando
+            {t("orders.actions.shop")}
           </Link>
           <Link to="/perfil" className="btn-secondary btn-small">
-            Volver al perfil
+            {t("orders.actions.profile")}
           </Link>
         </div>
       </section>
 
       <section className="profile-card card-animate">
         {loadingOrders ? (
-          <p className="profile-muted">Cargando tus pedidos...</p>
+          <p className="profile-muted">{t("orders.loading")}</p>
         ) : ordersError ? (
           <p className="form-error">{ordersError}</p>
         ) : sortedOrders.length === 0 ? (
           <div className="orders-empty">
-            <p className="profile-muted">Todavía no tenés pedidos registrados.</p>
+            <p className="profile-muted">{t("orders.empty")}</p>
             <Link to="/tienda" className="btn-primary btn-small">
-              Ir a la tienda
+              {t("orders.actions.store")}
             </Link>
           </div>
         ) : (
@@ -119,35 +125,39 @@ function OrdersHistory() {
                 <article key={order.id} className="order-card">
                   <header className="order-card-header">
                     <div>
-                      <span className="order-id">Orden #{order.id}</span>
+                      <span className="order-id">
+                        {t("orders.labels.orderId", { id: order.id })}
+                      </span>
                       <div className="order-meta">
                         <span className={`order-status status-${statusKey}`}>
-                          {STATUS_LABELS[statusKey] || order.status}
+                          {statusLabels[statusKey] || order.status}
                         </span>
                         <span className="order-date">
                           {order.createdAt
-                            ? new Date(order.createdAt).toLocaleString("es-AR")
-                            : "—"}
+                            ? new Date(order.createdAt).toLocaleString(language)
+                            : t("orders.emptyValue")}
                         </span>
                       </div>
                     </div>
-                    <div className="order-total">{formatCurrency(order.totalAmount)}</div>
+                    <div className="order-total">
+                      {formatCurrency(order.totalAmount, language)}
+                    </div>
                   </header>
 
                   <div className="order-details">
                     <div>
-                      <span className="order-label">Método de pago</span>
+                      <span className="order-label">{t("orders.labels.payment")}</span>
                       <span className="order-value">
-                        {order.paymentMethod || "—"}
+                         {order.paymentMethod || t("orders.emptyValue")}
                         {order.paymentBrand
                           ? ` · ${order.paymentBrand}${order.paymentLast4 ? ` •••• ${order.paymentLast4}` : ""}`
                           : ""}
                       </span>
                     </div>
                     <div>
-                      <span className="order-label">Estado</span>
+                      <span className="order-label">{t("orders.labels.status")}</span>
                       <span className="order-value">
-                        {STATUS_LABELS[statusKey] || order.status}
+                        {statusLabels[statusKey] || order.status}
                       </span>
                     </div>
                   </div>
@@ -158,38 +168,40 @@ function OrdersHistory() {
                       className="btn-secondary btn-small"
                       onClick={() => handleToggleDetail(order.id)}
                     >
-                      {openOrderId === order.id ? "Ocultar detalle" : "Ver detalle"}
+                      {openOrderId === order.id
+                        ? t("orders.actions.hideDetail")
+                        : t("orders.actions.viewDetail")}
                     </button>
                   </div>
 
                   {openOrderId === order.id && (
                     <div className="order-detail-panel">
                       {detailLoadingId === order.id ? (
-                        <p className="profile-muted">Cargando detalle...</p>
+                        <p className="profile-muted">{t("orders.detail.loading")}</p>
                       ) : detailError ? (
                         <p className="form-error">{detailError}</p>
                       ) : (
                         <>
                           <div className="order-detail-summary">
                             <div>
-                              <span className="order-label">Contacto</span>
+                              <span className="order-label">{t("orders.detail.contact")}</span>
                               <span className="order-value">
-                                {detail?.customerName || order.customerName || "—"}
+                                {detail?.customerName || order.customerName || t("orders.emptyValue")}
                               </span>
                               <span className="order-value">
-                                {detail?.email || order.email || "—"}
+                                {detail?.email || order.email || t("orders.emptyValue")}
                               </span>
                             </div>
                             <div>
-                              <span className="order-label">Notas</span>
+                              <span className="order-label">{t("orders.detail.notes")}</span>
                               <span className="order-value">
-                                {detail?.notes || "Sin notas"}
+                                {detail?.notes || t("orders.detail.noNotes")}
                               </span>
                             </div>
                           </div>
 
                           {(detail?.items || order.items || []).length === 0 ? (
-                            <p className="profile-muted">No hay ítems asociados a esta orden.</p>
+                            <p className="profile-muted">{t("orders.detail.noItems")}</p>
                           ) : (
                             <ul className="order-items">
                               {(detail?.items || order.items || []).map((item) => (
@@ -197,13 +209,13 @@ function OrdersHistory() {
                                   <div>
                                     <strong>{item.productName}</strong>
                                     <span className="order-item-qty">
-                                      Cantidad: {item.quantity}
+                                      {t("orders.detail.quantity", { count: item.quantity })}
                                     </span>
                                   </div>
                                   <div className="order-item-prices">
-                                    <span>{formatCurrency(item.unitPrice)}</span>
+                                    <span>{formatCurrency(item.unitPrice, language)}</span>
                                     <span className="order-item-subtotal">
-                                      {formatCurrency(item.subtotal)}
+                                      {formatCurrency(item.subtotal, language)}
                                     </span>
                                   </div>
                                 </li>
@@ -223,5 +235,4 @@ function OrdersHistory() {
     </main>
   );
 }
-
 export default OrdersHistory;

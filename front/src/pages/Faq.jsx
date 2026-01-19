@@ -2,38 +2,20 @@
 import { useMemo, useState } from "react";
 import { HelpCircle, ChevronDown, ShieldCheck, Truck, CreditCard, BadgeCheck } from "lucide-react";
 
-const FAQS = [
-  {
-    q: "¿Hacen envíos a todo el país?",
-    a: "Sí, realizamos envíos a todo Argentina a través de distintos correos. El costo se calcula según tu domicilio.",
-    icon: Truck,
-  },
-  {
-    q: "¿Qué medios de pago aceptan?",
-    a: "Trabajamos con Mercado Pago: tarjetas de crédito, débito, efectivo en puntos de pago y otros métodos disponibles en la plataforma.",
-    icon: CreditCard,
-  },
-  {
-    q: "¿Los productos tienen garantía?",
-    a: "Sí, todos los productos nuevos cuentan con garantía oficial del fabricante. La duración depende de la marca y el modelo.",
-    icon: BadgeCheck,
-  },
-  {
-    q: "¿Puedo retirar en el local?",
-    a: "Sí, podés seleccionar retiro en local y coordinar el horario. La dirección la tenés en la sección 'Contáctanos'.",
-    icon: ShieldCheck,
-  },
-  {
-    q: "¿Cómo sé si mi compra fue confirmada?",
-    a: "Te vamos a enviar un correo de confirmación con los datos de tu pedido una vez que el pago se acredite.",
-    icon: HelpCircle,
-  },
-];
+import { useLanguage } from "../context/LanguageContext";
 
 function Faq() {
+  const { t } = useLanguage();
   const [openIndex, setOpenIndex] = useState(0);
 
-  const faqs = useMemo(() => FAQS, []);
+  const faqs = useMemo(() => {
+    const items = t("faq.items");
+    const icons = [Truck, CreditCard, BadgeCheck, ShieldCheck, HelpCircle];
+    return (Array.isArray(items) ? items : []).map((item, index) => ({
+      ...item,
+      icon: icons[index] || HelpCircle,
+    }));
+  }, [t]);
 
   function toggle(index) {
     setOpenIndex((prev) => (prev === index ? -1 : index));
@@ -46,12 +28,12 @@ function Faq() {
           <div>
             <div className="page-badge--v2">
               <HelpCircle size={18} className="icon" />
-              FAQ
+              {t("faq.badge")}
             </div>
 
-            <h1 className="page-title--v2">Preguntas frecuentes</h1>
+            <h1 className="page-title--v2">{t("faq.title")}</h1>
             <p className="page-subtitle--v2">
-              Respondemos las dudas más comunes sobre Abul Cell.
+              {t("faq.subtitle")}
             </p>
           </div>
         </div>

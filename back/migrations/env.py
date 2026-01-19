@@ -2,12 +2,19 @@ from __future__ import annotations
 
 from logging.config import fileConfig
 
-from alembic import context
+from alembic import context # type: ignore
 from flask import current_app
 
-config = context.config
-fileConfig(config.config_file_name)
+import os
 
+config = context.config
+
+# Fuerza a que Alembic use el alembic.ini de la raiz del proyecto (back/alembic.ini)
+config.config_file_name = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "alembic.ini")
+)
+
+fileConfig(config.config_file_name)
 target_metadata = current_app.extensions["migrate"].db.metadata
 
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from datetime import datetime
 
 from flask import current_app, jsonify, request
 from flask_jwt_extended import get_jwt_identity # type: ignore
@@ -12,6 +13,7 @@ from email_utils import (
     send_buyer_order_email,
 )
 from models import Order, Product, User, db
+from services.reservation_service import release_order_reservation
 
 
 def create_mp_preference():
@@ -42,6 +44,15 @@ def create_mp_preference():
         if order.payment_method != "mercadopago":
             return jsonify({"msg": "La orden no es de Mercado Pago"}), 400
 
+        if (
+                    order.stock_reserved
+                    and order.reservation_expires_at
+                    and order.reservation_expires_at <= datetime.utcnow()
+                ):
+                    release_order_reservation(order)
+                    db.session.commit()
+                    return jsonify({"msg": "La reserva de stock expiró"}), 409
+        
         if not order.items:
             return jsonify({"msg": "La orden no tiene ítems"}), 400
 
@@ -166,6 +177,7 @@ def mp_webhook():
                         agotados.append(product)
             else:
                 order.stock_reserved = False
+                order.reservation_expires_at = None
 
             try:
                 send_admin_order_paid_email(order)
@@ -196,6 +208,7 @@ def mp_webhook():
                         .values(stock=Product.stock + int(item.quantity or 0))
                     )
                 order.stock_reserved = False
+                order.reservation_expires_at = None
 
         order.payment_txid = f"MP_PAY:{payment_id}"
         order.payment_brand = payment_data.get("payment_method_id")

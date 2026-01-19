@@ -97,7 +97,7 @@ class Order(db.Model):
     payment_method = db.Column(db.String(50), nullable=False, default="tarjeta")
 
     stock_reserved = db.Column(db.Boolean, default=False, nullable=False)
-    
+
     total_amount = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(50), default="pending")  # pending, paid, cancelled, etc.
 
@@ -124,6 +124,11 @@ class Order(db.Model):
             "totalAmount": self.total_amount,
             "status": self.status,
             "createdAt": self.created_at.isoformat() if self.created_at else None,
+            "reservationExpiresAt": (
+                self.reservation_expires_at.isoformat()
+                if self.reservation_expires_at
+                else None
+            ),
             "items": [item.to_dict() for item in self.items],
         }
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timedelta
 
 from flask import current_app, jsonify, request
 from flask_jwt_extended import get_jwt, get_jwt_identity # type: ignore
@@ -13,6 +14,7 @@ from email_utils import (
 )
 from helpers import get_effective_price, parse_discount_percent
 from models import Order, OrderItem, Product, User, db
+from services.reservation_service import release_expired_reservations
 
 
 def create_order():
@@ -27,6 +29,7 @@ def create_order():
     """
     try:
         data = request.get_json() or {}
+        release_expired_reservations()
 
         user_id = get_jwt_identity()
         user = User.query.get(int(user_id)) if user_id else None
@@ -139,6 +142,15 @@ def create_order():
                 "manualAddress": data.get("manualAddress"),
             }
 
+        reservation_expires_at = None
+        if payment_method == "mercadopago":
+            reservation_minutes = int(
+                current_app.config.get("ORDER_RESERVATION_MINUTES", 30)
+            )
+            reservation_expires_at = datetime.utcnow() + timedelta(
+                minutes=reservation_minutes
+            )
+
         order = Order(
             customer_name=(customer.get("name") or user.name),
             email=(customer.get("email") or user.email),
@@ -150,6 +162,7 @@ def create_order():
             payment_last4=payment_last4,
             payment_txid=payment_txid,
             stock_reserved=payment_method == "mercadopago",
+            reservation_expires_at=reservation_expires_at,
             notes=(customer.get("notes") or "").strip() or None,
             delivery_method=delivery_method,
             delivery_address=json.dumps(delivery_snapshot) if delivery_snapshot else None,

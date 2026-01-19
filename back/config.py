@@ -59,3 +59,4 @@ class Config:
         "image/png",
         "image/webp",
     }
+    ORDER_RESERVATION_MINUTES = int(os.getenv("ORDER_RESERVATION_MINUTES", "30"))

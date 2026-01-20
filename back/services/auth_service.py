@@ -138,12 +138,6 @@ def login():
                 "code": "INVALID_PASSWORD",
                 "msg": "Contraseña incorrecta.",
             }), 401
-
-        if not user.email_verified:
-            return jsonify({
-                "code": "EMAIL_NOT_VERIFIED",
-                "msg": "Verificá tu email para continuar.",
-            }), 403
         
         access_token = create_access_token(
             identity=str(user.id),

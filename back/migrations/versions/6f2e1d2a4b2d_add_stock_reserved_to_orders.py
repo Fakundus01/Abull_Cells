@@ -7,7 +7,7 @@ Create Date: 2026-01-19 03:10:00.000000
 """
 from __future__ import annotations
 
-from alembic import op
+from alembic import op #type: ignore
 import sqlalchemy as sa
 
 

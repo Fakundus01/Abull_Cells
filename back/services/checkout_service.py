@@ -1,5 +1,5 @@
 from flask import jsonify, request
-from flask_jwt_extended import get_jwt, get_jwt_identity # type: ignore
+from flask_jwt_extended import get_jwt_identity # type: ignore
 
 from models import Order, Product, User
 
@@ -54,7 +54,7 @@ def checkout_success_guard(order_id: int):
 
     order = Order.query.get_or_404(order_id)
 
-    is_admin = get_jwt().get("role") == "admin"
+    is_admin = user.role == "admin"
     if not is_admin and order.email != user.email:
         return jsonify({"msg": "No autorizado"}), 403
 

@@ -40,10 +40,11 @@ function App() {
           <Route element={<RequireAdmin />}>
           <Route path="/admin" element={<Admin />} />
           </Route>
-          <Route path="/perfil" element={<Profile />} />
-          <Route element={<RequireAuth />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/mis-pedidos" element={<OrdersHistory />} />
+          <Route element={<RequireAuth />}>
+            <Route path="/perfil" element={<Profile />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/mis-pedidos" element={<OrdersHistory />} />
+          </Route>
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
           <Route path="/checkout/failure" element={<CheckoutFailure />} />
           <Route path="/checkout/pending" element={<CheckoutFailure />} />

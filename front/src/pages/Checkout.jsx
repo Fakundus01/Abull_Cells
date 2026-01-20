@@ -3,12 +3,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
-import { createOrder, createMpPreference, fetchAddresses } from "../services/api";
+import { ApiError, createOrder, createMpPreference, fetchAddresses } from "../services/api";
 import { useToast } from "../context/ToastContext";
 import LoadingOverlay from "../components/LoadingOverlay";
 import { useLanguage } from "../context/LanguageContext";
+import CheckoutDeliverySection from "../components/checkout/CheckoutDeliverySection";
+import CheckoutPaymentSection from "../components/checkout/CheckoutPaymentSection";
+import CheckoutSummary from "../components/checkout/CheckoutSummary";
 import {
-  CreditCard,
   Mail,
   Phone,
   User,
@@ -164,32 +166,28 @@ function Checkout() {
     ? addresses.find((a) => a.id === selectedAddressId)
     : null;
 
-  const addressText =
+  const buildAddressText = (selected) =>
     deliveryMethod !== "delivery"
       ? t("checkout.address.pickupLabel")
-      : selectedAddr
-        ? `${t("checkout.address.deliveryLabel")} - ${selectedAddr.label}: ${selectedAddr.street}, ${selectedAddr.city}, ${selectedAddr.province} ${selectedAddr.postalCode ? `(${t("checkout.address.postalCodePrefix")} ${selectedAddr.postalCode})` : ""}`
+      : selected
+        ? `${t("checkout.address.deliveryLabel")} - ${selected.label}: ${selected.street}, ${selected.city}, ${selected.province} ${selected.postalCode ? `(${t("checkout.address.postalCodePrefix")} ${selected.postalCode})` : ""}`
         : `${t("checkout.address.deliveryLabel")} - ${manualAddress.street}, ${manualAddress.city}, ${manualAddress.province} ${manualAddress.postalCode ? `(${t("checkout.address.postalCodePrefix")} ${manualAddress.postalCode})` : ""}`;
 
-  const finalNotes = [customer.notes, addressText].filter(Boolean).join("\n");
+  const buildOrderPayload = (selected) => {
+    const addressText = buildAddressText(selected);
+    const composedNotes = [customer.notes, addressText].filter(Boolean).join("\n");
 
-  const orderPayload = {
-    items: items.map((it) => ({ productId: it.id, quantity: it.quantity })),
-    customer: { ...customer, notes: finalNotes },
-    paymentMethod,
-    cashGiven: paymentMethod === "efectivo" ? cashGiven || null : null,
-
-    // ✅ nuevos (aunque el backend no los persista aún, no rompen)
-    deliveryMethod,
-    addressId: deliveryMethod === "delivery" ? (selectedAddressId || null) : null,
-    manualAddress: deliveryMethod === "delivery" && !selectedAddressId ? manualAddress : null,
+    return {
+      items: items.map((it) => ({ productId: it.id, quantity: it.quantity })),
+      customer: { ...customer, notes: composedNotes },
+      paymentMethod,
+      cashGiven: paymentMethod === "efectivo" ? cashGiven || null : null,
+      // ✅ nuevos (aunque el backend no los persista aún, no rompen)
+      deliveryMethod,
+      addressId: deliveryMethod === "delivery" ? (selectedAddressId || null) : null,
+      manualAddress: deliveryMethod === "delivery" && !selectedAddressId ? manualAddress : null,
+    };
   };
-
-  function mapPaymentMethod(method) {
-    if (method === "mercadopago") return "mercadopago";
-    if (method === "efectivo") return "efectivo"; // o "cash" si tu backend lo espera así
-    return method;
-  }
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -247,25 +245,7 @@ function Checkout() {
         ? addresses.find((a) => a.id === selectedAddressId)
         : null;
 
-      const addressText =
-          deliveryMethod !== "delivery"
-            ? t("checkout.address.pickupLabel")
-            : selectedAddr
-              ? `${t("checkout.address.deliveryLabel")} - ${selectedAddr.label}: ${selectedAddr.street}, ${selectedAddr.city}, ${selectedAddr.province} ${selectedAddr.postalCode ? `(${t("checkout.address.postalCodePrefix")} ${selectedAddr.postalCode})` : ""}`
-              : `${t("checkout.address.deliveryLabel")} - ${manualAddress.street}, ${manualAddress.city}, ${manualAddress.province} ${manualAddress.postalCode ? `(${t("checkout.address.postalCodePrefix")} ${manualAddress.postalCode})` : ""}`;
-
-      const finalNotes = [customer.notes, addressText].filter(Boolean).join("\n");
-
-      const orderPayload = {
-        items: items.map((it) => ({ productId: it.id, quantity: it.quantity })),
-        customer: { ...customer, notes: finalNotes },
-        paymentMethod,
-        cashGiven: paymentMethod === "efectivo" ? (cashGiven || null) : null,
-
-        deliveryMethod,
-        addressId: deliveryMethod === "delivery" ? (selectedAddressId || null) : null,
-        manualAddress: deliveryMethod === "delivery" && !selectedAddressId ? manualAddress : null,
-      };
+      const orderPayload = buildOrderPayload(selectedAddr);
 
       const order = await createOrder(orderPayload);
 
@@ -286,6 +266,16 @@ function Checkout() {
       clearCart();
     } catch (err) {
       console.error("[CHECKOUT] Error en handleSubmit:", err);
+      if (err instanceof ApiError) {
+        if (err.status === 401 || err.status === 403) {
+          setError(t("checkout.errors.authRequired"));
+          return;
+        }
+        if (err.status === 409) {
+          setError(t("checkout.errors.stockConflict"));
+          return;
+        }
+      }
       setError(err.message || t("checkout.errors.generic"));
     } finally {
       setLoading(false);
@@ -340,7 +330,7 @@ function Checkout() {
           <label className="field">
             <span className="field-label">
               <User size={16} className="icon" />
-               {t("checkout.fields.nameRequired")}
+              {t("checkout.fields.nameRequired")}
             </span>
             <input name="name" value={customer.name} onChange={handleChange} required />
           </label>
@@ -362,260 +352,34 @@ function Checkout() {
           <label className="field">
             <span className="field-label">
               <Phone size={16} className="icon" />
-               {t("checkout.fields.phone")}
+              {t("checkout.fields.phone")}
             </span>
             <input name="phone" value={customer.phone} onChange={handleChange} />
           </label>
         </div>
 
-        <div className="checkout-section card-animate">
-          <h2 className="checkout-h2">{t("checkout.deliveryTitle")}</h2>
+         <CheckoutDeliverySection
+          t={t}
+          user={user}
+          deliveryMethod={deliveryMethod}
+          setDeliveryMethod={setDeliveryMethod}
+          addresses={addresses}
+          loadingAddresses={loadingAddresses}
+          selectedAddressId={selectedAddressId}
+          setSelectedAddressId={setSelectedAddressId}
+          useManualAddress={useManualAddress}
+          handleManualToggle={handleManualToggle}
+          manualAddress={manualAddress}
+          handleManualAddrChange={handleManualAddrChange}
+        />
 
-          <div className="delivery-options">
-            <label className={`delivery-option ${deliveryMethod === "pickup" ? "active" : ""}`}>
-              <input
-                type="radio"
-                name="deliveryMethod"
-                value="pickup"
-                checked={deliveryMethod === "pickup"}
-                onChange={() => setDeliveryMethod("pickup")}
-              />
-              <span className="delivery-option-text">{t("checkout.delivery.pickup")}</span>
-            </label>
-
-            <label className={`delivery-option ${deliveryMethod === "delivery" ? "active" : ""}`}>
-              <input
-                type="radio"
-                name="deliveryMethod"
-                value="delivery"
-                checked={deliveryMethod === "delivery"}
-                onChange={() => setDeliveryMethod("delivery")}
-              />
-              <span className="delivery-option-text">{t("checkout.delivery.delivery")}</span>
-              <span className="delivery-option-note">{t("checkout.delivery.areaNote")}</span>
-            </label>
-          </div>
-
-          {deliveryMethod === "delivery" && (
-            <div className="delivery-box">
-              {user && (
-                <>
-                  <p className="checkout-muted">
-                    {t("checkout.delivery.savedAddressHint")}
-                  </p>
-
-                  {loadingAddresses ? (
-                    <p className="checkout-muted">{t("checkout.delivery.loading")}</p>
-                  ) : addresses.length > 0 ? (
-                    <div className="delivery-saved">
-                      <label className="auth-label">
-                        {t("checkout.delivery.savedAddressLabel")}
-                        <select
-                          className="address-select"
-                          value={selectedAddressId ?? ""}
-                          disabled={useManualAddress}
-                          onChange={(e) => setSelectedAddressId(Number(e.target.value))}
-                        >
-                          {addresses.map((a) => (
-                            <option key={a.id} value={a.id}>
-                              {a.label} — {a.street}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <button
-                        type="button"
-                        className={`delivery-toggle ${useManualAddress ? "active" : ""}`}
-                        onClick={handleManualToggle}
-                      >
-                        {useManualAddress
-                          ? t("checkout.delivery.savedToggle")
-                          : t("checkout.delivery.manualToggle")}
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="delivery-empty">
-                      <p className="checkout-muted">
-                        {t("checkout.delivery.noSavedAddresses")}
-                      </p>
-                      <p className="checkout-muted">
-                        {t("checkout.delivery.manualHint")}
-                      </p>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* Manual */}
-              {(!user || addresses.length === 0 || useManualAddress || !selectedAddressId) && (
-                <div className="delivery-manual">
-                  <p className="delivery-manual-title">
-                    {t("checkout.delivery.manualTitle")}
-                  </p>
-                  <div className="delivery-row">
-                    <label className="auth-label">
-                      {t("checkout.delivery.typeLabel")}
-                      <select
-                        name="type"
-                        className="address-select"
-                        value={manualAddress.type}
-                        onChange={handleManualAddrChange}
-                      >
-                        <option value="house">{t("checkout.delivery.types.house")}</option>
-                        <option value="apartment">{t("checkout.delivery.types.apartment")}</option>
-                        <option value="office">{t("checkout.delivery.types.office")}</option>
-                        <option value="other">{t("checkout.delivery.types.other")}</option>
-                      </select>
-                    </label>
-
-                    <label className="auth-label">
-                      {t("checkout.delivery.streetLabel")}
-                      <input
-                        name="street"
-                        value={manualAddress.street}
-                        onChange={handleManualAddrChange}
-                        placeholder={t("checkout.delivery.streetPlaceholder")}
-                      />
-                    </label>
-                  </div>
-
-                  <div className="delivery-row">
-                    <label className="auth-label">
-                      {t("checkout.delivery.cityLabel")}
-                      <input
-                        name="city"
-                        value={manualAddress.city}
-                        onChange={handleManualAddrChange}
-                        placeholder={t("checkout.delivery.cityPlaceholder")}
-                      />
-                    </label>
-
-                    <label className="auth-label">
-                      {t("checkout.delivery.provinceLabel")}
-                      <input
-                        name="province"
-                        value={manualAddress.province}
-                        onChange={handleManualAddrChange}
-                        placeholder={t("checkout.delivery.provincePlaceholder")}
-                      />
-                    </label>
-                  </div>
-
-                  <div className="delivery-row">
-                    <label className="auth-label">
-                      {t("checkout.delivery.postalCodeLabel")}
-                      <input
-                        name="postalCode"
-                        value={manualAddress.postalCode}
-                        onChange={handleManualAddrChange}
-                        placeholder={t("checkout.delivery.postalCodePlaceholder")}
-                      />
-                    </label>
-
-                    <label className="auth-label">
-                      {t("checkout.delivery.apartmentLabel")}
-                      <input
-                        name="apartment"
-                        value={manualAddress.apartment}
-                        onChange={handleManualAddrChange}
-                        placeholder={t("checkout.delivery.apartmentPlaceholder")}
-                      />
-                    </label>
-                  </div>
-
-                  <div className="delivery-row">
-                    <label className="auth-label">
-                      {t("checkout.delivery.floorLabel")}
-                      <input
-                        name="floor"
-                        value={manualAddress.floor}
-                        onChange={handleManualAddrChange}
-                        placeholder={t("checkout.delivery.floorPlaceholder")}
-                      />
-                    </label>
-
-                    <label className="auth-label">
-                      {t("checkout.delivery.bellLabel")}
-                      <input
-                        name="bell"
-                        value={manualAddress.bell}
-                        onChange={handleManualAddrChange}
-                        placeholder={t("checkout.delivery.bellPlaceholder")}
-                      />
-                    </label>
-                  </div>
-
-                  <label className="auth-label">
-                    {t("checkout.delivery.notesLabel")}
-                    <input
-                      name="notes"
-                      value={manualAddress.notes}
-                      onChange={handleManualAddrChange}
-                      placeholder={t("checkout.delivery.notesPlaceholder")}
-                    />
-                  </label>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Medios de pago */}
-        <div className="checkout-section card-animate">
-          <h2 className="checkout-h2">{t("checkout.paymentTitle")}</h2>
-
-          <div className="payment-options">
-            <label className={`payment-option ${paymentMethod === "mercadopago" ? "active" : ""}`}>
-              <input
-                type="radio"
-                name="paymentMethod"
-                value="mercadopago"
-                checked={paymentMethod === "mercadopago"}
-                onChange={() => setPaymentMethod("mercadopago")}
-              />
-              <span className="payment-icon">
-                <CreditCard size={20} className="icon" />
-              </span>
-              <div className="payment-info">
-                <span className="payment-title">{t("checkout.payment.mercadoPago.title")}</span>
-                <span className="payment-subtitle">
-                  {t("checkout.payment.mercadoPago.subtitle")}
-                </span>
-              </div>
-              <span className="payment-tag">{t("checkout.payment.recommended")}</span>
-            </label>
-
-            <label className={`payment-option ${paymentMethod === "efectivo" ? "active" : ""}`}>
-              <input
-                type="radio"
-                name="paymentMethod"
-                value="efectivo"
-                checked={paymentMethod === "efectivo"}
-                onChange={() => setPaymentMethod("efectivo")}
-              />
-              <span className="payment-icon">💵</span>
-              <div className="payment-info">
-                <span className="payment-title">{t("checkout.payment.cash.title")}</span>
-                <span className="payment-subtitle">
-                  {t("checkout.payment.cash.subtitle")}
-                </span>
-              </div>
-            </label>
-          </div>
-        </div>
-
-        {paymentMethod === "efectivo" && (
-          <label className="field">
-            <span className="field-label">{t("checkout.payment.cash.amountLabel")}</span>
-            <input
-              inputMode="numeric"
-              placeholder={t("checkout.payment.cash.amountPlaceholder")}
-              value={cashGiven}
-              onChange={(e) => setCashGiven(e.target.value)}
-            />
-            <small className="field-hint">{t("checkout.payment.cash.amountHint")}</small>
-          </label>
-        )}
+        <CheckoutPaymentSection
+          t={t}
+          paymentMethod={paymentMethod}
+          setPaymentMethod={setPaymentMethod}
+          cashGiven={cashGiven}
+          setCashGiven={setCashGiven}
+        />
 
         <label className="field">
           <span className="field-label">
@@ -653,33 +417,7 @@ function Checkout() {
         </button>
       </form>
 
-      <aside className="checkout-summary card-animate">
-        <h2 className="checkout-h2">{t("checkout.summaryTitle")}</h2>
-
-        <ul className="checkout-items">
-          {items.map((item) => (
-            <li key={item.id} className="checkout-item">
-              <div>
-                <strong>{item.name}</strong>
-                <div className="checkout-item-meta">
-                  {t("checkout.quantityLabel", { count: item.quantity })}
-                </div>
-              </div>
-              <span>${(item.price * item.quantity).toLocaleString("es-AR")}</span>
-            </li>
-          ))}
-        </ul>
-
-        <div className="checkout-total">
-          <span>{t("cart.total")}</span>
-          <strong>${totalPrice.toLocaleString("es-AR")}</strong>
-        </div>
-
-        <Link to="/carrito" className="btn-secondary btn-icon checkout-back">
-          <ArrowRight size={18} className="icon" />
-          {t("checkout.backToCart")}
-        </Link>
-      </aside>
+      <CheckoutSummary t={t} items={items} totalPrice={totalPrice} />
     </div>
   </section>
 );

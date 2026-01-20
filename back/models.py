@@ -1,5 +1,6 @@
 # models.py
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import event, inspect
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
@@ -17,6 +18,7 @@ class User(db.Model):
     username = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), default="user")  # "admin" | "user"
+    token_version = db.Column(db.Integer, default=0, nullable=False)
 
     # ✅ Verificación de email
    
@@ -44,6 +46,7 @@ class User(db.Model):
             "email": self.email,
             "role": self.role,
             "username": self.username,
+            "tokenVersion": self.token_version,
             "emailVerified": bool(self.email_verified),
             "dni": self.dni,
             "phone": self.phone,
@@ -51,8 +54,18 @@ class User(db.Model):
         }
 
 
+@event.listens_for(User, "before_update")
+def _bump_user_token_version(mapper, connection, target) -> None:
+    state = inspect(target)
+    if state.attrs.role.history.has_changes():
+        target.token_version = int(target.token_version or 0) + 1
+
+
 class Product(db.Model):
     __tablename__ = "products"
+    __table_args__ = (
+        db.CheckConstraint("stock >= 0", name="ck_products_stock_nonnegative"),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
@@ -81,6 +94,21 @@ class Product(db.Model):
     
 class Order(db.Model):
     __tablename__ = "orders"
+    __table_args__ = (
+        db.CheckConstraint("total_amount >= 0", name="ck_orders_total_amount_nonnegative"),
+        db.CheckConstraint(
+            "status IN ('pending', 'pending_payment', 'paid', 'cancelled')",
+            name="ck_orders_status_valid",
+        ),
+        db.CheckConstraint(
+            "delivery_method IN ('pickup', 'delivery')",
+            name="ck_orders_delivery_method_valid",
+        ),
+        db.CheckConstraint(
+            "payment_method IN ('efectivo', 'mercadopago', 'tarjeta')",
+            name="ck_orders_payment_method_valid",
+        ),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     customer_name = db.Column(db.String(200), nullable=False)
@@ -97,6 +125,7 @@ class Order(db.Model):
     payment_method = db.Column(db.String(50), nullable=False, default="tarjeta")
 
     stock_reserved = db.Column(db.Boolean, default=False, nullable=False)
+    reservation_expires_at = db.Column(db.DateTime, nullable=True)
 
     total_amount = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(50), default="pending")  # pending, paid, cancelled, etc.
@@ -134,6 +163,15 @@ class Order(db.Model):
 
 class OrderItem(db.Model):
     __tablename__ = "order_items"
+    __table_args__ = (
+        db.CheckConstraint("quantity > 0", name="ck_order_items_quantity_positive"),
+        db.CheckConstraint("unit_price >= 0", name="ck_order_items_unit_price_nonnegative"),
+        db.CheckConstraint("subtotal >= 0", name="ck_order_items_subtotal_nonnegative"),
+        db.CheckConstraint(
+            "subtotal = unit_price * quantity",
+            name="ck_order_items_subtotal_matches_price_qty",
+        ),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     order_id = db.Column(db.Integer, db.ForeignKey("orders.id"), nullable=False)
@@ -156,6 +194,12 @@ class OrderItem(db.Model):
 
 class Address(db.Model):
     __tablename__ = "addresses"
+    __table_args__ = (
+        db.CheckConstraint(
+            "type IN ('house', 'apartment', 'office', 'other')",
+            name="ck_addresses_type_valid",
+        ),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
 

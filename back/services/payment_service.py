@@ -45,13 +45,13 @@ def create_mp_preference():
             return jsonify({"msg": "La orden no es de Mercado Pago"}), 400
 
         if (
-                    order.stock_reserved
-                    and order.reservation_expires_at
-                    and order.reservation_expires_at <= datetime.utcnow()
+                order.stock_reserved
+                and order.reservation_expires_at
+                and order.reservation_expires_at <= datetime.utcnow()
                 ):
-                    release_order_reservation(order)
-                    db.session.commit()
-                    return jsonify({"msg": "La reserva de stock expiró"}), 409
+                release_order_reservation(order)
+                db.session.commit()
+                return jsonify({"msg": "La reserva de stock expiró"}), 409
         
         if not order.items:
             return jsonify({"msg": "La orden no tiene ítems"}), 400
@@ -217,6 +217,13 @@ def mp_webhook():
         if last4:
             order.payment_last4 = last4
 
+        current_app.logger.info(
+        "[MP] webhook order_id=%s payment_id=%s status=%s reserved=%s",
+        order.id,
+        payment_id,
+        order.status,
+        order.stock_reserved,
+        )
         db.session.commit()
 
         return "", 200

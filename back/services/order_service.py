@@ -35,7 +35,9 @@ def create_order():
         user = User.query.get(int(user_id)) if user_id else None
         if not user:
             return jsonify({"msg": "Usuario no encontrado"}), 404
-
+        if not user.email_verified:
+            return jsonify({"msg": "Verificá tu email para continuar"}), 403
+        
         customer = data.get("customer") or {}
         items_payload = data.get("items") or []
         if not items_payload:
@@ -174,7 +176,14 @@ def create_order():
             db.session.add(OrderItem(order_id=order.id, **item))
 
         db.session.commit()
-
+        current_app.logger.info(
+            "[ORDER] created order_id=%s user_id=%s payment_method=%s status=%s",
+            order.id,
+            user.id,
+            payment_method,
+            status,
+        )
+        
         try:
             send_order_confirmation_email(order, order.items)
         except Exception as exc:
@@ -223,7 +232,7 @@ def my_order_detail(order_id: int):
 
     order = Order.query.get_or_404(order_id)
 
-    is_admin = get_jwt().get("role") == "admin"
+    is_admin = user.role == "admin"
     if not is_admin and order.email != user.email:
         return jsonify({"msg": "No tenés permiso para ver esta orden"}), 403
     return jsonify(order.to_dict())

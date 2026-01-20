@@ -10,9 +10,7 @@ from flask import current_app, jsonify, request
 from flask_jwt_extended import ( # type: ignore
     create_access_token,
     create_refresh_token,
-    get_jwt,
     get_jwt_identity,
-    jwt_required,
     set_access_cookies,
     set_refresh_cookies,
     unset_jwt_cookies,
@@ -23,6 +21,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from email_utils import send_password_reset_email, send_verify_code_email
 from models import User, db
+from services.rate_limit import rate_limit_exceeded, rate_limit_key
 
 
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -34,7 +33,11 @@ def _get_reset_serializer() -> URLSafeTimedSerializer:
 
 
 def _claims_for(user: User) -> dict:
-    return {"role": user.role, "email": user.email}
+    return {
+        "role": user.role,
+        "email": user.email,
+        "token_version": user.token_version,
+    }
 
 
 def register():
@@ -43,6 +46,12 @@ def register():
         name = (data.get("name") or "").strip()
         email = (data.get("email") or "").strip().lower()
         password = data.get("password") or ""
+        if rate_limit_exceeded(
+            rate_limit_key(request, "register", email),
+            current_app.config.get("AUTH_RATE_LIMIT_REGISTER", 5),
+            current_app.config.get("AUTH_RATE_LIMIT_WINDOW", 900),
+        ):
+           return jsonify({"msg": "Demasiados intentos. Probá más tarde."}), 429
 
         if not name:
             return jsonify({"msg": "El nombre es obligatorio"}), 400
@@ -106,6 +115,12 @@ def login():
         data = request.get_json() or {}
         email = (data.get("email") or "").strip().lower()
         password = data.get("password") or ""
+        if rate_limit_exceeded(
+            rate_limit_key(request, "login", email),
+            current_app.config.get("AUTH_RATE_LIMIT_LOGIN", 10),
+            current_app.config.get("AUTH_RATE_LIMIT_WINDOW", 900),
+        ):
+            return jsonify({"msg": "Demasiados intentos. Probá más tarde."}), 429
 
         if not email or not password:
             return jsonify({"msg": "Email y contraseña son obligatorios"}), 400
@@ -124,6 +139,12 @@ def login():
                 "msg": "Contraseña incorrecta.",
             }), 401
 
+        if not user.email_verified:
+            return jsonify({
+                "code": "EMAIL_NOT_VERIFIED",
+                "msg": "Verificá tu email para continuar.",
+            }), 403
+        
         access_token = create_access_token(
             identity=str(user.id),
             additional_claims=_claims_for(user),
@@ -163,6 +184,12 @@ def send_verify_email_endpoint():
     user = User.query.get(int(user_id)) if user_id else None
     if not user:
         return jsonify({"msg": "Usuario no encontrado"}), 404
+    if rate_limit_exceeded(
+        rate_limit_key(request, "verify-send", user.email),
+        current_app.config.get("AUTH_RATE_LIMIT_RESEND", 3),
+        current_app.config.get("AUTH_RATE_LIMIT_WINDOW", 900),
+    ):
+        return jsonify({"msg": "Demasiados intentos. Probá más tarde."}), 429
 
     if user.email_verified:
         return jsonify({"ok": True, "msg": "Ya está verificado"}), 200
@@ -187,6 +214,12 @@ def send_verify_email_endpoint():
 def verify_email():
     data = request.get_json() or {}
     code = (data.get("code") or "").strip()
+    if rate_limit_exceeded(
+        rate_limit_key(request, "verify"),
+        current_app.config.get("AUTH_RATE_LIMIT_VERIFY", 8),
+        current_app.config.get("AUTH_RATE_LIMIT_WINDOW", 900),
+    ):
+        return jsonify({"msg": "Demasiados intentos. Probá más tarde."}), 429
 
     if not code or len(code) != 6 or not code.isdigit():
         return jsonify({"msg": "Código inválido"}), 400
@@ -219,6 +252,12 @@ def resend_verify():
     user = User.query.get(int(user_id)) if user_id else None
     if not user:
         return jsonify({"msg": "Usuario no encontrado"}), 404
+    if rate_limit_exceeded(
+        rate_limit_key(request, "verify-resend", user.email),
+        current_app.config.get("AUTH_RATE_LIMIT_RESEND", 3),
+        current_app.config.get("AUTH_RATE_LIMIT_WINDOW", 900),
+    ):
+        return jsonify({"msg": "Demasiados intentos. Probá más tarde."}), 429
 
     if user.email_verified:
         return jsonify({"ok": True, "already": True}), 200
@@ -264,6 +303,12 @@ def forgot_password():
     try:
         data = request.get_json() or {}
         email = (data.get("email") or "").strip().lower()
+        if rate_limit_exceeded(
+            rate_limit_key(request, "forgot", email),
+            current_app.config.get("AUTH_RATE_LIMIT_FORGOT", 5),
+            current_app.config.get("AUTH_RATE_LIMIT_WINDOW", 900),
+        ):
+            return jsonify({"ok": True}), 200
 
         if not email:
             return jsonify({"msg": "Email es obligatorio"}), 400
@@ -297,6 +342,12 @@ def reset_password():
         data = request.get_json() or {}
         token = (data.get("token") or "").strip()
         new_password = data.get("password") or ""
+        if rate_limit_exceeded(
+            rate_limit_key(request, "reset"),
+            current_app.config.get("AUTH_RATE_LIMIT_RESET", 5),
+            current_app.config.get("AUTH_RATE_LIMIT_WINDOW", 900),
+        ):
+            return jsonify({"msg": "Demasiados intentos. Probá más tarde."}), 429
 
         if not token:
             return jsonify({"msg": "Token requerido"}), 400
@@ -335,9 +386,10 @@ def admin_required(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
         verify_jwt_in_request()
-        claims = get_jwt() or {}
-        if claims.get("role") != "admin":
+        user_id = get_jwt_identity()
+        user = db.session.get(User, int(user_id)) if user_id else None
+        if not user or user.role != "admin":
             return jsonify({"msg": "Admin requerido"}), 403
         return fn(*args, **kwargs)
-
+    
     return wrapper

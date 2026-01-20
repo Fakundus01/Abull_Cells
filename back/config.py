@@ -31,9 +31,9 @@ class Config:
     JWT_REFRESH_CSRF_COOKIE_NAME = "csrf_refresh_token"
 
     # ✅ Cookies seguras
-    JWT_COOKIE_SAMESITE = "Lax" # para ecommerce suele ir bien
-    JWT_COOKIE_SECURE = False    # EN PRODUCCIÓN: True (requiere HTTPS)
-    JWT_COOKIE_DOMAIN = None     # en prod podés setear tu dominio
+    JWT_COOKIE_SAMESITE = os.getenv("JWT_COOKIE_SAMESITE", "Lax")
+    JWT_COOKIE_SECURE = os.getenv("JWT_COOKIE_SECURE", "false").lower() == "true"
+    JWT_COOKIE_DOMAIN = os.getenv("JWT_COOKIE_DOMAIN") or None
 
     # Opcional: tiempos (ajustalos a gusto)
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=2)        # ✅ 2 horas
@@ -59,4 +59,13 @@ class Config:
         "image/png",
         "image/webp",
     }
+
     ORDER_RESERVATION_MINUTES = int(os.getenv("ORDER_RESERVATION_MINUTES", "30"))
+
+    AUTH_RATE_LIMIT_WINDOW = int(os.getenv("AUTH_RATE_LIMIT_WINDOW", "900"))
+    AUTH_RATE_LIMIT_LOGIN = int(os.getenv("AUTH_RATE_LIMIT_LOGIN", "10"))
+    AUTH_RATE_LIMIT_REGISTER = int(os.getenv("AUTH_RATE_LIMIT_REGISTER", "5"))
+    AUTH_RATE_LIMIT_FORGOT = int(os.getenv("AUTH_RATE_LIMIT_FORGOT", "5"))
+    AUTH_RATE_LIMIT_RESET = int(os.getenv("AUTH_RATE_LIMIT_RESET", "5"))
+    AUTH_RATE_LIMIT_VERIFY = int(os.getenv("AUTH_RATE_LIMIT_VERIFY", "8"))
+    AUTH_RATE_LIMIT_RESEND = int(os.getenv("AUTH_RATE_LIMIT_RESEND", "3"))

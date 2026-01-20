@@ -8,7 +8,7 @@ from helpers import get_effective_price, parse_discount_percent
 from flask_jwt_extended import JWTManager # type: ignore
 from dotenv import load_dotenv
 from config import Config
-from models import db
+from models import User, db
 from routes import admin_bp, auth_bp, orders_bp, payments_bp, products_bp
 from flask_migrate import Migrate # type: ignore
 
@@ -48,6 +48,18 @@ def create_app():
     @jwt.revoked_token_loader
     def _revoked_token(jwt_header, jwt_payload):
         return jsonify({"msg": "Token revocado"}), 401
+    
+    @jwt.token_in_blocklist_loader
+    def _token_in_blocklist(jwt_header, jwt_payload):
+        user_id = jwt_payload.get("sub")
+        token_version = jwt_payload.get("token_version")
+        if not user_id:
+            return True
+
+        user = db.session.get(User, int(user_id))
+        if not user:
+            return True
+        return int(user.token_version or 0) != int(token_version or 0)
     
     # app.config["UPLOAD_FOLDER"] = os.getenv("UPLOAD_FOLDER", "uploads")
     # app.config["MAX_UPLOAD_MB"] = int(os.getenv("MAX_UPLOAD_MB", "8"))

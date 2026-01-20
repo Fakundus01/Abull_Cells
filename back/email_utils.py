@@ -95,7 +95,7 @@ def send_order_confirmation_email(order, items=None):
     subject = f"🧾 Nueva orden #{order_id} · {payment_method} · {status}"
 
     lines = []
-    lines.append("📦 NUEVA ORDEN - ABUL CELLS")
+    lines.append("📦 NUEVA ORDEN - ABUL CELL")
     lines.append("")
     lines.append(f"Orden: #{order_id}")
     if created_at:

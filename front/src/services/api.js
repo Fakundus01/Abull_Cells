@@ -1,7 +1,7 @@
 import { getCookie } from "./helpers.js";
 
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+  import.meta.env.VITE_API_BASE_URL || "https://abull-cells.onrender.com";
 
 // ---------------------------------------------
 // API Error (para UI: toasts, manejo de status)

@@ -22,13 +22,15 @@ def create_app():
 
     db.init_app(app)
     migrate.init_app(app, db)
-    frontend_url = os.getenv("FRONTEND_URL")
+    frontend_url = os.getenv("FRONTEND_URL", "").rstrip("/")
     if not frontend_url:
         raise RuntimeError("FRONTEND_URL no configurado para CORS.")
     CORS(
         app,
-        resources={r"/api/*": {"origins": [frontend_url]}},
-        supports_credentials=True
+        resources={r"/*": {"origins": [frontend_url]}},
+        supports_credentials=True,
+        allow_headers=["Content-Type", "Authorization", "X-CSRF-TOKEN"],
+        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     )
 
     jwt = JWTManager(app)

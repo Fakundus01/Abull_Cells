@@ -90,6 +90,43 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
 
+    def _ensure_admin_user() -> None:
+        admin_email = os.getenv("ADMIN_EMAIL", "").strip().lower()
+        admin_password = os.getenv("ADMIN_PASSWORD", "")
+        admin_name = os.getenv("ADMIN_NAME", "Administrador")
+
+        if not admin_email or not admin_password:
+            app.logger.info("[ADMIN] ADMIN_EMAIL/ADMIN_PASSWORD no configurados. Seed omitido.")
+            return
+
+        try:
+            user = User.query.filter_by(email=admin_email).first()
+            if not user:
+                base = admin_email.split("@")[0].strip().lower()
+                username = base or "admin"
+                suffix = 2
+                while User.query.filter_by(username=username).first():
+                    username = f"{base}{suffix}"
+                    suffix += 1
+
+                user = User(name=admin_name, email=admin_email, username=username, role="admin")
+                user.set_password(admin_password)
+                db.session.add(user)
+                db.session.commit()
+                app.logger.info("[ADMIN] Usuario admin creado: %s", admin_email)
+                return
+
+            if user.role != "admin":
+                user.role = "admin"
+                db.session.commit()
+                app.logger.info("[ADMIN] Rol admin asegurado para %s", admin_email)
+        except Exception as exc:
+            app.logger.exception(f"[ADMIN] Error asegurando admin: {exc!r}")
+            db.session.rollback()
+
+    with app.app_context():
+        _ensure_admin_user()
+
     @app.route("/uploads/products/<path:filename>")
     def product_uploads(filename: str):
         upload_dir = app.config["PRODUCT_UPLOAD_DIR"]

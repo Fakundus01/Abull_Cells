@@ -31,8 +31,20 @@ class Config:
     JWT_REFRESH_CSRF_COOKIE_NAME = "csrf_refresh_token"
 
     # ✅ Cookies seguras
-    JWT_COOKIE_SAMESITE = os.getenv("JWT_COOKIE_SAMESITE", "Lax")
-    JWT_COOKIE_SECURE = os.getenv("JWT_COOKIE_SECURE", "false").lower() == "true"
+    _frontend_url = os.getenv("FRONTEND_URL", "").lower()
+    _frontend_is_https = _frontend_url.startswith("https://")
+    _frontend_is_local = "localhost" in _frontend_url or "127.0.0.1" in _frontend_url
+    _secure_default = _frontend_is_https and not _frontend_is_local
+
+    JWT_COOKIE_SAMESITE = os.getenv("JWT_COOKIE_SAMESITE")
+    if not JWT_COOKIE_SAMESITE:
+        JWT_COOKIE_SAMESITE = "None" if _secure_default else "Lax"
+
+    _jwt_cookie_secure_env = os.getenv("JWT_COOKIE_SECURE")
+    if _jwt_cookie_secure_env is None:
+        JWT_COOKIE_SECURE = _secure_default
+    else:
+        JWT_COOKIE_SECURE = _jwt_cookie_secure_env.lower() == "true"
     JWT_COOKIE_DOMAIN = os.getenv("JWT_COOKIE_DOMAIN") or None
 
     # Opcional: tiempos (ajustalos a gusto)

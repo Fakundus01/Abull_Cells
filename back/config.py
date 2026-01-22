@@ -1,6 +1,7 @@
 # config.py
 import os
 from datetime import timedelta
+from urllib.parse import urlparse
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -31,21 +32,48 @@ class Config:
     JWT_REFRESH_CSRF_COOKIE_NAME = "csrf_refresh_token"
 
     # ✅ Cookies seguras
-    _frontend_url = os.getenv("FRONTEND_URL", "").lower()
+    _frontend_url = (os.getenv("FRONTEND_URL", "") or "").strip().lower()
+    _backend_url = (os.getenv("RENDER_EXTERNAL_URL", "") or "").strip().lower()
+
+    _frontend_parsed = urlparse(_frontend_url) if _frontend_url else None
+    _backend_parsed = urlparse(_backend_url) if _backend_url else None
+    _frontend_host = _frontend_parsed.netloc if _frontend_parsed else ""
+    _backend_host = _backend_parsed.netloc if _backend_parsed else ""
+    _frontend_host = _frontend_host.split(":")[0]
+    _backend_host = _backend_host.split(":")[0]
+
+    def _base_domain(host: str) -> str:
+        parts = [p for p in host.split(".") if p]
+        if len(parts) < 2:
+            return host
+        return ".".join(parts[-2:])
+
     _frontend_is_https = _frontend_url.startswith("https://")
     _frontend_is_local = "localhost" in _frontend_url or "127.0.0.1" in _frontend_url
+    _is_cross_site = bool(_frontend_host and _backend_host and _frontend_host != _backend_host)
+    _shared_base_domain = ""
+    if _frontend_host and _backend_host:
+        frontend_base = _base_domain(_frontend_host)
+        backend_base = _base_domain(_backend_host)
+        if frontend_base == backend_base:
+            _shared_base_domain = frontend_base
     _secure_default = _frontend_is_https and not _frontend_is_local
 
     JWT_COOKIE_SAMESITE = os.getenv("JWT_COOKIE_SAMESITE")
     if not JWT_COOKIE_SAMESITE:
-        JWT_COOKIE_SAMESITE = "None" if _secure_default else "Lax"
+        JWT_COOKIE_SAMESITE = "None" if (_secure_default and _is_cross_site) else "Lax"
 
     _jwt_cookie_secure_env = os.getenv("JWT_COOKIE_SECURE")
     if _jwt_cookie_secure_env is None:
         JWT_COOKIE_SECURE = _secure_default
     else:
         JWT_COOKIE_SECURE = _jwt_cookie_secure_env.lower() == "true"
-    JWT_COOKIE_DOMAIN = os.getenv("JWT_COOKIE_DOMAIN") or None
+    JWT_COOKIE_DOMAIN = os.getenv("JWT_COOKIE_DOMAIN")
+    if not JWT_COOKIE_DOMAIN:
+        if _shared_base_domain and not _frontend_is_local:
+            JWT_COOKIE_DOMAIN = f".{_shared_base_domain}"
+        else:
+            JWT_COOKIE_DOMAIN = None
 
     # Opcional: tiempos (ajustalos a gusto)
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=2)        # ✅ 2 horas

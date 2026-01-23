@@ -3202,3 +3202,101 @@ input:disabled, textarea:disabled, select:disabled{
 .not-found-card .btn-primary{
   justify-content: center;
 }
+
+/* =========================
+   RESPONSIVE BREAKPOINTS
+   Celulares / Tablets / Notebooks / PCs
+========================= */
+
+@media (max-width: 1200px){
+  .container,
+  .home-section,
+  .navbar-inner,
+  .page-header--v2{
+    max-width: 960px;
+  }
+}
+
+@media (max-width: 992px){
+  .home-hero--v2{
+    grid-template-columns: 1fr;
+  }
+  .category-grid--v2{
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .highlight-grid--v2{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .store-filters--v2{
+    grid-template-columns: 1fr 1fr;
+  }
+  .product-grid{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .cart-grid{
+    grid-template-columns: 1fr;
+  }
+  .cart-summary{
+    position: static;
+  }
+  .cart-item{
+    grid-template-columns: 120px 1fr;
+  }
+  .cart-item-subtotal{
+    padding-left: 0;
+  }
+}
+
+@media (max-width: 720px){
+  .navbar-inner{
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .nav-actions{
+    width: 100%;
+    justify-content: space-between;
+  }
+  .category-grid--v2{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .highlight-grid--v2{
+    grid-template-columns: 1fr;
+  }
+  .store-filters--v2{
+    grid-template-columns: 1fr;
+  }
+  .product-grid{
+    grid-template-columns: 1fr;
+  }
+  .home-hero-content{
+    padding: 1.5rem;
+  }
+  .cart-item{
+    grid-template-columns: 1fr;
+  }
+  .cart-item-image{
+    width: 100%;
+    height: auto;
+  }
+  .page-title-wrap--v2{
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 520px){
+  .hero-title{
+    font-size: 1.8rem;
+  }
+  .hero-actions{
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .nav-links{
+    width: 100%;
+  }
+  .nav-link{
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}

@@ -3566,4 +3566,101 @@ input:disabled, textarea:disabled, select:disabled{
   }
 }
 
+/* =========================
+   ADMIN - MOBILE FIXES
+   (pegalo al FINAL del styles.css)
+========================= */
+
+/* Evita overflow horizontal por grids */
+.admin-main,
+.admin-card,
+.admin-users-table.modern,
+.admin-products-table.modern,
+.admin-orders-table.modern{
+  min-width: 0;
+}
+
+.admin-users-row > *,
+.admin-users-header > *,
+.admin-products-row > *,
+.admin-products-header > *,
+.admin-orders-row > *,
+.admin-orders-header > *{
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Emails largos: permití cortar sin romper layout */
+.admin-users-row .cell-muted{
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* ---------- Mobile layout general ---------- */
+@media (max-width: 560px){
+  .admin-page{ padding: .75rem .75rem 1.25rem; }
+  .admin-title{ font-size: 1.35rem; }
+  .admin-card{ padding: .85rem; }
+
+  /* ---- USERS: ocultar "Nombre" ---- */
+  /* Columns actuales: ID | Nombre | Email | Rol */
+  .admin-users-header,
+  .admin-users-row{
+    grid-template-columns: .7fr 1.6fr .9fr; /* ID | Email | Rol */
+  }
+  .admin-users-header > :nth-child(2),
+  .admin-users-row > :nth-child(2){
+    display: none; /* oculta Nombre */
+  }
+
+  /* ---- PRODUCTS: ocultar Categoria/Stock/Oferta en productos actuales ---- */
+  /* Columns actuales: Producto | Categoria | Precio | Stock | Oferta | Acciones */
+  .admin-products-header,
+  .admin-products-row{
+    grid-template-columns: 1.6fr .9fr .9fr; /* Producto | Precio | Acciones */
+  }
+  .admin-products-header > :nth-child(2),
+  .admin-products-row > :nth-child(2),
+  .admin-products-header > :nth-child(4),
+  .admin-products-row > :nth-child(4),
+  .admin-products-header > :nth-child(5),
+  .admin-products-row > :nth-child(5){
+    display: none; /* Categoria, Stock, Oferta */
+  }
+
+  /* ---- NUEVO PRODUCTO: apilar inputs ---- */
+  .admin-form-row{
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ---- PAYMENTS: ajustar tabla ---- */
+  /* Columns actuales: # | Cliente | Método | Fecha | Estado | Total */
+  .admin-orders-header,
+  .admin-orders-row{
+    grid-template-columns: .6fr 1.4fr 1.2fr 1fr 1fr; /* # | Cliente | Fecha | Estado | Total */
+  }
+  .admin-orders-header > :nth-child(3),
+  .admin-orders-row > :nth-child(3){
+    display: none; /* Método */
+  }
+
+  /* Botones de paginación que no “empujen” */
+  .admin-pagination{
+    justify-content: center;
+  }
+}
+
+/* Extra-chico: si todavía se aprieta, escondé Fecha también */
+@media (max-width: 420px){
+  /* # | Cliente | Estado | Total */
+  .admin-orders-header,
+  .admin-orders-row{
+    grid-template-columns: .6fr 1.5fr 1fr 1fr;
+  }
+  .admin-orders-header > :nth-child(4),
+  .admin-orders-row > :nth-child(4){
+    display: none; /* Fecha */
+  }
+}
 

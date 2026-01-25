@@ -3452,3 +3452,118 @@ input:disabled, textarea:disabled, select:disabled{
   }
 }
 
+/* =========================
+   MOBILE FIXES (Admin + Profile)
+   Pegalo al final del styles.css
+========================= */
+
+/* 1) Evitar que textos largos (emails, labels) se salgan del viewport */
+.admin-users-row > span,
+.admin-orders-row > span,
+.admin-products-row > span,
+.product-name,
+.profile-value,
+.profile-email,
+.profile-meta {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Por si algún hijo tiene display flex y empuja el ancho */
+.admin-users-row,
+.admin-orders-row,
+.admin-products-row {
+  min-width: 0;
+}
+
+/* 2) Mobile: convertir “tablas” a cards (1 columna) para que no explote el grid */
+@media (max-width: 720px) {
+  /* Summary pills (Productos) -> 1 por fila */
+  .admin-products-summary {
+    grid-template-columns: 1fr;
+  }
+
+  /* Ocultamos headers de tablas en mobile (ganás espacio y prolijidad) */
+  .admin-products-header,
+  .admin-users-header,
+  .admin-orders-header {
+    display: none;
+  }
+
+  /* Rows: 1 columna */
+  .admin-users-row,
+  .admin-orders-row,
+  .admin-products-row {
+    grid-template-columns: 1fr !important;
+    gap: .6rem;
+    padding: .85rem .85rem;
+  }
+
+  /* Cada celda como fila: label a la izquierda, valor a la derecha */
+  .admin-users-row > span,
+  .admin-orders-row > span,
+  .admin-products-row > span {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: .8rem;
+  }
+
+  /* Products: el “product-cell” ya es un bloque complejo (img + nombre) */
+  .admin-products-row > .product-cell {
+    display: flex;              /* mantiene tu layout */
+    justify-content: flex-start;
+    gap: .75rem;
+  }
+
+  /* Actions: que no se salgan, que wrappeen */
+  .admin-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: .45rem;
+  }
+
+  /* Select de estado en orders: full width */
+  .status-select {
+    width: 100%;
+  }
+
+  /* Botones chicos: un poquito más compactos */
+  .btn-small {
+    padding: .5rem .65rem;
+  }
+
+  /* Si el footer se “rompe” en mobile */
+  .footer-inner,
+  .footer-inner--v2 {
+    grid-template-columns: 1fr !important;
+    gap: 1rem;
+  }
+}
+
+/* 3) Profile: email + verificado que no se salgan */
+.profile-value,
+.profile-email {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 720px) {
+  .profile-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Si arriba tenés layout horizontal */
+  .profile-top,
+  .profile-header {
+    flex-wrap: wrap;
+    gap: .75rem;
+  }
+
+  .verified-pill {
+    max-width: 100%;
+  }
+}
+
+

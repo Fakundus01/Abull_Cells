@@ -10,6 +10,23 @@ import { useEffect, useMemo, useRef, useState } from "react";
 function Navbar() {
   const navigate = useNavigate();
   const { language, setLanguage, t } = useLanguage();
+  const [isMobileUI, setIsMobileUI] = useState(false);
+
+useEffect(() => {
+  const mq = window.matchMedia("(max-width: 900px), (pointer: coarse)");
+  const update = () => setIsMobileUI(Boolean(mq.matches));
+  update();
+
+  // Safari fallback: addListener/removeListener
+  if (typeof mq.addEventListener === "function") {
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }
+
+  mq.addListener(update);
+  return () => mq.removeListener(update);
+}, []);
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   //Carrito
@@ -24,16 +41,53 @@ function Navbar() {
 
   const [cartOpen, setCartOpen] = useState(false);
   const closeT = useRef(null);
+  const cartWrapRef = useRef(null);
 
+  // Desktop behavior: open on hover with small close delay.
+  // Mobile/tablet: handled via tap toggle (see handleCartClick).
   const openCart = () => {
+    if (isMobileUI) return;
     if (closeT.current) clearTimeout(closeT.current);
     setCartOpen(true);
- };
+  };
 
   const closeCart = () => {
+    if (isMobileUI) return;
     if (closeT.current) clearTimeout(closeT.current);
     closeT.current = setTimeout(() => setCartOpen(false), 140);
- };
+  };
+
+  const handleCartClick = (e) => {
+  if (!isMobileUI) return; // desktop: keep normal navigation
+
+  // Mobile/tablet: tap toggles preview (navigation is via "Ver carrito" inside the preview)
+  e.preventDefault();
+  setCartOpen((v) => !v);
+};
+
+// Close cart preview on outside tap / ESC (mobile UX)
+useEffect(() => {
+  if (!isMobileUI || !cartOpen) return;
+
+  const onDown = (ev) => {
+    if (!cartWrapRef.current) return;
+    if (!cartWrapRef.current.contains(ev.target)) setCartOpen(false);
+  };
+
+  const onEsc = (ev) => {
+    if (ev.key === "Escape") setCartOpen(false);
+  };
+
+  document.addEventListener("mousedown", onDown);
+  document.addEventListener("touchstart", onDown, { passive: true });
+  document.addEventListener("keydown", onEsc);
+
+  return () => {
+    document.removeEventListener("mousedown", onDown);
+    document.removeEventListener("touchstart", onDown);
+    document.removeEventListener("keydown", onEsc);
+  };
+}, [isMobileUI, cartOpen]);
 
   //Cerrar Carrito
 
@@ -136,14 +190,20 @@ function Navbar() {
             {language.toUpperCase()}
           </button>
 
-        <div
-          className="nav-cart-wrap"
-          onMouseEnter={openCart}
-          onMouseLeave={closeCart}
+      <div
+        ref={cartWrapRef}
+        className="nav-cart-wrap"
+        onMouseEnter={openCart}
+        onMouseLeave={closeCart}
+      >
+        <Link
+          to="/carrito"
+          className="cart-btn cart-pill"
+          aria-label={t("nav.goToCart")}
+          onClick={handleCartClick}
         >
-        <Link to="/carrito" className="cart-btn cart-pill" aria-label={t("nav.goToCart")}>
           <ShoppingCart size={16} className="icon" />
-          <span>{t("nav.cart")}</span>
+          <span className="nav-text">{t("nav.cart")}</span>
           {totalItems > 0 && <span className="cart-count">{totalItems}</span>}
         </Link>
 
@@ -156,15 +216,17 @@ function Navbar() {
             <CartMiniPreview />
           </div>
         )}
-        </div>
+      </div>
 
         {!loadingAuth && !isLogged && (
           <div className="navbar-auth">
-            <NavLink to="/login" className="nav-auth-link">
-              {t("nav.login")}
+            <NavLink to="/login" className="nav-auth-link" aria-label={t("nav.login")}>
+              <User size={18} className="icon" />
+              <span className="nav-text">{t("nav.login")}</span>
             </NavLink>
-            <NavLink to="/signup" className="btn-auth">
-              {t("nav.signup")}
+            <NavLink to="/signup" className="btn-auth" aria-label={t("nav.signup")}>
+              <UserPlus size={18} className="icon" />
+              <span className="nav-text">{t("nav.signup")}</span>
             </NavLink>
           </div>
         )}
@@ -291,11 +353,6 @@ function Navbar() {
           <Tag size={16} /> {t("nav.offers")}
         </NavLink>
 
-        <NavLink to="/cart" className="cart-btn" aria-label={t("nav.cart")}>
-          <ShoppingCart size={18} />
-          <span className="nav-text">{t("nav.cart")}</span>
-       </NavLink>
-
         <NavLink to="/faq" className="nav-link">
           <HelpCircle size={16} /> {t("nav.faq")}
         </NavLink>
@@ -313,19 +370,6 @@ function Navbar() {
         >
           <Globe size={16} /> {language.toUpperCase()}
         </button>
-
-        {!loadingAuth && !isLogged && (
-          <>
-            <NavLink to="/login" className="nav-auth-link">
-              <User size={18} />
-              <span className="nav-text">{t("nav.login")}</span>
-          </NavLink>
-          <NavLink to="/signup" className="btn-auth">
-              <UserPlus size={18} />
-              <span className="nav-text">{t("nav.signup")}</span>
-          </NavLink>
-          </>
-        )}
 
         {!loadingAuth && isLogged && (
           <>

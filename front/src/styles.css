@@ -3439,5 +3439,16 @@ input:disabled, textarea:disabled, select:disabled{
     overflow: auto;
     z-index: 120;
   }
+
+  .nav-profile-popover{
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 72px; /* mismo offset que el carrito */
+    width: min(92vw, 360px);
+    max-height: 70vh;
+    overflow: auto;
+    z-index: 120;
+  }
 }
 

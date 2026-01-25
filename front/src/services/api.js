@@ -1,7 +1,7 @@
 import { getCookie } from "./helpers.js";
 
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "https://abull-cells.onrender.com/api";
+  import.meta.env.VITE_API_BASE_URL
 
 // ---------------------------------------------
 // API Error (para UI: toasts, manejo de status)
@@ -129,48 +129,17 @@ export async function fetchMe() {
 }
 
 export async function login(email, password) {
-  const res = await fetch(`${API_BASE_URL}/auth/login`, {
+  return apiFetch("/auth/login", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
     body: JSON.stringify({
       email: String(email || "").trim().toLowerCase(),
       password: String(password || ""),
     }),
   });
-
-  // Intentar parsear JSON (por si el backend devuelve algo raro)
-  let data = null;
-  try {
-    data = await res.json();
-  } catch {
-    data = null;
-  }
-
-  if (!res.ok) {
-    throw new ApiError(data?.msg || "Login inválido", {
-      status: res.status,
-      data,
-      url: `${API_BASE_URL}/auth/login`,
-    });
-  }
-
-  return data; // { user }
 }
 
 export async function logout() {
-  const res = await fetch(`${API_BASE_URL}/auth/logout`, {
-    method: "POST",
-    credentials: "include",
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new ApiError(data?.msg || "Error al salir", {
-      status: res.status,
-      data,
-      url: `${API_BASE_URL}/auth/logout`,
-    });
-  }
+  await apiFetch("/auth/logout", { method: "POST" });
   return true;
 }
 

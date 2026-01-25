@@ -3413,3 +3413,29 @@ input:disabled, textarea:disabled, select:disabled{
     grid-template-columns: 1fr !important;
   }
 }
+
+/* =========================
+   NAVBAR — ICON ONLY (mobile)
+========================= */
+
+.nav-text{
+  display: inline;
+  white-space: nowrap;
+}
+
+/* Mobile / Tablet */
+@media (max-width: 900px){
+  .nav-text{
+    display: none;
+  }
+
+  .nav-auth-link,
+  .btn-auth,
+  .cart-btn,
+  .user-menu-item,
+  .lang-btn{
+    padding: .55rem;
+    min-width: 44px;
+    justify-content: center;
+  }
+}

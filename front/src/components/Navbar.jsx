@@ -292,9 +292,10 @@ function Navbar() {
           <Tag size={16} /> {t("nav.offers")}
         </NavLink>
 
-        <NavLink to="/tienda" className="nav-link">
-          <ShoppingCart size={16} /> {t("nav.store")}
-        </NavLink>
+        <NavLink to="/cart" className="cart-btn" aria-label={t("nav.cart")}>
+          <ShoppingCart size={18} />
+          <span className="nav-text">{t("nav.cart")}</span>
+       </NavLink>
 
         <NavLink to="/faq" className="nav-link">
           <HelpCircle size={16} /> {t("nav.faq")}
@@ -317,11 +318,13 @@ function Navbar() {
         {!loadingAuth && !isLogged && (
           <>
             <NavLink to="/login" className="nav-auth-link">
-              {t("nav.login")}
-            </NavLink>
-            <NavLink to="/signup" className="btn-auth">
-              {t("nav.signup")}
-            </NavLink>
+              <User size={18} />
+              <span className="nav-text">{t("nav.login")}</span>
+          </NavLink>
+          <NavLink to="/signup" className="btn-auth">
+              <UserPlus size={18} />
+              <span className="nav-text">{t("nav.signup")}</span>
+          </NavLink>
           </>
         )}
 

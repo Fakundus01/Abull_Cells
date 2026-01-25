@@ -77,6 +77,9 @@ class Product(db.Model):
     is_offer = db.Column(db.Boolean, default=False)
     offer_label = db.Column(db.String(100), nullable=True)
     stock = db.Column(db.Integer, default=0)
+    is_active = db.Column(
+        db.Boolean, nullable=False, default=True, server_default="true", index=True
+    )
 
     def to_dict(self):
         return {
@@ -87,6 +90,8 @@ class Product(db.Model):
             "price": self.price,
             "category": self.category,
             "imageUrl": self.image_url,
+            "is_active": bool(self.is_active),
+            "isActive": bool(self.is_active),
             "isOffer": self.is_offer,
             "offerLabel": self.offer_label,
             "stock": self.stock,

@@ -109,6 +109,15 @@ def admin_create_product():
         return jsonify({"msg": "Error interno al crear el producto"}), 500
 
 
+def admin_list_products():
+    try:
+        products = Product.query.order_by(Product.id.desc()).all()
+        return jsonify([p.to_dict() for p in products])
+    except Exception as exc:
+        current_app.logger.exception(f"Error inesperado en GET /api/admin/products: {exc}")
+        return jsonify({"msg": "Error al obtener productos"}), 500
+
+
 def admin_update_product(product_id: int):
     try:
         product = Product.query.get_or_404(product_id)
@@ -172,7 +181,7 @@ def admin_update_product(product_id: int):
 def admin_delete_product(product_id: int):
     try:
         product = Product.query.get_or_404(product_id)
-        db.session.delete(product)
+        product.is_active = False
         db.session.commit()
         return jsonify({"msg": "Producto eliminado correctamente"})
     except NotFound:
@@ -183,6 +192,27 @@ def admin_delete_product(product_id: int):
         )
         db.session.rollback()
         return jsonify({"msg": "Error interno al eliminar el producto"}), 500
+
+
+def admin_set_product_active(product_id: int):
+    try:
+        data = request.get_json() or {}
+        raw_is_active = data.get("is_active")
+        is_active = _parse_bool(raw_is_active)
+        if is_active is None:
+            is_active = True
+        product = Product.query.get_or_404(product_id)
+        product.is_active = is_active
+        db.session.commit()
+        return jsonify({"msg": "OK", "product": product.to_dict()})
+    except NotFound:
+        return jsonify({"msg": "Producto no encontrado"}), 404
+    except Exception as exc:
+        current_app.logger.exception(
+            f"Error inesperado en PATCH /api/admin/products/{product_id}/active: {exc}"
+        )
+        db.session.rollback()
+        return jsonify({"msg": "Error interno al actualizar el producto"}), 500
 
 
 def admin_list_orders():

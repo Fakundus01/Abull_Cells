@@ -9,7 +9,7 @@ def health():
 
 def get_products():
     try:
-        products = Product.query.all()
+        products = Product.query.filter_by(is_active=True).all()
         return jsonify([p.to_dict() for p in products])
     except Exception as exc:
         current_app.logger.exception(f"Error inesperado en /api/products: {exc}")

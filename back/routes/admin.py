@@ -6,10 +6,10 @@ from services import admin_service, auth_service
 admin_bp = Blueprint("admin", __name__)
 
 
-@admin_bp.route("/api/admin/products", methods=["POST"])
+@admin_bp.route("/api/admin/products", methods=["GET"])
 @auth_service.admin_required
-def admin_create_product():
-    return admin_service.admin_create_product()
+def admin_list_products():
+    return admin_service.admin_list_products()
 
 
 @admin_bp.route("/api/admin/products/<int:product_id>", methods=["PUT"])
@@ -22,6 +22,12 @@ def admin_update_product(product_id: int):
 @auth_service.admin_required
 def admin_delete_product(product_id: int):
     return admin_service.admin_delete_product(product_id)
+
+
+@admin_bp.route("/api/admin/products/<int:product_id>/active", methods=["PATCH"])
+@auth_service.admin_required
+def admin_set_product_active(product_id: int):
+    return admin_service.admin_set_product_active(product_id)
 
 
 @admin_bp.route("/api/admin/orders", methods=["GET"])

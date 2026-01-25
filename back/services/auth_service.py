@@ -115,6 +115,8 @@ def login():
         data = request.get_json() or {}
         email = (data.get("email") or "").strip().lower()
         password = data.get("password") or ""
+
+        # Rate limit (antes de pegarle a DB)
         if rate_limit_exceeded(
             rate_limit_key(request, "login", email),
             current_app.config.get("AUTH_RATE_LIMIT_LOGIN", 10),
@@ -126,19 +128,13 @@ def login():
             return jsonify({"msg": "Email y contraseña son obligatorios"}), 400
 
         user = User.query.filter_by(email=email).first()
-
         if not user:
-            return jsonify({
-                "code": "EMAIL_NOT_FOUND",
-                "msg": "Ese email no está registrado.",
-            }), 404
+            return jsonify({"code": "EMAIL_NOT_FOUND", "msg": "Ese email no está registrado."}), 404
 
         if not user.check_password(password):
-            return jsonify({
-                "code": "INVALID_PASSWORD",
-                "msg": "Contraseña incorrecta.",
-            }), 401
-        
+            return jsonify({"code": "INVALID_PASSWORD", "msg": "Contraseña incorrecta."}), 401
+
+        # Crear tokens
         access_token = create_access_token(
             identity=str(user.id),
             additional_claims=_claims_for(user),
@@ -148,7 +144,16 @@ def login():
             additional_claims=_claims_for(user),
         )
 
+        # Respuesta
         resp = jsonify({"user": user.to_dict()})
+
+        # ✅ Limpia cookies host-only viejas (las que te rompen todo)
+        resp.set_cookie("access_token_cookie", "", expires=0, path="/")
+        resp.set_cookie("refresh_token_cookie", "", expires=0, path="/")
+        resp.set_cookie("csrf_access_token", "", expires=0, path="/")
+        resp.set_cookie("csrf_refresh_token", "", expires=0, path="/")
+
+        # ✅ Set cookies nuevas (con Domain=.abulcell.com via config)
         set_access_cookies(resp, access_token)
         set_refresh_cookies(resp, refresh_token)
 
@@ -161,7 +166,14 @@ def login():
 
 def logout():
     resp = jsonify({"msg": "logout ok"})
+
     unset_jwt_cookies(resp)
+
+    resp.set_cookie("access_token_cookie", "", expires=0, path="/")
+    resp.set_cookie("refresh_token_cookie", "", expires=0, path="/")
+    resp.set_cookie("csrf_access_token", "", expires=0, path="/")
+    resp.set_cookie("csrf_refresh_token", "", expires=0, path="/")
+
     return resp, 200
 
 

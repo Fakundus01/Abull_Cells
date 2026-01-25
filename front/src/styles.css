@@ -1958,6 +1958,29 @@ input:disabled, textarea:disabled, select:disabled{
   color: #991b1b;
 }
 
+.status-pill{
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .28rem .55rem;
+  border-radius: 999px;
+  font-weight: 850;
+  font-size: .8rem;
+  border: 1px solid var(--border);
+  background: rgba(248,250,252,.85);
+  color: var(--muted);
+}
+.status-pill.active{
+  background: rgba(34,197,94,.10);
+  border-color: rgba(34,197,94,.22);
+  color: #166534;
+}
+.status-pill.inactive{
+  background: rgba(148,163,184,.12);
+  border-color: rgba(148,163,184,.24);
+  color: #475569;
+}
+
 .add-btn.added{
   background: rgba(34,197,94,.14);
   border-color: rgba(34,197,94,.25);
@@ -2276,7 +2299,7 @@ input:disabled, textarea:disabled, select:disabled{
   color: var(--muted);
   font-size: .9rem;
 }
-.admin-products-header{ grid-template-columns: 1.3fr 1fr .8fr .7fr .8fr .9fr; }
+.admin-products-header{ grid-template-columns: 1.3fr 1fr .8fr .7fr .7fr .8fr .9fr; }
 .admin-products-summary{
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2308,7 +2331,7 @@ input:disabled, textarea:disabled, select:disabled{
 }
 .admin-products-row{
   display: grid;
-  grid-template-columns: 1.3fr 1fr .8fr .7fr .8fr .9fr;
+  grid-template-columns: 1.3fr 1fr .8fr .7fr .7fr .8fr .9fr;
   gap: .35rem;
   padding: .75rem .8rem;
   border-radius: 16px;
@@ -3614,8 +3637,8 @@ input:disabled, textarea:disabled, select:disabled{
     display: none; /* oculta Nombre */
   }
 
-  /* ---- PRODUCTS: ocultar Categoria/Stock/Oferta en productos actuales ---- */
-  /* Columns actuales: Producto | Categoria | Precio | Stock | Oferta | Acciones */
+  /* ---- PRODUCTS: ocultar Categoria/Stock/Estado/Oferta en productos actuales ---- */
+  /* Columns actuales: Producto | Categoria | Precio | Stock | Estado | Oferta | Acciones */
   .admin-products-header,
   .admin-products-row{
     grid-template-columns: 1.6fr .9fr .9fr; /* Producto | Precio | Acciones */
@@ -3625,8 +3648,10 @@ input:disabled, textarea:disabled, select:disabled{
   .admin-products-header > :nth-child(4),
   .admin-products-row > :nth-child(4),
   .admin-products-header > :nth-child(5),
-  .admin-products-row > :nth-child(5){
-    display: none; /* Categoria, Stock, Oferta */
+  .admin-products-row > :nth-child(5),
+  .admin-products-header > :nth-child(6),
+  .admin-products-row > :nth-child(6){
+    display: none; /* Categoria, Stock, Estado, Oferta */
   }
 
   /* ---- NUEVO PRODUCTO: apilar inputs ---- */
@@ -3663,4 +3688,3 @@ input:disabled, textarea:disabled, select:disabled{
     display: none; /* Fecha */
   }
 }
-

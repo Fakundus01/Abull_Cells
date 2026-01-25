@@ -26,6 +26,7 @@ function Navbar() {
 
   const [isMobileUI, setIsMobileUI] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const closeTimerRef = useRef(null);
 
   // =========================
   // Detect mobile/tablet/touch
@@ -139,14 +140,14 @@ function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const profileWrapRef = useRef(null);
 
-  const openProfile = () => {
-    if (isMobileUI) return;
+    const openProfile = () => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
     setProfileOpen(true);
   };
 
   const closeProfile = () => {
-    if (isMobileUI) return;
-    setProfileOpen(false);
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = setTimeout(() => setProfileOpen(false), 160);
   };
 
   const handleProfileClick = (e) => {
@@ -329,6 +330,8 @@ function Navbar() {
                   role="menu"
                   onMouseEnter={openProfile}
                   onMouseLeave={closeProfile}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <div className="user-menu-header">
                     <div className="user-pill user-pill--sm">{initials}</div>

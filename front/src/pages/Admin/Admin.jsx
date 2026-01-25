@@ -5,10 +5,10 @@ import { Link } from "react-router-dom";
 import { useLanguage } from "../../context/LanguageContext";
 import {
   createProduct,
-  deleteProduct,
+  fetchAdminProducts,
   fetchOrders,
   fetchAdminUsers,
-  fetchProducts,
+  setProductActive,
   updateOrderStatus,
   updateProduct,
 } from "../../services/api";
@@ -31,7 +31,6 @@ import {
   Save,
   ShieldCheck,
   Tag,
-  Trash2,
   X,
   XCircle,
 } from "lucide-react";
@@ -114,7 +113,7 @@ export default function Admin() {
   async function loadProducts() {
     try {
       setLoadingProducts(true);
-      const data = await fetchProducts();
+      const data = await fetchAdminProducts();
       setProducts(Array.isArray(data) ? data : []);
     } catch (e) {
       setProducts([]);
@@ -318,7 +317,7 @@ export default function Admin() {
     }
   }
 
-  function openConfirmDelete(p) {
+  function openConfirmDeactivate(p) {
     setConfirmTarget(p);
     setConfirmOpen(true);
     setTimeout(() => confirmDangerBtnRef.current?.focus(), 0);
@@ -330,20 +329,34 @@ export default function Admin() {
     setConfirmLoading(false);
   }
 
-  async function confirmDelete() {
+  async function confirmDeactivate() {
     if (!confirmTarget?.id) return;
     setConfirmLoading(true);
     setError("");
     setSuccessMsg("");
 
     try {
-      await deleteProduct(confirmTarget.id);
-      setSuccessMsg(t("admin.notifications.productDeleted"));
+      await setProductActive(confirmTarget.id, false);
+      setSuccessMsg(t("admin.notifications.productDeactivated"));
       await loadProducts();
       closeConfirm();
     } catch (err) {
-      setError(err?.message || t("admin.errors.deleteProduct"));
+      setError(err?.message || t("admin.errors.toggleProduct"));
       setConfirmLoading(false);
+    }
+  }
+
+  async function handleActivateProduct(product) {
+    if (!product?.id) return;
+    setError("");
+    setSuccessMsg("");
+
+    try {
+      await setProductActive(product.id, true);
+      setSuccessMsg(t("admin.notifications.productActivated"));
+      await loadProducts();
+    } catch (err) {
+      setError(err?.message || t("admin.errors.toggleProduct"));
     }
   }
 
@@ -645,7 +658,8 @@ export default function Admin() {
               onSubmit={handleSubmit}
               onReset={resetForm}
               onEdit={handleEditClick}
-              onDelete={openConfirmDelete}
+              onDeactivate={openConfirmDeactivate}
+              onActivate={handleActivateProduct}
               productsPage={productsPage}
               totalProductPages={totalProductPages}
               pageSize={PAGE_SIZE}
@@ -663,6 +677,7 @@ export default function Admin() {
                 Loader2,
                 Save,
                 XCircle,
+                CheckCircle2,
               }}
               cardAnimateClass="card-animate"
             />
@@ -770,18 +785,18 @@ export default function Admin() {
                   <button
                     type="button"
                     className="btn-small btn-danger btn-icon"
-                    onClick={confirmDelete}
+                    onClick={confirmDeactivate}
                     disabled={confirmLoading}
                     ref={confirmDangerBtnRef}
                   >
                     {confirmLoading ? (
                       <>
                         <Loader2 size={18} className="icon spin" />
-                        {t("admin.confirm.deleting")}
+                        {t("admin.confirm.deactivating")}
                       </>
                     ) : (
                       <>
-                        <Trash2 size={18} className="icon" />
+                        <XCircle size={18} className="icon" />
                         {t("admin.confirm.confirm")}
                       </>
                     )}

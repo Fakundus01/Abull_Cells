@@ -13,7 +13,8 @@ export default function AdminProductsView({
   onSubmit,
   onReset,
   onEdit,
-  onDelete,
+  onDeactivate,
+  onActivate,
   productsPage,
   totalProductPages,
   pageSize,
@@ -35,6 +36,7 @@ export default function AdminProductsView({
     Loader2,
     Save,
     XCircle,
+    CheckCircle2,
   } = icons;
   const totalProducts = products.length;
   const offersCount = products.filter((p) => p.isOffer).length;
@@ -237,10 +239,13 @@ export default function AdminProductsView({
                 <span>{t("admin.products.list.headers.category")}</span>
                 <span>{t("admin.products.list.headers.price")}</span>
                 <span>{t("admin.products.list.headers.stock")}</span>
+                <span>{t("admin.products.list.headers.status")}</span>
                 <span>{t("admin.products.list.headers.offer")}</span>
                 <span>{t("admin.products.list.headers.actions")}</span>
               </div>
-               {pagedProducts.map((p) => (
+                {pagedProducts.map((p) => {
+                const isActive = p.isActive ?? p.is_active ?? true;
+                return (
                 <div key={p.id} className="admin-products-row">
                   <span className="product-cell">
                     <span className="product-thumb">
@@ -268,6 +273,14 @@ export default function AdminProductsView({
                   </span>
 
                   <span>
+                    <span className={`status-pill ${isActive ? "active" : "inactive"}`}>
+                      {isActive
+                        ? t("admin.products.list.statusActive")
+                        : t("admin.products.list.statusInactive")}
+                    </span>
+                  </span>
+
+                  <span>
                     {p.isOffer ? (
                       <span className="offer-pill">
                         <Tag size={14} className="icon" />
@@ -281,13 +294,29 @@ export default function AdminProductsView({
                     <button type="button" className="btn-small btn-icon" onClick={() => onEdit(p)}>
                       <Pencil size={16} className="icon" />
                     </button>
-                    <button type="button" className="btn-small btn-danger btn-icon" onClick={() => onDelete(p)}>
-                      {/* el icon trash viene en Admin.jsx */}
-                      <span aria-hidden="true">🗑️</span>
-                    </button>                            
+                   {isActive ? (
+                      <button
+                        type="button"
+                        className="btn-small btn-danger btn-icon"
+                        onClick={() => onDeactivate(p)}
+                      >
+                        <XCircle size={16} className="icon" />
+                        {t("admin.products.list.deactivate")}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn-small btn-secondary btn-icon"
+                        onClick={() => onActivate(p)}
+                      >
+                        <CheckCircle2 size={16} className="icon" />
+                        {t("admin.products.list.activate")}
+                      </button>
+                    )}                           
                   </span>
                    </div>
-              ))}
+                );
+              })}
             </div>  
              <div className="admin-pagination">
               <span className="admin-muted">

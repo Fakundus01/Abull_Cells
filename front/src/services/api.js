@@ -98,6 +98,10 @@ export function fetchProducts() {
   return apiFetch("/products");
 }
 
+export function fetchAdminProducts() {
+  return apiFetch("/admin/products");
+}
+
 export async function fetchAdminUsers() {
   const data = await apiFetch("/admin/users", { method: "GET" });
   if (Array.isArray(data)) return data;
@@ -164,6 +168,13 @@ export function updateProduct(id, product) {
 export function deleteProduct(id) {
   return apiFetch(`/admin/products/${id}`, {
     method: "DELETE",
+  });
+}
+
+export function setProductActive(id, is_active) {
+  return apiFetch(`/admin/products/${id}/active`, {
+    method: "PATCH",
+    body: JSON.stringify({ is_active }),
   });
 }
 

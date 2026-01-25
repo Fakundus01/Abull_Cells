@@ -11,6 +11,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 function Navbar() {
   const navigate = useNavigate();
   const { language, setLanguage, t } = useLanguage();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   //Carrito
 
@@ -246,9 +247,114 @@ function Navbar() {
             )}
           </div>
         )}
-
+        <button
+          type="button"
+          className="nav-burger"
+          aria-label="Abrir menú"
+          aria-expanded={mobileMenuOpen}
+          onClick={() => setMobileMenuOpen(true)}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        </button>
         </div>
       </div>
+
+      {mobileMenuOpen && (
+  <>
+    <div
+      className="mobile-nav-overlay"
+      onClick={() => setMobileMenuOpen(false)}
+    />
+
+    <aside className="mobile-drawer" role="dialog" aria-modal="true">
+      <div className="mobile-drawer-header">
+        <strong>Menú</strong>
+        <button
+          className="nav-burger"
+          onClick={() => setMobileMenuOpen(false)}
+          aria-label="Cerrar menú"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div
+        className="mobile-drawer-links"
+        onClick={() => setMobileMenuOpen(false)}
+      >
+        <NavLink to="/" className="nav-link">
+          <Home size={16} /> {t("nav.home")}
+        </NavLink>
+
+        <NavLink to="/ofertas" className="nav-link">
+          <Tag size={16} /> {t("nav.offers")}
+        </NavLink>
+
+        <NavLink to="/tienda" className="nav-link">
+          <ShoppingCart size={16} /> {t("nav.store")}
+        </NavLink>
+
+        <NavLink to="/faq" className="nav-link">
+          <HelpCircle size={16} /> {t("nav.faq")}
+        </NavLink>
+
+        <NavLink to="/contacto" className="nav-link">
+          <Mail size={16} /> {t("nav.contact")}
+        </NavLink>
+      </div>
+
+      <div className="navbar-actions">
+        <button
+          type="button"
+          className="lang-btn lang-pill"
+          onClick={handleLanguageToggle}
+        >
+          <Globe size={16} /> {language.toUpperCase()}
+        </button>
+
+        {!loadingAuth && !isLogged && (
+          <>
+            <NavLink to="/login" className="nav-auth-link">
+              {t("nav.login")}
+            </NavLink>
+            <NavLink to="/signup" className="btn-auth">
+              {t("nav.signup")}
+            </NavLink>
+          </>
+        )}
+
+        {!loadingAuth && isLogged && (
+          <>
+            {isAdmin && (
+              <button
+                className="user-menu-item"
+                onClick={() => navigate("/admin")}
+              >
+                <Shield size={16} /> {t("nav.adminPanel")}
+              </button>
+            )}
+
+            <button
+              className="user-menu-item"
+              onClick={() => navigate("/perfil")}
+            >
+              <Settings size={16} /> {t("nav.profile")}
+            </button>
+
+            <button
+              className="user-menu-item danger"
+              onClick={handleLogout}
+            >
+              <LogOut size={16} /> {t("nav.logout")}
+            </button>
+          </>
+        )}
+      </div>
+    </aside>
+  </>
+)}
     </header>
   );
 }

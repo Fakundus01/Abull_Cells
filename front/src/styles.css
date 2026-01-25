@@ -3300,3 +3300,116 @@ input:disabled, textarea:disabled, select:disabled{
     justify-content: center;
   }
 }
+
+/* =========================
+   NAVBAR — MOBILE (hamburger)
+========================= */
+
+.nav-burger{
+  display: none; /* se muestra solo en mobile */
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.nav-burger:hover{
+  background: rgba(56,189,248,12);
+  border-color: rgba(56,189,248,25);
+  transform: translateY(-1px);
+}
+
+.mobile-nav-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(2,6,23,.55);
+  backdrop-filter: blur(2px);
+  z-index: 80;
+}
+
+.mobile-drawer{
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100dvh;
+  width: min(88vw, 360px);
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  z-index: 90;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+
+.mobile-drawer-header{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+}
+
+.mobile-drawer-links{
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+}
+
+.mobile-drawer .nav-link{
+  width: 100%;
+  justify-content: flex-start;
+  padding: .75rem .85rem;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.mobile-drawer .navbar-actions{
+  margin-top: .25rem;
+  flex-wrap: wrap;
+}
+
+/* Breakpoint: tablets y celulares */
+@media (max-width: 900px){
+  .navbar-links{ display: none; }   /* oculta los links del medio */
+  .nav-burger{ display: inline-flex; }
+  .navbar-inner{ gap: .65rem; }
+}
+
+@media (max-width: 900px){
+  .card, .card-v2, .profile-card, .cart-item, .cart-summary, .checkout-summary, .form-card{
+    border-radius: 16px;
+  }
+  .navbar-inner{
+    padding: .75rem .85rem;
+  }
+}
+
+@media (max-width: 600px){
+  .container{
+    padding-left: .9rem;
+    padding-right: .9rem;
+  }
+
+    h1{ font-size:1.6rem }
+    h2{ font-size:1.3rem }
+
+  .btn-primary, .btn-secondary, .btn-danger{
+    width: 100%;
+    justify-content: center;
+  }
+
+  .input-with-icon input{
+    font-size: 16px; /* evita zoom automático iOS */
+  }
+
+    .grid, .products-grid{
+    grid-template-columns: 1fr !important;
+  }
+}

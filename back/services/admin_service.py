@@ -29,21 +29,23 @@ def _parse_product_payload():
         "slug": data.get("slug"),
         "price": data.get("price"),
         "category": data.get("category"),
-        "imageUrl": data.get("imageUrl"),
+        "imageUrl": data.get("imageUrl") or data.get("image_url"),
         "isOffer": data.get("isOffer"),
         "offerLabel": data.get("offerLabel"),
         "stock": data.get("stock"),
-        "is_active": data.get("is_active"),
+        "is_active": data.get("is_active") if "is_active" in data else data.get("isActive"),
         "description": data.get("description"),
     }
 
     if is_multipart:
         payload["isOffer"] = _parse_bool(payload["isOffer"])
-        payload["isActive"] = _parse_bool(payload["isActive"])
+        payload["is_active"] = _parse_bool(payload["is_active"])
     else:
         # si viene JSON puede venir boolean o string igual
         payload["isOffer"] = _parse_bool(payload["isOffer"]) if payload["isOffer"] is not None else None
-        payload["isActive"] = _parse_bool(payload["isActive"]) if payload["isActive"] is not None else None
+        payload["is_active"] = (
+            _parse_bool(payload["is_active"]) if payload["is_active"] is not None else None
+        )
 
     return payload, image_file
 

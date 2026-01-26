@@ -11,7 +11,7 @@ admin_bp = Blueprint("admin", __name__)
 def admin_products():
     if request.method == "GET":
         return admin_service.admin_list_products()
-    return admin_service.admin_list_products()
+    return admin_service.admin_create_product()
 
 
 @admin_bp.route("/api/admin/products/<int:product_id>", methods=["PUT"])

@@ -33,7 +33,7 @@ def _parse_product_payload():
         "isOffer": data.get("isOffer"),
         "offerLabel": data.get("offerLabel"),
         "stock": data.get("stock"),
-        "isActive": data.get("isActive"),
+        "is_active": data.get("is_active"),
         "description": data.get("description"),
     }
 
@@ -82,7 +82,7 @@ def admin_create_product():
         is_offer = data.get("isOffer", False)
         offer_label = data.get("offerLabel")
         stock = data.get("stock", 0)
-        is_active = data.get("isActive")
+        is_active = data.get("is_active", True)
         if is_active is None:
             is_active = True           
         description = data.get("description")
@@ -174,7 +174,7 @@ def admin_update_product(product_id: int):
             parsed = _parse_bool(is_offer)
             if parsed is not None:
                 product.is_offer = parsed
-                
+
         if offer_label is not None:
             product.offer_label = offer_label
 

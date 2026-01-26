@@ -128,10 +128,11 @@ def create_app():
         _ensure_admin_user()
 
     @app.route("/uploads/products/<path:filename>")
-    def product_uploads(filename: str):
-        upload_dir = app.config["PRODUCT_UPLOAD_DIR"]
-        return send_from_directory(upload_dir, filename)
-
+    def serve_product_image(filename):
+        return send_from_directory(
+            app.config["PRODUCT_UPLOAD_DIR"],
+            filename
+        )
 
     return app
 

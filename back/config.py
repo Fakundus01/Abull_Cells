@@ -93,7 +93,8 @@ class Config:
         "PRODUCT_UPLOAD_DIR",
         os.path.join(BASE_DIR, "uploads", "products"),
     )
-    PRODUCT_IMAGE_BASE_URL = os.getenv("PRODUCT_IMAGE_BASE_URL", "/uploads/products")
+    PRODUCT_UPLOAD_DIR = os.path.join(BASE_DIR, "uploads", "products")
+    PRODUCT_IMAGE_BASE_URL = "/uploads/products"
     ALLOWED_PRODUCT_IMAGE_MIME = {
         "image/jpeg",
         "image/png",

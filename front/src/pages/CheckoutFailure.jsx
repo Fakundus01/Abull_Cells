@@ -1,10 +1,27 @@
 // src/pages/CheckoutFailure.jsx
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { XCircle, AlertTriangle, ArrowRight, ShoppingBag, RefreshCw } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
+import { useEffect } from "react";
+import { confirmMpPayment } from "../services/api";
 
 function CheckoutFailure() {
   const { t } = useLanguage();
+  const [params] = useSearchParams();
+
+  useEffect(() => {
+    const paymentId = params.get("payment_id") || params.get("collection_id");
+    const externalRef = params.get("external_reference");
+
+    if (!paymentId && !externalRef) return;
+
+    confirmMpPayment({
+      paymentId,
+      orderId: externalRef,
+    }).catch((err) => {
+      console.error("[MP] Error confirmando pago fallido:", err);
+    });
+  }, [params]);
   return (
     <section className="home-section checkout-failure-page">
       <div className="checkout-failure-card card-animate">

@@ -119,6 +119,8 @@ def create_mp_preference():
             })
 
         frontend_url = (os.getenv("FRONTEND_URL") or "").rstrip("/")
+        if not frontend_url:
+            frontend_url = (request.headers.get("Origin") or "").rstrip("/")
         success_url = os.getenv("MP_SUCCESS_URL") or (
             f"{frontend_url}/checkout/success" if frontend_url else None
         )
@@ -235,6 +237,88 @@ def create_mp_preference():
         return jsonify({"msg": "No se pudo crear la preferencia de pago"}), 500
 
 
+def _apply_mp_payment(order: Order, payment_id: str, payment_data: dict) -> None:
+    status = payment_data.get("status")
+
+    if order.status == "paid" and order.payment_txid == f"MP_PAY:{payment_id}":
+        return
+
+    if status == "approved":
+        order.status = "paid"
+        agotados = []
+        if not order.stock_reserved:
+            for item in order.items or []:
+                product = Product.query.get(item.product_id)
+                if not product:
+                    continue
+
+                prev_stock = int(product.stock or 0)
+                product.stock = max(0, prev_stock - int(item.quantity or 0))
+
+                if prev_stock > 0 and product.stock == 0:
+                    agotados.append(product)
+        else:
+            order.stock_reserved = False
+            order.reservation_expires_at = None
+
+        if not order.email_sent_paid:
+            try:
+                send_admin_order_paid_email(order, payment_data)
+            except Exception as exc:
+                current_app.logger.exception(
+                    f"[MAIL] Error mail admin pago aprobado: {exc}"
+                )
+
+            try:
+                send_buyer_order_email(
+                    order,
+                    order.items,
+                    mode="mp_paid",
+                    payment_data=payment_data,
+                )
+            except Exception as exc:
+                current_app.logger.exception(
+                    f"[MAIL] Error mail comprador mp_paid: {exc}"
+                )
+            order.email_sent_paid = True
+
+        if agotados:
+            try:
+                for product in agotados:
+                    send_admin_product_out_of_stock_email(product)
+            except Exception as exc:
+                current_app.logger.exception(f"[MAIL] Error mail stock agotado: {exc}")
+
+    elif status in ("pending", "in_process"):
+        order.status = "pending"
+    else:
+        order.status = "cancelled"
+        if order.stock_reserved:
+            for item in order.items or []:
+                db.session.execute(
+                    update(Product)
+                    .where(Product.id == item.product_id)
+                    .values(stock=Product.stock + int(item.quantity or 0))
+                )
+            order.stock_reserved = False
+            order.reservation_expires_at = None
+
+    order.payment_txid = f"MP_PAY:{payment_id}"
+    order.payment_brand = payment_data.get("payment_method_id")
+    card = payment_data.get("card") or {}
+    last4 = card.get("last_four_digits")
+    if last4:
+        order.payment_last4 = last4
+
+    current_app.logger.info(
+        "[MP] payment order_id=%s payment_id=%s status=%s reserved=%s",
+        order.id,
+        payment_id,
+        order.status,
+        order.stock_reserved,
+    )
+
+
 def mp_webhook():
     mp_client = current_app.config.get("MP_CLIENT")
     if not mp_client:
@@ -256,9 +340,7 @@ def mp_webhook():
         payment = mp_client.payment().get(payment_id)
         payment_data = (payment.get("response") or {}) if isinstance(payment, dict) else {}
 
-        status = payment_data.get("status")
         external_ref = payment_data.get("external_reference")
-
         if not external_ref:
             return "", 200
 
@@ -266,78 +348,7 @@ def mp_webhook():
         if not order:
             return "", 200
 
-        if order.status == "paid" and order.payment_txid == f"MP_PAY:{payment_id}":
-            return "", 200
-
-        if status == "approved":
-            order.status = "paid"
-            agotados = []
-            if not order.stock_reserved:
-                for item in order.items or []:
-                    product = Product.query.get(item.product_id)
-                    if not product:
-                        continue
-
-                    prev_stock = int(product.stock or 0)
-                    product.stock = max(0, prev_stock - int(item.quantity or 0))
-
-                    if prev_stock > 0 and product.stock == 0:
-                        agotados.append(product)
-            else:
-                order.stock_reserved = False
-                order.reservation_expires_at = None
-
-            if not order.email_sent_paid:
-                try:
-                    send_admin_order_paid_email(order, payment_data)
-                except Exception as exc:
-                    current_app.logger.exception(
-                        f"[MAIL] Error mail admin pago aprobado: {exc}"
-                    )
-
-                try:
-                    send_buyer_order_email(order, order.items, mode="mp_paid", payment_data=payment_data)
-                except Exception as exc:
-                    current_app.logger.exception(
-                        f"[MAIL] Error mail comprador mp_paid: {exc}"
-                    )
-                order.email_sent_paid = True
-
-            if agotados:
-                try:
-                    for product in agotados:
-                        send_admin_product_out_of_stock_email(product)
-                except Exception as exc:
-                    current_app.logger.exception(f"[MAIL] Error mail stock agotado: {exc}")
-
-        elif status in ("pending", "in_process"):
-            order.status = "pending"
-        else:
-            order.status = "cancelled"
-            if order.stock_reserved:
-                for item in order.items or []:
-                    db.session.execute(
-                        update(Product)
-                        .where(Product.id == item.product_id)
-                        .values(stock=Product.stock + int(item.quantity or 0))
-                    )
-                order.stock_reserved = False
-                order.reservation_expires_at = None
-
-        order.payment_txid = f"MP_PAY:{payment_id}"
-        order.payment_brand = payment_data.get("payment_method_id")
-        card = payment_data.get("card") or {}
-        last4 = card.get("last_four_digits")
-        if last4:
-            order.payment_last4 = last4
-
-        current_app.logger.info(
-        "[MP] webhook order_id=%s payment_id=%s status=%s reserved=%s",
-        order.id,
-        payment_id,
-        order.status,
-        order.stock_reserved,
-        )
+        _apply_mp_payment(order, str(payment_id), payment_data)
         db.session.commit()
 
         return "", 200
@@ -345,3 +356,42 @@ def mp_webhook():
     except Exception as exc:
         current_app.logger.exception(f"[MP] Error webhook: {exc}")
         return "", 200
+
+
+def mp_confirm_payment():
+    mp_client = current_app.config.get("MP_CLIENT")
+    if not mp_client:
+        return jsonify({"msg": "Mercado Pago no está configurado"}), 500
+    
+    try:
+        payload = request.get_json(silent=True) or {}
+        payment_id = (
+            payload.get("paymentId")
+            or payload.get("payment_id")
+            or request.args.get("payment_id")
+            or request.args.get("collection_id")
+        )
+        order_id = payload.get("orderId") or request.args.get("external_reference")
+
+        if not payment_id:
+            return jsonify({"msg": "Falta payment_id"}), 400
+
+        payment = mp_client.payment().get(payment_id)
+        payment_data = (payment.get("response") or {}) if isinstance(payment, dict) else {}
+
+        external_ref = payment_data.get("external_reference") or order_id
+        if not external_ref:
+            return jsonify({"msg": "Falta external_reference"}), 400
+
+        order = Order.query.get(int(external_ref))
+        if not order:
+            return jsonify({"msg": "Orden no encontrada"}), 404
+
+        _apply_mp_payment(order, str(payment_id), payment_data)          
+        db.session.commit()
+
+        return jsonify({"order": order.to_dict()}), 200
+
+    except Exception as exc:
+        current_app.logger.exception(f"[MP] Error confirm payment: {exc}")
+        return jsonify({"msg": "No se pudo confirmar el pago"}), 500

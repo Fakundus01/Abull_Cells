@@ -241,6 +241,7 @@ def _format_mp_payment_summary(payment_data: dict) -> list[str]:
 
     return lines
 
+
 def send_admin_order_paid_email(order, payment_data: dict | None = None):
     """Notifica al email admin que una orden fue PAGADA (Mercado Pago aprobado)."""
     admin_email = os.getenv("EMAIL_ADMIN")

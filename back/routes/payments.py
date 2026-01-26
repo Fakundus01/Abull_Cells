@@ -16,3 +16,9 @@ def create_mp_preference():
 @payments_bp.route("/api/payments/mp/webhook", methods=["POST", "GET"])
 def mp_webhook():
     return payment_service.mp_webhook()
+
+
+@payments_bp.route("/api/payments/mp/confirm", methods=["POST", "GET"])
+@jwt_required(optional=True)
+def mp_confirm_payment():
+    return payment_service.mp_confirm_payment()

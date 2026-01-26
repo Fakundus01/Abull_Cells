@@ -231,6 +231,14 @@ export function createMpPreference({ orderId }) {
   });
 }
 
+export function confirmMpPayment(payload) {
+  return apiFetch("/payments/mp/confirm", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
 export function sendVerifyEmail() {
   return apiFetch("/auth/verify-email", { method: "POST" });
 }

@@ -1,10 +1,26 @@
 // src/pages/CheckoutSuccess.jsx
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { CheckCircle2, ShieldCheck, ArrowRight, ShoppingBag, Mail } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
+import { useEffect } from "react";
+import { confirmMpPayment } from "../services/api";
 
 function CheckoutSuccess() {
   const { t } = useLanguage();
+  const [params] = useSearchParams();
+  useEffect(() => {
+    const paymentId = params.get("payment_id") || params.get("collection_id");
+    const externalRef = params.get("external_reference");
+
+    if (!paymentId && !externalRef) return;
+
+    confirmMpPayment({
+      paymentId,
+      orderId: externalRef,
+    }).catch((err) => {
+      console.error("[MP] Error confirmando pago:", err);
+    });
+  }, [params]);
   return (
     <section className="home-section checkout-success-page">
       <div className="checkout-success-card card-animate">

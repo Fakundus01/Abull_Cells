@@ -1081,6 +1081,127 @@ input:focus, select:focus, textarea:focus{
   font-weight: 800;
 }
 
+.checkout-success-page,
+.checkout-failure-page,
+.checkout-pending-page{
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem;
+}
+
+.checkout-success-card,
+.checkout-failure-card{
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(15,23,42,.75), rgba(15,23,42,.55));
+  border-radius: 28px;
+  padding: 2rem;
+  display: grid;
+  gap: 1.75rem;
+  box-shadow: 0 24px 60px rgba(0,0,0,.35);
+}
+
+.checkout-success-top,
+.checkout-failure-top{
+  display: grid;
+  gap: .75rem;
+}
+
+.checkout-success-badge,
+.checkout-failure-badge{
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .35rem .8rem;
+  border-radius: 999px;
+  font-size: .85rem;
+  font-weight: 700;
+  background: rgba(59,130,246,.15);
+  color: #bfdbfe;
+  border: 1px solid rgba(59,130,246,.3);
+  width: fit-content;
+}
+
+.checkout-failure-badge{
+  background: rgba(248,113,113,.15);
+  color: #fecaca;
+  border-color: rgba(248,113,113,.3);
+}
+
+.checkout-success-icon,
+.checkout-failure-icon{
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: rgba(148,163,184,.12);
+  color: var(--text);
+}
+
+.checkout-success-steps{
+  display: grid;
+  gap: .85rem;
+}
+
+.success-step{
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: .75rem;
+  align-items: start;
+  padding: .85rem 1rem;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: rgba(15,23,42,.55);
+}
+
+.success-step .step-ico{
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: rgba(59,130,246,.2);
+  color: #bfdbfe;
+}
+
+.success-step .step-title{
+  font-weight: 700;
+  margin-bottom: .1rem;
+}
+
+.success-step .step-sub{
+  color: var(--muted);
+  font-size: .92rem;
+}
+
+.checkout-failure-help{
+  display: grid;
+  gap: .5rem;
+}
+
+.failure-tip{
+  display: grid;
+  grid-template-columns: 12px 1fr;
+  gap: .6rem;
+  align-items: start;
+  color: var(--muted);
+}
+
+.failure-tip .tip-dot{
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  margin-top: .45rem;
+}
+
+.checkout-success-actions,
+.checkout-failure-actions{
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+}
+
 /* =========================
    13) PAGES — AUTH (LOGIN)
 ========================= */

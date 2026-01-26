@@ -6,6 +6,9 @@ Este documento resume el plan de despliegue para el backend y frontend.
 
 1. **Variables de entorno**
    - `SECRET_KEY`, `JWT_SECRET_KEY`, `DATABASE_URL`, `FRONTEND_URL`.
+   - Subidas de productos (recomendado en producción con disco persistente):
+     - `PRODUCT_UPLOAD_DIR=/var/data/uploads/products`
+     - `PRODUCT_IMAGE_BASE_URL=/uploads/products`
    - Recomendado en producción:
      - `JWT_COOKIE_SECURE=true`
      - `JWT_COOKIE_SAMESITE=Lax` (o `None` si usás dominios cruzados + HTTPS)
@@ -31,6 +34,12 @@ Este documento resume el plan de despliegue para el backend y frontend.
 
 4. **CORS**
    - `FRONTEND_URL` debe coincidir con el dominio real del frontend.
+5. **Disco persistente (Render)**
+   - Crear un **Persistent Disk** y montarlo en `/var/data`.
+   - Asegurar que el backend tenga:
+     - `PRODUCT_UPLOAD_DIR=/var/data/uploads/products`
+     - `PRODUCT_IMAGE_BASE_URL=/uploads/products`
+   - Esto evita que las imágenes se pierdan entre deploys o al escalar instancias.
 
 ## Frontend (Vite)
 

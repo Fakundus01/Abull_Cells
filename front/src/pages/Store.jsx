@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { fetchProducts } from "../services/api";
 import ProductCard from "../components/ProductCard";
+import ProductModal from "../components/ProductModal";
 import { useLanguage } from "../context/LanguageContext";
 import {
   Store as StoreIcon,
@@ -23,6 +24,7 @@ function Store() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("todos");
   const [sort, setSort] = useState("relevancia");
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
@@ -244,9 +246,20 @@ function Store() {
       {status === "ready" && filtered.length > 0 && (
         <div className="product-grid store-grid">
           {filtered.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard
+              key={product.id}
+              product={product}
+              onOpen={() => setSelectedProduct(product)}
+            />
           ))}
         </div>
+      )}
+
+      {selectedProduct && (
+        <ProductModal
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+        />
       )}
     </main>
   );

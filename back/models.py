@@ -80,11 +80,27 @@ class Product(db.Model):
     is_active = db.Column(
         db.Boolean, nullable=False, default=True, server_default="true", index=True
     )
+    images = db.relationship(
+        "ProductImage",
+        backref="product",
+        cascade="all, delete-orphan",
+        order_by="ProductImage.position",
+        lazy=True,
+    )
 
     def to_dict(self):
         image_url = self.image_url
         if image_url and not image_url.startswith(("http://", "https://", "/")):
             image_url = f"/uploads/products/{image_url}"
+        images = []
+        for image in self.images or []:
+            url = image.image_url
+            if url and not url.startswith(("http://", "https://", "/")):
+                url = f"/uploads/products/{url}"
+            if url:
+                images.append(url)
+        if image_url and image_url not in images:
+            images.insert(0, image_url)
         return {
             "id": self.id,
             "name": self.name,
@@ -93,6 +109,7 @@ class Product(db.Model):
             "price": self.price,
             "category": self.category,
             "imageUrl": image_url,
+            "images": images,
             "is_active": bool(self.is_active),
             "isActive": bool(self.is_active),
             "isOffer": self.is_offer,
@@ -100,6 +117,15 @@ class Product(db.Model):
             "stock": self.stock,
         }
     
+
+class ProductImage(db.Model):
+    __tablename__ = "product_images"
+
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey("products.id"), nullable=False, index=True)
+    image_url = db.Column(db.String(500), nullable=False)
+    position = db.Column(db.Integer, nullable=False, default=0)
+
 class Order(db.Model):
     __tablename__ = "orders"
     __table_args__ = (

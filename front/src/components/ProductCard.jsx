@@ -6,7 +6,7 @@ import { getOfferMeta } from "../utils/pricing";
 import { useLanguage } from "../context/LanguageContext";
 import { resolveImageUrl } from "../utils/imageUrl";
 
-function ProductCard({ product }) {
+function ProductCard({ product, onOpen }) {
   const { t } = useLanguage();
   const { addToCart, decrementFromCart, items } = useCart();
 
@@ -95,14 +95,21 @@ function ProductCard({ product }) {
           <span className="product-out-badge">{t("productCard.outOfStock")}</span>
         )}
 
-        {finalImage ? (
-          <img src={finalImage} alt={name} className="product-card-image product-card-image--v2" />
-        ) : (
-          <div className="product-card-image placeholder placeholder--v2">
-            <ImageIcon size={18} className="icon" />
-            <span>{t("productCard.noImage")}</span>
-          </div>
-        )}
+         <button
+          type="button"
+          className="product-card-image-button"
+          onClick={onOpen}
+          aria-label={name || t("productCard.noImage")}
+        >
+          {finalImage ? (
+            <img src={finalImage} alt={name} className="product-card-image product-card-image--v2" />
+          ) : (
+            <div className="product-card-image placeholder placeholder--v2">
+              <ImageIcon size={18} className="icon" />
+              <span>{t("productCard.noImage")}</span>
+            </div>
+          )}
+        </button>
       </div>
 
       <div className="product-card-body product-card-body--v2">

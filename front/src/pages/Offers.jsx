@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchProducts } from "../services/api";
 import ProductCard from "../components/ProductCard";
+import ProductModal from "../components/ProductModal";
 import { Tag, Loader2, AlertTriangle, Percent } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 
@@ -9,6 +10,7 @@ function Offers() {
   const { t } = useLanguage();
   const [products, setProducts] = useState([]);
   const [status, setStatus] = useState("idle");
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   async function load() {
     try {
@@ -84,9 +86,19 @@ function Offers() {
       {offers.length > 0 && (
         <div className="product-grid store-grid">
           {offers.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard
+              key={product.id}
+              product={product}
+              onOpen={() => setSelectedProduct(product)}
+            />
           ))}
         </div>
+      )}
+      {selectedProduct && (
+        <ProductModal
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+        />
       )}
     </main>
  );

@@ -592,6 +592,11 @@ const TRANSLATIONS = {
       added: "Agregado",
       add: "Agregar",
     },
+    productModal: {
+      close: "Cerrar",
+      galleryTitle: "Galería del producto",
+      noImages: "Este producto no tiene más imágenes.",
+    },
     admin: {
       title: "Panel de administración",
       subtitle: "Hola, {name}. Gestioná Abul Cell.",
@@ -688,7 +693,7 @@ const TRANSLATIONS = {
           category: "Categoría",
           categoryPlaceholder: "Celulares, Notebooks, Accesorios...",
           imageFile: "Imagen del producto",
-          imageFileHint: "Subí una imagen desde tu computadora (JPG/PNG/WebP).",
+          imageFileHint: "Subí hasta 5 imágenes (JPG/PNG/WebP).",
           imageUrl: "URL de imagen (opcional)",
           imageUrlPlaceholder: "https://... (opcional)",
           description: "Descripción",
@@ -1419,6 +1424,11 @@ const TRANSLATIONS = {
       added: "Added",
       add: "Add",
     },
+    productModal: {
+      close: "Close",
+      galleryTitle: "Product gallery",
+      noImages: "This product doesn't have more images.",
+    },
     admin: {
       title: "Admin dashboard",
       subtitle: "Hi, {name}. Manage Abul Cell.",
@@ -1515,7 +1525,7 @@ const TRANSLATIONS = {
           category: "Category",
           categoryPlaceholder: "Phones, Laptops, Accessories...",
           imageFile: "Product image",
-          imageFileHint: "Upload an image from your computer (JPG/PNG/WebP).",
+          imageFileHint: "Upload up to 5 images (JPG/PNG/WebP).",
           imageUrl: "Image URL (optional)",
           imageUrlPlaceholder: "https://... (optional)",
           description: "Description",

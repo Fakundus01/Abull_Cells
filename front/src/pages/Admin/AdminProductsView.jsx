@@ -127,8 +127,9 @@ export default function AdminProductsView({
             </span>
             <input
               type="file"
-              name="imageFile"
+              name="imageFiles"
               accept="image/png, image/jpeg, image/webp"
+              multiple
               onChange={onChange}
             />
             <small className="field-hint">{t("admin.products.form.imageFileHint")}</small>

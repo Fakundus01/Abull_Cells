@@ -5,7 +5,7 @@ from flask import current_app, jsonify, request
 from werkzeug.exceptions import NotFound
 from werkzeug.utils import secure_filename
 
-from models import Order, Product, User, db
+from models import Order, Product, ProductImage, User, db
 
 
 def _parse_bool(value):
@@ -16,13 +16,16 @@ def _parse_bool(value):
 
 def _parse_product_payload():
     is_multipart = request.content_type and "multipart/form-data" in request.content_type
-    image_file = None
+    image_files = []
 
     if is_multipart:
         data = request.form or {}
-        image_file = request.files.get("image")
+        image_files = request.files.getlist("images") or []
+        legacy_image = request.files.get("image")
+        if legacy_image:
+            image_files.append(legacy_image)
     else:
-        data = request.get_json() or {}     
+        data = request.get_json() or {}    
 
     payload = {
         "name": data.get("name"),
@@ -30,6 +33,7 @@ def _parse_product_payload():
         "price": data.get("price"),
         "category": data.get("category"),
         "imageUrl": data.get("imageUrl") or data.get("image_url"),
+        "imageUrls": data.get("imageUrls") or data.get("image_urls"),
         "isOffer": data.get("isOffer"),
         "offerLabel": data.get("offerLabel"),
         "stock": data.get("stock"),
@@ -47,7 +51,7 @@ def _parse_product_payload():
             _parse_bool(payload["is_active"]) if payload["is_active"] is not None else None
         )
 
-    return payload, image_file
+    return payload, image_files
 
 
 def _save_product_image(image_file):
@@ -72,14 +76,51 @@ def _save_product_image(image_file):
     base_path = current_app.config.get("PRODUCT_IMAGE_BASE_URL", "/uploads/products").rstrip("/")
     return f"{base_path}/{unique_name}"
 
+
+def _save_product_images(image_files):
+    saved = []
+    for image_file in image_files:
+        if not image_file or not image_file.filename:
+            continue
+        saved.append(_save_product_image(image_file))
+    return saved
+
+
+def _coerce_image_urls(raw):
+    if not raw:
+        return []
+    if isinstance(raw, list):
+        return [item for item in raw if item]
+    return [raw]
+
+
+def _sync_product_images(product, image_urls):
+    if not image_urls:
+        return
+    existing = [img.image_url for img in product.images or []]
+    for url in image_urls:
+        if url in existing:
+            continue
+        product.images.append(ProductImage(image_url=url, position=len(product.images)))
+
+
+def _enforce_image_limit(product, new_images):
+    existing = {img.image_url for img in (product.images or [])}
+    incoming = [url for url in new_images if url and url not in existing]
+    total = len(existing) + len(incoming)
+    if total > 5:
+        raise ValueError("Podés subir hasta 5 imágenes por producto.")
+
+
 def admin_create_product():
     try:
-        data, image_file = _parse_product_payload()
+        data, image_files = _parse_product_payload()
         name = data.get("name")
         slug = data.get("slug")
         price = data.get("price")
         category = data.get("category")
         image_url = data.get("imageUrl")
+        image_urls = _coerce_image_urls(data.get("imageUrls"))
         is_offer = data.get("isOffer", False)
         offer_label = data.get("offerLabel")
         stock = data.get("stock", 0)
@@ -94,8 +135,14 @@ def admin_create_product():
         if Product.query.filter_by(slug=slug).first():
             return jsonify({"msg": "Ya existe un producto con ese slug"}), 400
         
-        if image_file:
-            image_url = _save_product_image(image_file)
+        uploaded_images = _save_product_images(image_files)
+        if uploaded_images and not image_url:
+            image_url = uploaded_images[0]
+
+        combined_images = [url for url in image_urls if url]
+        combined_images.extend(uploaded_images)
+        if image_url and image_url not in combined_images:
+            combined_images.insert(0, image_url)
 
         product = Product(
             name=name,
@@ -109,7 +156,10 @@ def admin_create_product():
             is_active=is_active,
             description=description,
         )
+        _enforce_image_limit(product, combined_images)
         db.session.add(product)
+        db.session.flush()
+        _sync_product_images(product, combined_images)
         db.session.commit()
 
         return jsonify(product.to_dict()), 201
@@ -133,12 +183,13 @@ def admin_list_products():
 def admin_update_product(product_id: int):
     try:
         product = Product.query.get_or_404(product_id)
-        data, image_file = _parse_product_payload()
+        data, image_files = _parse_product_payload()
         name = data.get("name")
         slug = data.get("slug")
         price = data.get("price")
         category = data.get("category")
         image_url = data.get("imageUrl")
+        image_urls = _coerce_image_urls(data.get("imageUrls"))
         is_offer = data.get("isOffer")
         offer_label = data.get("offerLabel")
         stock = data.get("stock")
@@ -159,11 +210,20 @@ def admin_update_product(product_id: int):
         if category is not None:
             product.category = category
 
-        if image_file:
-            image_url = _save_product_image(image_file)
+        uploaded_images = _save_product_images(image_files)
+        combined_images = [url for url in image_urls if url]
+        combined_images.extend(uploaded_images)
+        _enforce_image_limit(product, combined_images)
+
+        if uploaded_images and not image_url:
+            image_url = uploaded_images[0]
 
         if image_url is not None and image_url != "":
             product.image_url = image_url
+            if image_url not in combined_images:
+                combined_images.insert(0, image_url)
+
+        _sync_product_images(product, combined_images)
 
         if stock is not None and stock != "":
             product.stock = int(stock)

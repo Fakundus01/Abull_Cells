@@ -66,7 +66,7 @@ export default function Admin() {
     stock: "",
     category: "",
     imageUrl: "",
-    imageFile: null,
+    imageFiles: [],
     description: "",
     isOffer: false,
     offerLabel: "",
@@ -220,8 +220,8 @@ export default function Admin() {
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
     if (type === "file") {
-      const file = e.target.files?.[0] || null;
-      setForm((prev) => ({ ...prev, [name]: file }));
+      const files = Array.from(e.target.files || []);
+      setForm((prev) => ({ ...prev, [name]: files.slice(0, 5) }));
       return;
     }
     setForm((prev) => ({
@@ -240,7 +240,7 @@ export default function Admin() {
       stock: "",
       category: "",
       imageUrl: "",
-      imageFile: null,
+      imageFiles: [],
       description: "",
       isOffer: false,
       offerLabel: "",
@@ -257,7 +257,7 @@ export default function Admin() {
       stock: p.stock ?? "",
       category: p.category || "",
       imageUrl: p.imageUrl || "",
-      imageFile: null,
+      imageFiles: [],
       description: p.description || "",
       isOffer: !!p.isOffer,
       offerLabel: p.offerLabel || "",
@@ -274,8 +274,8 @@ export default function Admin() {
     try {
       setSaving(true);
 
-      const hasImageFile = form.imageFile instanceof File;
-      const payload = hasImageFile ? new FormData() : {
+      const hasImageFiles = Array.isArray(form.imageFiles) && form.imageFiles.length > 0;
+      const payload = hasImageFiles ? new FormData() : {
         name: form.name,
         slug: form.slug,
         price: Number(form.price || 0),
@@ -287,7 +287,7 @@ export default function Admin() {
         offerLabel: form.offerLabel,
       };
 
-      if (hasImageFile) {
+      if (hasImageFiles) {
         payload.append("name", form.name);
         payload.append("slug", form.slug);
         payload.append("price", String(form.price || 0));
@@ -297,7 +297,9 @@ export default function Admin() {
         payload.append("offerLabel", form.offerLabel || "");
         payload.append("imageUrl", form.imageUrl || "");
         payload.append("isOffer", String(form.isOffer));
-        payload.append("image", form.imageFile);
+        form.imageFiles.forEach((file) => {
+          payload.append("images", file);
+        });
       }
 
       if (isEditing && editingId) {

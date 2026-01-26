@@ -22,7 +22,7 @@ def _parse_product_payload():
         data = request.form or {}
         image_file = request.files.get("image")
     else:
-        data = request.get_json() or {}
+        data = request.get_json() or {}     
 
     payload = {
         "name": data.get("name"),
@@ -33,11 +33,17 @@ def _parse_product_payload():
         "isOffer": data.get("isOffer"),
         "offerLabel": data.get("offerLabel"),
         "stock": data.get("stock"),
+        "isActive": data.get("isActive"),
         "description": data.get("description"),
     }
 
     if is_multipart:
         payload["isOffer"] = _parse_bool(payload["isOffer"])
+        payload["isActive"] = _parse_bool(payload["isActive"])
+    else:
+        # si viene JSON puede venir boolean o string igual
+        payload["isOffer"] = _parse_bool(payload["isOffer"]) if payload["isOffer"] is not None else None
+        payload["isActive"] = _parse_bool(payload["isActive"]) if payload["isActive"] is not None else None
 
     return payload, image_file
 
@@ -61,8 +67,9 @@ def _save_product_image(image_file):
     unique_name = f"{uuid.uuid4().hex}_{filename}"
     image_file.save(os.path.join(upload_dir, unique_name))
 
-    base_url = current_app.config.get("PRODUCT_IMAGE_BASE_URL", "/uploads/products")
-    return f"{base_url.rstrip('/')}/{unique_name}"
+    base_public = current_app.config.get("UPLOAD_PUBLIC_BASE_URL") or os.getenv("BACKEND_URL") or request.host_url.rstrip("/")
+    base_path = current_app.config.get("PRODUCT_IMAGE_BASE_URL", "/uploads/products").rstrip("/")
+    return f"{base_public}{base_path}/{unique_name}"
 
 def admin_create_product():
     try:
@@ -75,6 +82,9 @@ def admin_create_product():
         is_offer = data.get("isOffer", False)
         offer_label = data.get("offerLabel")
         stock = data.get("stock", 0)
+        is_active = data.get("isActive")
+        if is_active is None:
+            is_active = True           
         description = data.get("description")
 
         if not name or not slug or price is None:
@@ -95,6 +105,7 @@ def admin_create_product():
             is_offer=is_offer,
             offer_label=offer_label,
             stock=int(stock or 0),
+            is_active=is_active,
             description=description,
         )
         db.session.add(product)
@@ -160,7 +171,10 @@ def admin_update_product(product_id: int):
             product.description = description
 
         if is_offer is not None:
-            product.is_offer = bool(is_offer)
+            parsed = _parse_bool(is_offer)
+            if parsed is not None:
+                product.is_offer = parsed
+                
         if offer_label is not None:
             product.offer_label = offer_label
 

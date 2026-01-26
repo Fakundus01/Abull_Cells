@@ -8,9 +8,6 @@ import {
   Tag,
   HelpCircle,
   MessageCircle,
-  Instagram,
-  Facebook,
-  Twitter,
   ArrowRight,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
@@ -32,18 +29,6 @@ function Footer() {
           <p className="footer-text">
             {t("footer.description")}
           </p>
-
-          <div className="footer-social">
-            <a className="social-btn" href="#" aria-label="Instagram">
-              <Instagram size={18} className="icon" />
-            </a>
-            <a className="social-btn" href="#" aria-label="Facebook">
-              <Facebook size={18} className="icon" />
-            </a>
-            <a className="social-btn" href="#" aria-label="X / Twitter">
-              <Twitter size={18} className="icon" />
-            </a>
-          </div>
 
           <Link to="/tienda" className="footer-cta">
             {t("footer.cta")} <ArrowRight size={16} className="icon" />

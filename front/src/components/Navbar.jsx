@@ -462,14 +462,6 @@ function Navbar() {
             </div>
 
             <div className="navbar-actions">
-              <button
-                type="button"
-                className="lang-btn lang-pill"
-                onClick={handleLanguageToggle}
-              >
-                <Globe size={16} /> {language.toUpperCase()}
-              </button>
-
               {!loadingAuth && isLogged && (
                 <>
                   {isAdmin && (

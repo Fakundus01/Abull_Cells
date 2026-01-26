@@ -97,6 +97,7 @@
 /* =========================
    2) BASE / RESET
 ========================= */
+html { scrollbar-gutter: stable; }
 *{ box-sizing: border-box; }
 html, body{ height: 100%; }
 body{
@@ -163,6 +164,7 @@ button, input, select, textarea{
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  flex-wrap: nowrap;
 }
 .navbar-logo{
   text-decoration: none;
@@ -185,7 +187,9 @@ button, input, select, textarea{
   display: flex;
   align-items: center;
   gap: .35rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow: hidden; 
 }
 .nav-link{
   display: inline-flex;
@@ -214,6 +218,8 @@ button, input, select, textarea{
   display: flex;
   align-items: center;
   gap: .5rem;
+  flex-shrink: 0;  
+  white-space: nowrap;
 }
 .nav-pill{
   display: inline-flex;
@@ -246,6 +252,10 @@ button, input, select, textarea{
   background: rgba(255,255,255,.10);
   border: 1px solid rgba(255,255,255,.16);
   font-weight: 800;
+}
+
+@media (max-width: 1100px){
+  .nav-text{ display: none; }
 }
 
 /* =========================

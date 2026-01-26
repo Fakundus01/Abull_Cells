@@ -13,6 +13,7 @@ import Admin from "./pages/Admin/Admin"; // la creamos abajo
 import Checkout from "./pages/Checkout";
 import CheckoutSuccess from "./pages/CheckoutSuccess";
 import CheckoutFailure from "./pages/CheckoutFailure";
+import CheckoutPending from "./pages/CheckoutPending";
 import Signup from "./pages/Signup";
 import Profile from "./pages/Profile";
 import OrdersHistory from "./pages/OrdersHistory";
@@ -47,7 +48,7 @@ function App() {
           </Route>
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
           <Route path="/checkout/failure" element={<CheckoutFailure />} />
-          <Route path="/checkout/pending" element={<CheckoutFailure />} />
+          <Route path="/checkout/pending" element={<CheckoutPending />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />

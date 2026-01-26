@@ -198,7 +198,8 @@ const TRANSLATIONS = {
         recommended: "Recomendado",
         mercadoPago: {
           title: "Mercado Pago",
-          subtitle: "Te redirigimos a Mercado Pago para completar el pago.",
+          subtitle:
+            "Abrimos Mercado Pago en otra ventana para que pagues con tarjeta, saldo o efectivo en puntos habilitados. Al finalizar, volvés al checkout con el estado del pago."
         },
         cash: {
           title: "Efectivo al retirar",
@@ -783,6 +784,35 @@ const TRANSLATIONS = {
           store: "Seguir comprando",
         },
       },
+      pending: {
+        badge: "Pago en curso",
+        title: "Estamos esperando la confirmación de tu pago",
+        subtitle:
+          "La ventana de Mercado Pago quedó abierta para que completes el pago. Cuando termine, Mercado Pago te redirige automáticamente y actualizamos tu pedido.",
+        orderNumber: "Orden asociada: #{orderId}.",
+        steps: {
+          payment: {
+            title: "Finalizá el pago en Mercado Pago",
+            subtitle:
+              "Podés usar tarjeta, saldo, transferencia o efectivo. Mercado Pago confirma la acreditación y nos avisa en segundos.",
+          },
+          email: {
+            title: "Comprobante y aviso automático",
+            subtitle:
+              "Te enviamos el comprobante/estado de Mercado Pago por email y avisamos al administrador cuando se acredita.",
+          },
+        },
+        details: [
+          "Si pagás con tarjeta, la acreditación suele ser inmediata.",
+          "Si pagás con efectivo o transferencia, puede demorar hasta que se acredite el pago.",
+          "Cuando Mercado Pago confirma, tu pedido pasa de pendiente a pagado automáticamente.",
+          "Si cerraste la ventana, podés reabrir el link desde tu email o consultar en “Mis pedidos”.",
+        ],
+        actions: {
+          orders: "Ver mis pedidos",
+          home: "Volver al inicio",
+        },
+      },
       failure: {
         badge: "Pago no completado",
         title: "Pago no completado",
@@ -995,7 +1025,8 @@ const TRANSLATIONS = {
         recommended: "Recommended",
         mercadoPago: {
           title: "Mercado Pago",
-          subtitle: "We redirect you to Mercado Pago to complete the payment.",
+          subtitle:
+            "We open Mercado Pago in a new window so you can pay with card, balance, or cash at supported locations. After finishing, you return to checkout with the payment status.",
         },
         cash: {
           title: "Cash on pickup",
@@ -1578,6 +1609,35 @@ const TRANSLATIONS = {
         actions: {
           home: "Back to home",
           store: "Continue shopping",
+        },
+      },
+      pending: {
+        badge: "Payment in progress",
+        title: "We are waiting for your payment confirmation",
+        subtitle:
+          "The Mercado Pago window is open so you can finish the payment. When it ends, Mercado Pago redirects you back and we update your order.",
+        orderNumber: "Linked order: #{orderId}.",
+        steps: {
+          payment: {
+            title: "Finish the payment in Mercado Pago",
+            subtitle:
+              "You can pay with card, balance, transfer, or cash. Mercado Pago confirms and notifies us in seconds.",
+          },
+          email: {
+            title: "Receipt and automatic notice",
+            subtitle:
+              "We send you the receipt/status via email and notify the admin once the payment is approved.",
+          },
+        },
+        details: [
+          "Card payments are usually instant.",
+          "Cash or bank transfers can take longer to be approved.",
+          "Once Mercado Pago confirms, your order moves from pending to paid automatically.",
+          "If you closed the window, you can reopen the link from your email or check “My orders”.",
+        ],
+        actions: {
+          orders: "View my orders",
+          home: "Back to home",
         },
       },
       failure: {

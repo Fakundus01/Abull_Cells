@@ -199,7 +199,49 @@ def send_order_confirmation_email(order, items=None):
     return send_email(admin_email, subject, body, cc=None)
 
 
-def send_admin_order_paid_email(order):
+def _format_mp_payment_summary(payment_data: dict) -> list[str]:
+    if not payment_data:
+        return []
+
+    lines = []
+    payment_id = payment_data.get("id") or payment_data.get("payment_id")
+    status = payment_data.get("status")
+    status_detail = payment_data.get("status_detail")
+    method = payment_data.get("payment_method_id")
+    payment_type = payment_data.get("payment_type_id")
+    installments = payment_data.get("installments")
+    amount = payment_data.get("transaction_amount")
+    approved_at = payment_data.get("date_approved")
+    external_ref = payment_data.get("external_reference")
+    receipt_url = (
+        (payment_data.get("point_of_interaction") or {})
+        .get("transaction_data", {})
+        .get("ticket_url")
+    )
+
+    lines.append("💳 Datos del pago (Mercado Pago):")
+    if payment_id:
+        lines.append(f"- ID de pago: {payment_id}")
+    if status:
+        lines.append(f"- Estado: {status}")
+    if status_detail:
+        lines.append(f"- Detalle: {status_detail}")
+    if method or payment_type:
+        lines.append(f"- Método: {method or '—'} ({payment_type or '—'})")
+    if installments:
+        lines.append(f"- Cuotas: {installments}")
+    if amount is not None:
+        lines.append(f"- Monto acreditado: ${amount}")
+    if approved_at:
+        lines.append(f"- Fecha acreditación: {approved_at}")
+    if external_ref:
+        lines.append(f"- Referencia externa: {external_ref}")
+    if receipt_url:
+        lines.append(f"- Comprobante: {receipt_url}")
+
+    return lines
+
+def send_admin_order_paid_email(order, payment_data: dict | None = None):
     """Notifica al email admin que una orden fue PAGADA (Mercado Pago aprobado)."""
     admin_email = os.getenv("EMAIL_ADMIN")
     if not admin_email:
@@ -207,15 +249,22 @@ def send_admin_order_paid_email(order):
         return False
 
     subject = f"✅ Pago aprobado - Orden #{order.id}"
-    body = (
-        "Se aprobó el pago de Mercado Pago.\n\n"
-        f"Orden: #{order.id}\n"
-        f"Cliente: {order.customer_name} <{order.email}>\n"
-        f"Total: ${order.total_amount}\n"
-        f"Estado: {order.status}\n\n"
-        "Items:\n"
-        + "\n".join([f"- {i.product_name} x{i.quantity} (${i.unit_price})" for i in (order.items or [])])
-    )
+    lines = [
+        "Se aprobó el pago de Mercado Pago.",
+        "",
+        f"Orden: #{order.id}",
+        f"Cliente: {order.customer_name} <{order.email}>",
+        f"Total: ${order.total_amount}",
+        f"Estado: {order.status}",
+        "",
+        "Items:",
+        *[f"- {i.product_name} x{i.quantity} (${i.unit_price})" for i in (order.items or [])],
+    ]
+
+    if payment_data:
+        lines += ["", *_format_mp_payment_summary(payment_data)]
+
+    body = "\n".join(lines)
 
     return send_email(admin_email, subject, body, cc=None)
 
@@ -377,7 +426,7 @@ def send_admin_product_out_of_stock_email(product):
 # ----------------------------
 # Buyer emails
 # ----------------------------
-def send_buyer_order_email(order, items, mode: str):
+def send_buyer_order_email(order, items, mode: str, payment_data: dict | None = None):
     """
     mode: "cash_created" | "mp_paid"
     """
@@ -460,6 +509,9 @@ def send_buyer_order_email(order, items, mode: str):
             lines += ["", f"🕒 Horarios: {hours}"]
         if whatsapp:
             lines += ["", f"📲 WhatsApp: {whatsapp}"]
+
+    if mode == "mp_paid" and payment_data:
+        lines += ["", *_format_mp_payment_summary(payment_data)]
 
     lines += ["", "Gracias por tu compra 🙌"]
 

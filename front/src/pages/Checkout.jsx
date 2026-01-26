@@ -258,7 +258,12 @@ function Checkout() {
 
         window.open(pref.initPoint, "_blank", "noopener,noreferrer");
 
-        navigate("/");
+        const params = new URLSearchParams();
+        params.set("orderId", String(order.id));
+        if (pref.preferenceId) {
+          params.set("preferenceId", String(pref.preferenceId));
+        }
+        navigate(`/checkout/pending?${params.toString()}`);
         return;
       }
 

@@ -82,6 +82,9 @@ class Product(db.Model):
     )
 
     def to_dict(self):
+        image_url = self.image_url
+        if image_url and not image_url.startswith(("http://", "https://", "/")):
+            image_url = f"/uploads/products/{image_url}"
         return {
             "id": self.id,
             "name": self.name,
@@ -89,7 +92,7 @@ class Product(db.Model):
             "description": self.description,
             "price": self.price,
             "category": self.category,
-            "imageUrl": self.image_url,
+            "imageUrl": image_url,
             "is_active": bool(self.is_active),
             "isActive": bool(self.is_active),
             "isOffer": self.is_offer,

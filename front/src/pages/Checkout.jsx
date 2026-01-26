@@ -247,7 +247,7 @@ function Checkout() {
 
       const orderPayload = buildOrderPayload(selectedAddr);
 
-      const order = await createOrder(orderPayload);
+      const { order } = await createOrder(orderPayload);
 
       if (paymentMethod === "mercadopago") {
         const pref = await createMpPreference({ orderId: order.id });

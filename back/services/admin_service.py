@@ -69,9 +69,8 @@ def _save_product_image(image_file):
     unique_name = f"{uuid.uuid4().hex}_{filename}"
     image_file.save(os.path.join(upload_dir, unique_name))
 
-    base_public = current_app.config.get("UPLOAD_PUBLIC_BASE_URL") or os.getenv("BACKEND_URL") or request.host_url.rstrip("/")
     base_path = current_app.config.get("PRODUCT_IMAGE_BASE_URL", "/uploads/products").rstrip("/")
-    return f"{base_public}{base_path}/{unique_name}"
+    return f"{base_path}/{unique_name}"
 
 def admin_create_product():
     try:

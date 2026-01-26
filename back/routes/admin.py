@@ -32,12 +32,6 @@ def admin_set_product_active(product_id: int):
     return admin_service.admin_set_product_active(product_id)
 
 
-@admin_bp.route("/api/admin/products/<int:product_id>/active", methods=["PATCH"])
-@auth_service.admin_required
-def admin_set_product_active(product_id: int):
-    return admin_service.admin_set_product_active(product_id)
-
-
 @admin_bp.route("/api/admin/orders", methods=["GET"])
 @auth_service.admin_required
 def admin_list_orders():

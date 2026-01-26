@@ -1969,6 +1969,7 @@ input:disabled, textarea:disabled, select:disabled{
   border: 1px solid var(--border);
   background: rgba(248,250,252,.85);
   color: var(--muted);
+  white-space: nowrap;
 }
 .status-pill.active{
   background: rgba(34,197,94,.10);
@@ -2299,7 +2300,7 @@ input:disabled, textarea:disabled, select:disabled{
   color: var(--muted);
   font-size: .9rem;
 }
-.admin-products-header{ grid-template-columns: 1.3fr 1fr .8fr .7fr .7fr .8fr .9fr; }
+.admin-products-header{ grid-template-columns: 1.5fr 1fr .8fr .7fr .7fr .7fr .6fr; }
 .admin-products-summary{
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2331,7 +2332,7 @@ input:disabled, textarea:disabled, select:disabled{
 }
 .admin-products-row{
   display: grid;
-  grid-template-columns: 1.3fr 1fr .8fr .7fr .7fr .8fr .9fr;
+  grid-template-columns: 1.5fr 1fr .8fr .7fr .7fr .7fr .6fr;
   gap: .35rem;
   padding: .75rem .8rem;
   border-radius: 16px;
@@ -2429,6 +2430,7 @@ input:disabled, textarea:disabled, select:disabled{
   display: inline-flex;
   gap: .35rem;
   justify-content: flex-end;
+  flex-wrap: wrap;
 }
 .status-select{
   width: 100%;

@@ -183,7 +183,7 @@ def admin_delete_product(product_id: int):
         product = Product.query.get_or_404(product_id)
         product.is_active = False
         db.session.commit()
-        return jsonify({"msg": "Producto eliminado correctamente"})
+        return jsonify({"msg": "Producto desactivado  correctamente"})
     except NotFound:
         return jsonify({"msg": "Producto no encontrado"}), 404
     except Exception as exc:
@@ -191,7 +191,7 @@ def admin_delete_product(product_id: int):
             f"Error inesperado en DELETE /api/admin/products/{product_id}: {exc}"
         )
         db.session.rollback()
-        return jsonify({"msg": "Error interno al eliminar el producto"}), 500
+        return jsonify({"msg": "Error interno al desactivar el producto"}), 500
 
 
 def admin_set_product_active(product_id: int):

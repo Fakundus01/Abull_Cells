@@ -291,7 +291,13 @@ export default function AdminProductsView({
                     )}
                   </span>
                   <span className="admin-actions">
-                    <button type="button" className="btn-small btn-icon" onClick={() => onEdit(p)}>
+                    <button
+                      type="button"
+                      className="btn-small btn-icon"
+                      onClick={() => onEdit(p)}
+                      aria-label={t("admin.products.list.edit")}
+                      title={t("admin.products.list.edit")}
+                    >
                       <Pencil size={16} className="icon" />
                     </button>
                    {isActive ? (
@@ -299,20 +305,22 @@ export default function AdminProductsView({
                         type="button"
                         className="btn-small btn-danger btn-icon"
                         onClick={() => onDeactivate(p)}
+                        aria-label={t("admin.products.list.deactivate")}
+                        title={t("admin.products.list.deactivate")}
                       >
                         <XCircle size={16} className="icon" />
-                        {t("admin.products.list.deactivate")}
                       </button>
                     ) : (
                       <button
                         type="button"
                         className="btn-small btn-secondary btn-icon"
                         onClick={() => onActivate(p)}
+                        aria-label={t("admin.products.list.activate")}
+                        title={t("admin.products.list.activate")}
                       >
                         <CheckCircle2 size={16} className="icon" />
-                        {t("admin.products.list.activate")}
                       </button>
-                    )}                           
+                    )}                          
                   </span>
                    </div>
                 );

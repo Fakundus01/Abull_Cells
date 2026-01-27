@@ -19,12 +19,14 @@ import {
 
 function Store() {
   const { t } = useLanguage();
+  const pageSize = 12;
   const [products, setProducts] = useState([]);
   const [status, setStatus] = useState("idle"); // idle | loading | error | ready
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("todos");
   const [sort, setSort] = useState("relevancia");
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [page, setPage] = useState(1);
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
@@ -48,6 +50,9 @@ function Store() {
     load();
   }, []);
 
+useEffect(() => {
+    setPage(1);
+  }, [search, category, sort]);
 
   const categories = useMemo(() => {
     const set = new Set();
@@ -81,6 +86,19 @@ function Store() {
 
     return list;
   }, [products, category, search, sort]);
+
+  const totalPages = useMemo(() => {
+    return Math.max(1, Math.ceil(filtered.length / pageSize));
+  }, [filtered.length, pageSize]);
+
+  useEffect(() => {
+    setPage((current) => Math.min(Math.max(1, current), totalPages));
+  }, [totalPages]);
+
+  const pagedProducts = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page, pageSize]);
 
   const hasFilters =
     search.trim() !== "" || category !== "todos" || sort !== "relevancia";
@@ -245,7 +263,7 @@ function Store() {
       {/* Grid */}
       {status === "ready" && filtered.length > 0 && (
         <div className="product-grid store-grid">
-          {filtered.map((product) => (
+          {pagedProducts.map((product) => (
             <ProductCard
               key={product.id}
               product={product}
@@ -254,6 +272,39 @@ function Store() {
           ))}
         </div>
       )}
+
+      {status === "ready" && filtered.length > pageSize && (
+              <div className="store-pagination">
+                <span className="store-pagination-label">
+                  {t("store.pagination.showing", {
+                    start: (page - 1) * pageSize + 1,
+                    end: Math.min(page * pageSize, filtered.length),
+                    total: filtered.length,
+                  })}
+                </span>
+                <div className="store-pagination-actions">
+                  <button
+                    type="button"
+                    className="btn-small"
+                    onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                    disabled={page === 1}
+                  >
+                    {t("store.pagination.prev")}
+                  </button>
+                  <span className="page-pill">
+                    {page}/{totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn-small"
+                    onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={page === totalPages}
+                  >
+                    {t("store.pagination.next")}
+                  </button>
+                </div>
+              </div>
+            )}
 
       {selectedProduct && (
         <ProductModal

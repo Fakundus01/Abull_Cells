@@ -577,6 +577,11 @@ const TRANSLATIONS = {
         emptyTitle: "No encontramos productos con esos filtros",
         emptySubtitle: "Probá cambiar la categoría o limpiar la búsqueda.",
       },
+      pagination: {
+        showing: "Mostrando {start} – {end} de {total}",
+        prev: "Anterior",
+        next: "Siguiente",
+      },
     },
     productCard: {
       offer: "Oferta",
@@ -1416,6 +1421,11 @@ const TRANSLATIONS = {
         errorSubtitle: "Try again. If it persists, we'll check the endpoint.",
         emptyTitle: "We couldn't find products with those filters",
         emptySubtitle: "Try changing the category or clearing the search.",
+      },
+      pagination: {
+        showing: "Showing {start} – {end} of {total}",
+        prev: "Previous",
+        next: "Next",
       },
     },
     productCard: {

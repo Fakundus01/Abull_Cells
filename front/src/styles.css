@@ -795,6 +795,26 @@ input:focus, select:focus, textarea:focus{
   margin-top: 1rem;
 }
 
+.store-pagination{
+  margin-top: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.store-pagination-label{
+  color: var(--muted);
+  font-size: .9rem;
+}
+
+.store-pagination-actions{
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+}
+
 /* Empty / loading / error states */
 .store-state,
 .state{

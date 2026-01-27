@@ -198,7 +198,6 @@ export default function AdminProductsView({
                       className={`admin-image-preview-select ${isMain ? "is-main" : ""}`}
                       onClick={() => onSelectMainImage?.(selection)}
                       aria-pressed={isMain}
-                      title={t("admin.products.form.mainImageSelect")}
                     >
                       {isMain
                         ? t("admin.products.form.mainImageSelected")

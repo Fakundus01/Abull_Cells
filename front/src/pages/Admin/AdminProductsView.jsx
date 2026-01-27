@@ -188,16 +188,12 @@ export default function AdminProductsView({
                   return (
                   <div className={`admin-image-preview-item ${isMain ? "is-main" : ""}`} key={img.key}>
                     <img src={img.url} alt={t("admin.products.form.imagePreviewAlt")} loading="lazy" />
-                    {isMain && (
-                      <span className="admin-image-preview-badge">
-                        {t("admin.products.form.mainImageSelected")}
-                      </span>
-                    )}
                     <button
                       type="button"
                       className={`admin-image-preview-select ${isMain ? "is-main" : ""}`}
                       onClick={() => onSelectMainImage?.(selection)}
                       aria-pressed={isMain}
+                      title={t("admin.products.form.mainImageSelect")}
                     >
                       {isMain
                         ? t("admin.products.form.mainImageSelected")

@@ -44,4 +44,21 @@ UPLOAD_STORAGE_BACKEND=s3
 UPLOAD_BUCKET=mi-bucket
 UPLOAD_PREFIX=contact-uploads/
 UPLOAD_PUBLIC_BASE_URL=https://mi-cdn.example.com
+
 ```
+
+### Imágenes de productos con Cloudinary
+
+Si querés que las imágenes de productos se suban a Cloudinary, configurá:
+
+```
+PRODUCT_IMAGE_STORAGE=cloudinary
+CLOUDINARY_CLOUD_NAME=tu_cloud_name
+CLOUDINARY_API_KEY=tu_api_key
+CLOUDINARY_API_SECRET=tu_api_secret
+CLOUDINARY_SECURE=true
+CLOUDINARY_PRODUCT_FOLDER=products
+```
+
+Estas variables pueden ir en tu `.env` local (no lo subas al repo) o en el panel de variables
+de entorno del hosting (Render, Heroku, etc.).

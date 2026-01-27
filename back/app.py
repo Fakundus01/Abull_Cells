@@ -11,9 +11,8 @@ from config import Config
 from models import User, db
 from routes import admin_bp, auth_bp, orders_bp, payments_bp, products_bp
 from flask_migrate import Migrate # type: ignore
-from services.cloudinary_service import init_cloudinary #type: ignore
-
-                         
+from services.cloudinary_service import init_cloudinary
+                  
 load_dotenv()  # 👈 carga las variables desde .env
 migrate = Migrate()
 

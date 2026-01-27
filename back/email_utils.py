@@ -141,6 +141,9 @@ def send_order_confirmation_email(order, items=None):
     customer_email = _get(order, "email") or "—"
     phone = _get(order, "phone") or "—"
     notes = _get(order, "notes") or ""
+    notes_u = notes.upper()
+    delivery_method = _get(order, "delivery_method") or _get(order, "deliveryMethod") or ""
+    is_delivery = delivery_method == "delivery" or ("ENVÍO" in notes_u) or ("ENVIO" in notes_u)
     payment_method = _get(order, "payment_method") or _get(order, "paymentMethod") or "—"
     status = _get(order, "status") or "—"
     total_amount = _get(order, "total_amount") or _get(order, "totalAmount") or 0
@@ -164,6 +167,11 @@ def send_order_confirmation_email(order, items=None):
     if notes.strip():
         lines.append("")
         lines.append(f"Notas: {notes.strip()}")
+
+    if not is_delivery:
+        lines.append("")
+        lines.append("🧾 Verificación para retiro:")
+        lines.append("Solicitar N° de orden + nombre y apellido o email del cliente.")
 
     # Items
     lines.append("")
@@ -253,6 +261,11 @@ def send_admin_order_paid_email(order, payment_data: dict | None = None):
         return False
 
     subject = f"✅ Pago aprobado - Orden #{order.id}"
+    notes = getattr(order, "notes", "") or ""
+    notes_u = notes.upper()
+    delivery_method = getattr(order, "delivery_method", "") or getattr(order, "deliveryMethod", "")
+    is_delivery = delivery_method == "delivery" or ("ENVÍO" in notes_u) or ("ENVIO" in notes_u)
+    
     lines = [
         "Se aprobó el pago de Mercado Pago.",
         "",
@@ -264,6 +277,13 @@ def send_admin_order_paid_email(order, payment_data: dict | None = None):
         "Items:",
         *[f"- {i.product_name} x{i.quantity} (${i.unit_price})" for i in (order.items or [])],
     ]
+
+    if not is_delivery:
+        lines += [
+            "",
+            "🧾 Verificación para retiro:",
+            "Solicitar N° de orden + nombre y apellido o email del cliente.",
+        ]
 
     if payment_data:
         lines += ["", *_format_mp_payment_summary(payment_data)]
@@ -507,6 +527,8 @@ def send_buyer_order_email(order, items, mode: str, payment_data: dict | None = 
         lines += [
             "📍 Retiro en:",
             address,
+            "",
+            "🧾 Para retirar, presentá el N° de orden + nombre y apellido o email.",
         ]
 
         if hours:

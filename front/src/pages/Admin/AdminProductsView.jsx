@@ -14,6 +14,7 @@ export default function AdminProductsView({
   onSubmit,
   onReset,
   onEdit,
+  onSelectMainImage,
   onDeactivate,
   onActivate,
   productsPage,
@@ -43,26 +44,31 @@ export default function AdminProductsView({
   const offersCount = products.filter((p) => p.isOffer).length;
   const lowStockCount = products.filter((p) => Number(p.stock || 0) <= 5).length;
   const previewImages = useMemo(() => {
+    const items = [];
+    const existing = Array.isArray(form.existingImages) ? form.existingImages : [];
+    existing.forEach((url, index) => {
+      if (!url) return;
+      items.push({
+        key: `existing-${url}-${index}`,
+        url: resolveImageUrl(url),
+        revoke: false,
+        type: "existing",
+        sourceUrl: url,
+      });
+    });
     const files = Array.isArray(form.imageFiles) ? form.imageFiles : [];
-    if (files.length > 0) {
-      return files.map((file, index) => ({
+    files.forEach((file, index) => {
+      items.push({
         key: `${file.name}-${file.lastModified}-${index}`,
         url: URL.createObjectURL(file),
         revoke: true,
-      }));
-    }
-
-    const fallbackUrl = form.imageUrl ? resolveImageUrl(form.imageUrl) : "";
-    return fallbackUrl
-      ? [
-          {
-            key: "existing",
-            url: fallbackUrl,
-            revoke: false,
-          },
-        ]
-      : [];
-  }, [form.imageFiles, form.imageUrl]);
+        type: "new",
+        fileIndex: index,
+      });
+    });
+    return items;
+  }, [form.existingImages, form.imageFiles]);
+      
 
   useEffect(() => {
     return () => {
@@ -171,17 +177,38 @@ export default function AdminProductsView({
             </span>
             {previewImages.length > 0 ? (
               <div className="admin-image-preview-grid">
-                {previewImages.map((img) => (
-                  <div className="admin-image-preview-item" key={img.key}>
+                {previewImages.map((img) => {
+                  const isMain =
+                    img.type === "existing"
+                      ? form.imageUrl && form.imageUrl === img.sourceUrl
+                      : form.mainImageIndex === img.fileIndex;
+                  const selection =
+                    img.type === "existing"
+                      ? { type: "existing", url: img.sourceUrl }
+                      : { type: "new", index: img.fileIndex };
+                  return (
+                  <div className={`admin-image-preview-item ${isMain ? "is-main" : ""}`} key={img.key}>
                     <img src={img.url} alt={t("admin.products.form.imagePreviewAlt")} loading="lazy" />
+                    <button
+                      type="button"
+                      className={`admin-image-preview-select ${isMain ? "is-main" : ""}`}
+                      onClick={() => onSelectMainImage?.(selection)}
+                      aria-pressed={isMain}
+                    >
+                      {isMain
+                        ? t("admin.products.form.mainImageSelected")
+                        : t("admin.products.form.mainImageSelect")}
+                    </button>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className="admin-image-preview-empty">
                 {t("admin.products.form.imagePreviewEmpty")}
               </p>
             )}
+            <small className="field-hint">{t("admin.products.form.mainImageHint")}</small>
           </div>        
 
           <label>

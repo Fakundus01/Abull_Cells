@@ -35,6 +35,7 @@ def _parse_product_payload():
         "category": data.get("category"),
         "imageUrl": data.get("imageUrl") or data.get("image_url"),
         "imageUrls": data.get("imageUrls") or data.get("image_urls"),
+        "mainImageIndex": data.get("mainImageIndex") or data.get("main_image_index"),
         "isOffer": data.get("isOffer"),
         "offerLabel": data.get("offerLabel"),
         "stock": data.get("stock"),
@@ -54,6 +55,15 @@ def _parse_product_payload():
 
     return payload, image_files
 
+
+def _parse_main_image_index(value):
+    if value is None or value == "":
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        raise ValueError("Índice de imagen principal inválido.")
+    
 
 def _save_product_image(image_file):
     if not image_file or not image_file.filename:
@@ -135,6 +145,7 @@ def admin_create_product():
         category = data.get("category")
         image_url = data.get("imageUrl")
         image_urls = _coerce_image_urls(data.get("imageUrls"))
+        main_image_index = _parse_main_image_index(data.get("mainImageIndex"))
         is_offer = data.get("isOffer", False)
         offer_label = data.get("offerLabel")
         stock = data.get("stock", 0)
@@ -150,13 +161,22 @@ def admin_create_product():
             return jsonify({"msg": "Ya existe un producto con ese slug"}), 400
         
         uploaded_images = _save_product_images(image_files)
-        if uploaded_images and not image_url:
+        if main_image_index is not None:
+            if not uploaded_images:
+                raise ValueError("Tenés que subir imágenes nuevas para elegir la principal.")
+            if main_image_index < 0 or main_image_index >= len(uploaded_images):
+                raise ValueError("La imagen principal seleccionada no existe.")
+            image_url = uploaded_images[main_image_index]
+        elif uploaded_images and not image_url:
             image_url = uploaded_images[0]
 
         combined_images = [url for url in image_urls if url]
         combined_images.extend(uploaded_images)
-        if image_url and image_url not in combined_images:
-            combined_images.insert(0, image_url)
+        if image_url:
+            if image_url not in combined_images:
+                combined_images.insert(0, image_url)
+            else:
+                combined_images = [image_url] + [url for url in combined_images if url != image_url]
 
         product = Product(
             name=name,
@@ -204,6 +224,7 @@ def admin_update_product(product_id: int):
         category = data.get("category")
         image_url = data.get("imageUrl")
         image_urls = _coerce_image_urls(data.get("imageUrls"))
+        main_image_index = _parse_main_image_index(data.get("mainImageIndex"))
         is_offer = data.get("isOffer")
         offer_label = data.get("offerLabel")
         stock = data.get("stock")
@@ -229,13 +250,21 @@ def admin_update_product(product_id: int):
         combined_images.extend(uploaded_images)
         _enforce_image_limit(product, combined_images)
 
-        if uploaded_images and not image_url:
+        if main_image_index is not None:
+            if not uploaded_images:
+                raise ValueError("Tenés que subir imágenes nuevas para elegir la principal.")
+            if main_image_index < 0 or main_image_index >= len(uploaded_images):
+                raise ValueError("La imagen principal seleccionada no existe.")
+            image_url = uploaded_images[main_image_index]
+        elif uploaded_images and not image_url:
             image_url = uploaded_images[0]
 
         if image_url is not None and image_url != "":
             product.image_url = image_url
             if image_url not in combined_images:
                 combined_images.insert(0, image_url)
+        else:
+            combined_images = [image_url] + [url for url in combined_images if url != image_url]
 
         _sync_product_images(product, combined_images)
 

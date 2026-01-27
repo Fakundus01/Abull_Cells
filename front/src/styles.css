@@ -2430,6 +2430,11 @@ input:disabled, textarea:disabled, select:disabled{
   background: var(--surface-2);
 }
 
+.admin-image-preview-item.is-main{
+  border-color: rgba(16,185,129,.85);
+  box-shadow: 0 0 0 2px rgba(16,185,129,.3);
+}
+
 .admin-image-preview-item img{
   width: 100%;
   height: 86px;
@@ -2460,6 +2465,19 @@ input:disabled, textarea:disabled, select:disabled{
 .admin-image-preview-select.is-main{
   background: rgba(16,185,129,.9);
   border-color: rgba(16,185,129,.9);
+}
+
+.admin-image-preview-badge{
+  position: absolute;
+  top: .4rem;
+  left: .4rem;
+  background: rgba(16,185,129,.95);
+  color: #fff;
+  border-radius: 999px;
+  padding: .2rem .5rem;
+  font-size: .7rem;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(15,23,42,.2);
 }
 
 .admin-image-preview-empty{

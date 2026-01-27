@@ -67,6 +67,8 @@ export default function Admin() {
     category: "",
     imageUrl: "",
     imageFiles: [],
+    existingImages: [],
+    mainImageIndex: null,
     description: "",
     isOffer: false,
     offerLabel: "",
@@ -221,7 +223,34 @@ export default function Admin() {
     const { name, value, type, checked } = e.target;
     if (type === "file") {
       const files = Array.from(e.target.files || []);
-      setForm((prev) => ({ ...prev, [name]: files.slice(0, 5) }));
+      setForm((prev) => {
+        const existing = Array.isArray(prev.imageFiles) ? prev.imageFiles : [];
+        const combined = [...existing, ...files];
+        const deduped = combined.filter(
+          (file, index, arr) =>
+            index ===
+            arr.findIndex(
+              (item) =>
+                item.name === file.name &&
+                item.lastModified === file.lastModified &&
+                item.size === file.size
+            )
+        );
+        const limited = deduped.slice(0, 5);
+        let mainImageIndex = prev.mainImageIndex;
+        if (mainImageIndex != null && mainImageIndex >= limited.length) {
+          mainImageIndex = limited.length > 0 ? 0 : null;
+        }
+        if (mainImageIndex == null && !prev.imageUrl && limited.length > 0) {
+          mainImageIndex = 0;
+        }
+        return {
+          ...prev,
+          [name]: limited,
+          mainImageIndex,
+        };
+      });
+      e.target.value = "";
       return;
     }
     setForm((prev) => ({
@@ -241,6 +270,8 @@ export default function Admin() {
       category: "",
       imageUrl: "",
       imageFiles: [],
+      existingImages: [],
+      mainImageIndex: null,
       description: "",
       isOffer: false,
       offerLabel: "",
@@ -258,12 +289,34 @@ export default function Admin() {
       category: p.category || "",
       imageUrl: p.imageUrl || "",
       imageFiles: [],
+      existingImages: Array.isArray(p.images) ? p.images : p.imageUrl ? [p.imageUrl] : [],
+      mainImageIndex: null,
       description: p.description || "",
       isOffer: !!p.isOffer,
       offerLabel: p.offerLabel || "",
     });
     setSuccessMsg("");
     setError("");
+  }
+
+  function handleSelectMainImage(selection) {
+    setForm((prev) => {
+      if (selection?.type === "existing") {
+        return {
+          ...prev,
+          imageUrl: selection.url || "",
+          mainImageIndex: null,
+        };
+      }
+      if (selection?.type === "new") {
+        return {
+          ...prev,
+          imageUrl: "",
+          mainImageIndex: Number.isInteger(selection.index) ? selection.index : null,
+        };
+      }
+      return prev;
+    });
   }
 
   async function handleSubmit(e) {
@@ -285,6 +338,7 @@ export default function Admin() {
         description: form.description,
         isOffer: form.isOffer,
         offerLabel: form.offerLabel,
+        mainImageIndex: form.mainImageIndex ?? undefined,
       };
 
       if (hasImageFiles) {
@@ -297,6 +351,9 @@ export default function Admin() {
         payload.append("offerLabel", form.offerLabel || "");
         payload.append("imageUrl", form.imageUrl || "");
         payload.append("isOffer", String(form.isOffer));
+        if (form.mainImageIndex != null) {
+          payload.append("mainImageIndex", String(form.mainImageIndex));
+        }
         form.imageFiles.forEach((file) => {
           payload.append("images", file);
         });
@@ -649,20 +706,21 @@ export default function Admin() {
           {/* ✅ PRODUCTS */}
           {tab === "products" && (
             <AdminProductsView
-              products={products}
-              pagedProducts={pagedProducts}
-              loadingProducts={loadingProducts}
-              saving={saving}
-              isEditing={isEditing}
-              editingId={editingId}
-              form={form}
-              onChange={handleChange}
-              onSubmit={handleSubmit}
-              onReset={resetForm}
-              onEdit={handleEditClick}
-              onDeactivate={openConfirmDeactivate}
-              onActivate={handleActivateProduct}
-              productsPage={productsPage}
+          products={products}
+          pagedProducts={pagedProducts}
+          loadingProducts={loadingProducts}
+          saving={saving}
+          isEditing={isEditing}
+          editingId={editingId}
+          form={form}
+          onChange={handleChange}
+          onSubmit={handleSubmit}
+          onReset={resetForm}
+          onEdit={handleEditClick}
+          onSelectMainImage={handleSelectMainImage}
+          onDeactivate={openConfirmDeactivate}
+          onActivate={handleActivateProduct}
+          productsPage={productsPage}
               totalProductPages={totalProductPages}
               pageSize={PAGE_SIZE}
               onPrevPage={() => setProductsPage((p) => Math.max(1, p - 1))}

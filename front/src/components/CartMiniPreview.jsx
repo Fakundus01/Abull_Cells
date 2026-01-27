@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { ShoppingCart, Trash2 } from "lucide-react";
 import { useCart } from "../context/CartContext";
-import { resolveImageUrl } from "../utils/imageUrl";
+import { DEFAULT_PRODUCT_IMAGE, resolveImageUrl } from "../utils/imageUrl";
 import { useLanguage } from "../context/LanguageContext";
 
 export default function CartMiniPreview() {
@@ -40,7 +40,13 @@ export default function CartMiniPreview() {
             {items.slice(0, 4).map((it) => (
               <div key={it.id} className="cart-mini-item">
                 <div className="cart-mini-thumb">
-                  {it.imageUrl ? <img src={resolveImageUrl(it.imageUrl)} alt={it.name} /> : <span>—</span>}
+                  <img
+                    src={resolveImageUrl(it.imageUrl, DEFAULT_PRODUCT_IMAGE)}
+                    alt={it.name}
+                    onError={(event) => {
+                      event.currentTarget.src = DEFAULT_PRODUCT_IMAGE;
+                    }}
+                  />
                 </div>
 
                 <div className="cart-mini-info">

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useLanguage } from "../context/LanguageContext";
-import { resolveImageUrl } from "../utils/imageUrl";
+import { DEFAULT_PRODUCT_IMAGE, resolveImageUrl } from "../utils/imageUrl";
 import {
   ShoppingCart,
   Trash2,
@@ -96,10 +96,13 @@ function Cart() {
           {items.map((item) => (
             <article key={item.id} className="cart-item card-animate">
               <img
-                src={resolveImageUrl(item.imageUrl)}
+                src={resolveImageUrl(item.imageUrl, DEFAULT_PRODUCT_IMAGE)}
                 alt={item.name}
                 className="cart-item-image"
                 loading="lazy"
+                onError={(event) => {
+                  event.currentTarget.src = DEFAULT_PRODUCT_IMAGE;
+                }}
               />
 
               <div className="cart-item-info">

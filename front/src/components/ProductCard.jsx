@@ -1,10 +1,10 @@
 // src/components/ProductCard.jsx
 import { useEffect, useMemo, useState } from "react";
 import { useCart } from "../context/CartContext";
-import { ShoppingCart, Flame, Image as ImageIcon, Check } from "lucide-react";
+import { ShoppingCart, Flame, Check } from "lucide-react";
 import { getOfferMeta } from "../utils/pricing";
 import { useLanguage } from "../context/LanguageContext";
-import { resolveImageUrl } from "../utils/imageUrl";
+import { DEFAULT_PRODUCT_IMAGE, resolveImageUrl } from "../utils/imageUrl";
 
 function ProductCard({ product, onOpen }) {
   const { t } = useLanguage();
@@ -26,7 +26,7 @@ function ProductCard({ product, onOpen }) {
     [product]
   );
 
-  const finalImage = resolveImageUrl(imageUrl || image_url || "");
+   const finalImage = resolveImageUrl(imageUrl || image_url || "", DEFAULT_PRODUCT_IMAGE);
   const stockVariant = useMemo(() => {
     const s = Number(stock);
     if (!Number.isFinite(s)) return "unknown";
@@ -101,14 +101,14 @@ function ProductCard({ product, onOpen }) {
           onClick={onOpen}
           aria-label={name || t("productCard.noImage")}
         >
-          {finalImage ? (
-            <img src={finalImage} alt={name} className="product-card-image product-card-image--v2" />
-          ) : (
-            <div className="product-card-image placeholder placeholder--v2">
-              <ImageIcon size={18} className="icon" />
-              <span>{t("productCard.noImage")}</span>
-            </div>
-          )}
+           <img
+            src={finalImage}
+            alt={name || t("productCard.noImage")}
+            className="product-card-image product-card-image--v2"
+            onError={(event) => {
+              event.currentTarget.src = DEFAULT_PRODUCT_IMAGE;
+            }}
+          />
         </button>
       </div>
 

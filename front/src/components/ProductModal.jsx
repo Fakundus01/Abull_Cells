@@ -3,7 +3,7 @@ import { Check, ChevronLeft, ChevronRight, ShoppingCart, X } from "lucide-react"
 import { useLanguage } from "../context/LanguageContext";
 import { useCart } from "../context/CartContext";
 import { getOfferMeta } from "../utils/pricing";
-import { resolveImageUrl } from "../utils/imageUrl";
+import { DEFAULT_PRODUCT_IMAGE, resolveImageUrl } from "../utils/imageUrl";
 
 function ProductModal({ product, onClose }) {
   const { t } = useLanguage();
@@ -18,7 +18,8 @@ function ProductModal({ product, onClose }) {
     const main = product.imageUrl || product.image_url || "";
     const merged = [...list];
     if (main && !merged.includes(main)) merged.unshift(main);
-    return merged.map((url) => resolveImageUrl(url)).filter(Boolean);
+    const resolved = merged.map((url) => resolveImageUrl(url)).filter(Boolean);
+    return resolved.length ? resolved : [DEFAULT_PRODUCT_IMAGE];
   }, [product]);
 
   const { hasOffer, basePrice, finalPrice, offerLabel } = useMemo(
@@ -39,7 +40,7 @@ function ProductModal({ product, onClose }) {
 
   if (!product) return null;
 
-  const activeImage = images[activeIndex] || "";
+  const activeImage = images[activeIndex] || DEFAULT_PRODUCT_IMAGE;
   const cartItem = items.find((i) => i.id === product?.id);
   const qtyInCart = cartItem?.quantity ?? 0;
   const maxStock = Number(product?.stock ?? 0);
@@ -98,18 +99,15 @@ function ProductModal({ product, onClose }) {
         <div className="product-modal-content">
           <div className="product-modal-gallery">
             <div className="product-modal-main-frame">
-              {activeImage ? (
-                <img
-                  key={`${activeImage}-${slideDirection}`}
-                  src={activeImage}
-                  alt={product.name}
-                  className={`product-modal-main-img slide-${slideDirection}`}
-                />
-              ) : (
-                <div className="product-modal-main placeholder">
-                  {t("productCard.noImage")}
-                </div>
-              )}
+              <img
+                key={`${activeImage}-${slideDirection}`}
+                src={activeImage}
+                alt={product.name || t("productCard.noImage")}
+                className={`product-modal-main-img slide-${slideDirection}`}
+                onError={(event) => {
+                  event.currentTarget.src = DEFAULT_PRODUCT_IMAGE;
+                }}
+              />
 
               {images.length > 1 && (
                 <>
@@ -145,7 +143,13 @@ function ProductModal({ product, onClose }) {
                     ].join(" ")}
                     onClick={() => handleSelectImage(index, index > activeIndex ? "right" : "left")}
                   >
-                    <img src={img} alt={product.name} />
+                    <img
+                      src={img}
+                      alt={product.name || t("productCard.noImage")}
+                      onError={(event) => {
+                        event.currentTarget.src = DEFAULT_PRODUCT_IMAGE;
+                      }}
+                    />
                   </button>
                 ))}
               </div>

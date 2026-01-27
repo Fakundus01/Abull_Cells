@@ -11,6 +11,7 @@ from config import Config
 from models import User, db
 from routes import admin_bp, auth_bp, orders_bp, payments_bp, products_bp
 from flask_migrate import Migrate # type: ignore
+from services.cloudinary_service import init_cloudinary #type: ignore
 
                          
 load_dotenv()  # 👈 carga las variables desde .env
@@ -22,6 +23,7 @@ def create_app():
 
     db.init_app(app)
     migrate.init_app(app, db)
+    init_cloudinary(app)
     frontend_url = os.getenv("FRONTEND_URL", "").rstrip("/")
     if not frontend_url:
         raise RuntimeError("FRONTEND_URL no configurado para CORS.")

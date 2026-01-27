@@ -99,6 +99,12 @@ class Config:
         "image/png",
         "image/webp",
     }
+    PRODUCT_IMAGE_STORAGE = os.getenv("PRODUCT_IMAGE_STORAGE", "local").lower()
+    CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME")
+    CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY")
+    CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET")
+    CLOUDINARY_SECURE = os.getenv("CLOUDINARY_SECURE", "true").lower() == "true"
+    CLOUDINARY_PRODUCT_FOLDER = os.getenv("CLOUDINARY_PRODUCT_FOLDER", "products")
 
     ORDER_RESERVATION_MINUTES = int(os.getenv("ORDER_RESERVATION_MINUTES", "30"))
 

@@ -4,6 +4,7 @@ import uuid
 from flask import current_app, jsonify, request
 from werkzeug.exceptions import NotFound
 from werkzeug.utils import secure_filename
+from services.cloudinary_service import upload_product_image #type: ignore
 
 from models import Order, Product, ProductImage, User, db
 
@@ -63,14 +64,27 @@ def _save_product_image(image_file):
     if allowed_mime and mime_type not in allowed_mime:
         raise ValueError("Tipo de imagen no permitido (solo JPG/PNG/WEBP).")
 
-    upload_dir = current_app.config["PRODUCT_UPLOAD_DIR"]
-    os.makedirs(upload_dir, exist_ok=True)
-
     filename = secure_filename(image_file.filename)
     if not filename:
         raise ValueError("Nombre de archivo inválido.")
-
+    
+    storage_backend = current_app.config.get("PRODUCT_IMAGE_STORAGE", "local").lower()
     unique_name = f"{uuid.uuid4().hex}_{filename}"
+    
+    if storage_backend == "cloudinary":
+        folder = current_app.config.get("CLOUDINARY_PRODUCT_FOLDER", "products")
+        try:
+            return upload_product_image(
+                image_file,
+                folder=folder,
+                public_id=os.path.splitext(unique_name)[0],
+            )
+        except Exception as exc:
+            current_app.logger.exception(f"[Cloudinary] Error al subir imagen: {exc!r}")
+            raise ValueError("No se pudo subir la imagen a Cloudinary.") from exc
+
+    upload_dir = current_app.config["PRODUCT_UPLOAD_DIR"]
+    os.makedirs(upload_dir, exist_ok=True)
     image_file.save(os.path.join(upload_dir, unique_name))
 
     base_path = current_app.config.get("PRODUCT_IMAGE_BASE_URL", "/uploads/products").rstrip("/")

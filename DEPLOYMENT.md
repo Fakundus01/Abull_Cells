@@ -9,6 +9,9 @@ Este documento resume el plan de despliegue para el backend y frontend.
    - Subidas de productos (recomendado en producción con disco persistente):
      - `PRODUCT_UPLOAD_DIR=/var/data/uploads/products`
      - `PRODUCT_IMAGE_BASE_URL=/uploads/products`
+     Subidas con Cloudinary (opción 2 si no usás disco persistente):
+     - `CLOUDINARY_URL=cloudinary://API_KEY:API_SECRET@CLOUD_NAME`
+     - `CLOUDINARY_FOLDER=abul_cells/products` (opcional)
    - Recomendado en producción:
      - `JWT_COOKIE_SECURE=true`
      - `JWT_COOKIE_SAMESITE=Lax` (o `None` si usás dominios cruzados + HTTPS)

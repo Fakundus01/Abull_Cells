@@ -37,7 +37,7 @@ function Login() {
         message: t("auth.login.toastSuccessMessage", { email }),
       });
 
-      navigate("/admin");
+      navigate("/perfil");
     } catch (err) {
       setFailCount((n) => n + 1);
 

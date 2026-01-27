@@ -14,7 +14,13 @@ function CheckoutPaymentSection({
         <h2 className="checkout-h2">{t("checkout.paymentTitle")}</h2>
 
         <div className="payment-options">
-          <label className={`payment-option ${paymentMethod === "mercadopago" ? "active" : ""}`}>
+          <label
+            className={[
+              "payment-option",
+              "payment-option--mp",
+              paymentMethod === "mercadopago" ? "active" : "",
+            ].join(" ")}
+          >
             <input
               type="radio"
               name="paymentMethod"
@@ -32,7 +38,13 @@ function CheckoutPaymentSection({
             <span className="payment-tag">{t("checkout.payment.recommended")}</span>
           </label>
 
-          <label className={`payment-option ${paymentMethod === "efectivo" ? "active" : ""}`}>
+          <label
+            className={[
+              "payment-option",
+              "payment-option--cash",
+              paymentMethod === "efectivo" ? "active" : "",
+            ].join(" ")}
+          >
             <input
               type="radio"
               name="paymentMethod"

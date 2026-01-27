@@ -1,4 +1,5 @@
 // src/components/admin/AdminProductsView.jsx
+import { useEffect, useMemo } from "react";
 import { useLanguage } from "../../context/LanguageContext";
 import { resolveImageUrl } from "../../utils/imageUrl";
 export default function AdminProductsView({
@@ -41,6 +42,35 @@ export default function AdminProductsView({
   const totalProducts = products.length;
   const offersCount = products.filter((p) => p.isOffer).length;
   const lowStockCount = products.filter((p) => Number(p.stock || 0) <= 5).length;
+  const previewImages = useMemo(() => {
+    const files = Array.isArray(form.imageFiles) ? form.imageFiles : [];
+    if (files.length > 0) {
+      return files.map((file, index) => ({
+        key: `${file.name}-${file.lastModified}-${index}`,
+        url: URL.createObjectURL(file),
+        revoke: true,
+      }));
+    }
+
+    const fallbackUrl = form.imageUrl ? resolveImageUrl(form.imageUrl) : "";
+    return fallbackUrl
+      ? [
+          {
+            key: "existing",
+            url: fallbackUrl,
+            revoke: false,
+          },
+        ]
+      : [];
+  }, [form.imageFiles, form.imageUrl]);
+
+  useEffect(() => {
+    return () => {
+      previewImages.forEach((img) => {
+        if (img.revoke) URL.revokeObjectURL(img.url);
+      });
+    };
+  }, [previewImages]);
 
   return (
     <div className="admin-grid">
@@ -135,17 +165,24 @@ export default function AdminProductsView({
             <small className="field-hint">{t("admin.products.form.imageFileHint")}</small>
           </label>
 
-          <label>
+          <div className="admin-image-preview">
             <span className="label-row">
-              <ImageIcon size={16} className="icon" /> {t("admin.products.form.imageUrl")}
+              <ImageIcon size={16} className="icon" /> {t("admin.products.form.imagePreview")}
             </span>
-            <input
-              name="imageUrl"
-              value={form.imageUrl}
-              onChange={onChange}
-              placeholder={t("admin.products.form.imageUrlPlaceholder")}
-            />
-          </label>
+            {previewImages.length > 0 ? (
+              <div className="admin-image-preview-grid">
+                {previewImages.map((img) => (
+                  <div className="admin-image-preview-item" key={img.key}>
+                    <img src={img.url} alt={t("admin.products.form.imagePreviewAlt")} loading="lazy" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="admin-image-preview-empty">
+                {t("admin.products.form.imagePreviewEmpty")}
+              </p>
+            )}
+          </div>        
 
           <label>
             <span className="label-row">{t("admin.products.form.description")}</span>

@@ -16,6 +16,22 @@ export class ApiError extends Error {
   }
 }
 
+function normalizeApiMessage(message, status) {
+  const raw = String(message || "");
+  if (!raw) return raw;
+  const lowered = raw.toLowerCase();
+
+  if (lowered.includes("auth.") || lowered.includes("auth.error")) {
+    return "Ocurrió un error de autenticación. Volvé a iniciar sesión.";
+  }
+
+  if (status === 401 && lowered.includes("jwt")) {
+    return "Tu sesión expiró. Iniciá sesión nuevamente.";
+  }
+
+  return raw;
+}
+
 export async function refreshSession() {
   const csrf = getCookie("csrf_refresh_token");
 
@@ -88,7 +104,7 @@ async function apiFetch(path, options = {}, retry = true) {
             ? "Conflicto / stock insuficiente"
             : `HTTP ${res.status}`);
 
-    throw new ApiError(msg, { status: res.status, data, url });
+    throw new ApiError(normalizeApiMessage(msg, res.status), { status: res.status, data, url });
     }
 
   return data;
@@ -123,7 +139,7 @@ export async function fetchMe() {
   });
   const data = await res.json();
   if (!res.ok) {
-    throw new ApiError(data?.msg || "No autenticado", {
+    throw new ApiError(normalizeApiMessage(data?.msg || "No autenticado", res.status), {
       status: res.status,
       data,
       url: `${API_BASE_URL}/auth/me`,

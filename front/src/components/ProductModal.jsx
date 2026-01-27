@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, ShoppingCart, X } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
+import { useCart } from "../context/CartContext";
 import { getOfferMeta } from "../utils/pricing";
 import { resolveImageUrl } from "../utils/imageUrl";
 
 function ProductModal({ product, onClose }) {
   const { t } = useLanguage();
-  const [activeImage, setActiveImage] = useState("");
+  const { addToCart, items } = useCart();
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [slideDirection, setSlideDirection] = useState("right");
+  const [justAdded, setJustAdded] = useState(false);
 
   const images = useMemo(() => {
     if (!product) return [];
@@ -17,21 +21,65 @@ function ProductModal({ product, onClose }) {
     return merged.map((url) => resolveImageUrl(url)).filter(Boolean);
   }, [product]);
 
-  const { hasOffer, basePrice, finalPrice } = useMemo(
+  const { hasOffer, basePrice, finalPrice, offerLabel } = useMemo(
     () => getOfferMeta(product),
     [product]
   );
 
   useEffect(() => {
-    setActiveImage(images[0] || "");
+    setActiveIndex(0);
+    setSlideDirection("right");
   }, [images]);
 
+  useEffect(() => {
+    if (!justAdded) return;
+    const timeout = setTimeout(() => setJustAdded(false), 900);
+    return () => clearTimeout(timeout);
+  }, [justAdded]);
+
   if (!product) return null;
+
+  const activeImage = images[activeIndex] || "";
+  const cartItem = items.find((i) => i.id === product?.id);
+  const qtyInCart = cartItem?.quantity ?? 0;
+  const maxStock = Number(product?.stock ?? 0);
+  const hasCap = Number.isFinite(maxStock) && maxStock > 0;
+  const isMaxQty = hasCap && qtyInCart >= maxStock;
+  const isOut = Number(product?.stock ?? 0) <= 0;
 
   const fmt = (v) => {
     const n = Number(v);
     if (!Number.isFinite(n)) return "—";
     return n.toLocaleString("es-AR");
+  };
+
+  const handleSelectImage = (index, direction = "right") => {
+    if (!images.length || index === activeIndex) return;
+    const safeIndex = (index + images.length) % images.length;
+    setSlideDirection(direction);
+    setActiveIndex(safeIndex);
+  };
+
+  const handleNext = () => handleSelectImage(activeIndex + 1, "right");
+  const handlePrev = () => handleSelectImage(activeIndex - 1, "left");
+
+  const handleAddOne = () => {
+    if (isMaxQty || isOut) return;
+
+    addToCart(
+      {
+        id: product.id,
+        name: product.name,
+        price: Number(finalPrice),
+        originalPrice: hasOffer ? Number(basePrice) : null,
+        offerLabel: hasOffer ? offerLabel : null,
+        imageUrl: activeImage,
+        stock: Number.isFinite(Number(product?.stock)) ? Number(product?.stock) : undefined,
+      },
+      1
+    );
+
+    setJustAdded(true);
   };
 
   return (
@@ -49,17 +97,45 @@ function ProductModal({ product, onClose }) {
 
         <div className="product-modal-content">
           <div className="product-modal-gallery">
-            {activeImage ? (
-              <img src={activeImage} alt={product.name} className="product-modal-main" />
-            ) : (
-              <div className="product-modal-main placeholder">
-                {t("productCard.noImage")}
-              </div>
-            )}
+            <div className="product-modal-main-frame">
+              {activeImage ? (
+                <img
+                  key={`${activeImage}-${slideDirection}`}
+                  src={activeImage}
+                  alt={product.name}
+                  className={`product-modal-main-img slide-${slideDirection}`}
+                />
+              ) : (
+                <div className="product-modal-main placeholder">
+                  {t("productCard.noImage")}
+                </div>
+              )}
+
+              {images.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    className="product-modal-arrow left"
+                    onClick={handlePrev}
+                    aria-label={t("productModal.prevImage") ?? "Imagen anterior"}
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button
+                    type="button"
+                    className="product-modal-arrow right"
+                    onClick={handleNext}
+                    aria-label={t("productModal.nextImage") ?? "Imagen siguiente"}
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </>
+              )}
+            </div>
 
             {images.length > 1 ? (
               <div className="product-modal-thumbs">
-                {images.map((img) => (
+                {images.map((img, index) => (
                   <button
                     type="button"
                     key={img}
@@ -67,7 +143,7 @@ function ProductModal({ product, onClose }) {
                       "product-modal-thumb",
                       img === activeImage ? "active" : "",
                     ].join(" ")}
-                    onClick={() => setActiveImage(img)}
+                    onClick={() => handleSelectImage(index, index > activeIndex ? "right" : "left")}
                   >
                     <img src={img} alt={product.name} />
                   </button>
@@ -96,6 +172,37 @@ function ProductModal({ product, onClose }) {
               ) : (
                 <span className="product-price">${fmt(finalPrice)}</span>
               )}
+            </div>
+
+             <div className="product-modal-actions">
+              <button
+                type="button"
+                className={[
+                  "btn-primary",
+                  "btn-icon",
+                  "btn-full",
+                  "product-modal-add",
+                  justAdded ? "added" : "",
+                ].join(" ")}
+                onClick={handleAddOne}
+                disabled={isMaxQty || isOut}
+                title={isMaxQty ? t("productCard.maxStock") : t("productCard.addToCart")}
+              >
+                {isMaxQty || isOut ? (
+                  t("productCard.outOfStock")
+                ) : justAdded ? (
+                  <>
+                    <Check size={18} className="icon" />
+                    {t("productCard.added")}
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart size={18} className="icon" />
+                    {t("productCard.add")}
+                  </>
+                )}
+                {qtyInCart > 0 && <span className="qty-badge">x{qtyInCart}</span>}
+              </button>
             </div>
           </div>
         </div>

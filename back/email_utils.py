@@ -53,6 +53,7 @@ def send_email(
     body: str,
     cc: str | None = None,
     reply_to: str | None = None,
+    html_body: str | None = None,
 ) -> bool:
     """
     Envia un email usando Gmail SMTP (EMAIL_SENDER / EMAIL_PASSWORD) con UTF-8.
@@ -84,6 +85,8 @@ def send_email(
 
     # ✅ Body en UTF-8
     em.set_content(to_text_safe(body), charset="utf-8")
+    if html_body:
+        em.add_alternative(to_text_safe(html_body), subtype="html", charset="utf-8")
 
     context = ssl.create_default_context()
 
@@ -539,15 +542,29 @@ def send_password_reset_email(to_email: str, name: str, reset_url: str) -> bool:
 
 Recibimos una solicitud para restablecer tu contraseña.
 
-Abrí este link para crear una nueva:
+Hacé click aquí para crear una nueva:
 {reset_url}
 
 Si vos no pediste esto, podés ignorar este correo.
 """
+    html_body = f"""
+      <div style="font-family: Arial, sans-serif; color: #0f172a;">
+        <p>Hola {name or ""}!</p>
+        <p>Recibimos una solicitud para restablecer tu contraseña.</p>
+        <p>
+          <a href="{reset_url}" style="color: #2563eb; font-weight: 700;">
+            Click aquí
+          </a>
+          para crear una nueva.
+        </p>
+        <p>Si vos no pediste esto, podés ignorar este correo.</p>
+      </div>
+    """
 
     return send_email(
         to_email=to_email,
         subject=subject,
         body=body,
+        html_body=html_body,
         reply_to=None,
     )

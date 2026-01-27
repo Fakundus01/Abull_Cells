@@ -1791,6 +1791,7 @@ input:disabled, textarea:disabled, select:disabled{
 
 /* User menu */
 .user-menu{ position: relative; }
+.nav-profile-wrap{ position: relative; }
 .user-pill{
   width: 42px;
   height: 42px;

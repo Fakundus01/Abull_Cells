@@ -256,14 +256,7 @@ function Checkout() {
 
         clearCart();
 
-        window.open(pref.initPoint, "_blank", "noopener,noreferrer");
-
-        const params = new URLSearchParams();
-        params.set("orderId", String(order.id));
-        if (pref.preferenceId) {
-          params.set("preferenceId", String(pref.preferenceId));
-        }
-        navigate(`/checkout/pending?${params.toString()}`);
+        window.location.assign(pref.initPoint);
         return;
       }
 

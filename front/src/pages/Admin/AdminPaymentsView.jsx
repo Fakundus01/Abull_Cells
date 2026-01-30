@@ -16,10 +16,14 @@ export default function AdminPaymentsView({
   const { t, language } = useLanguage();
   const { ClipboardList, Loader2, CreditCard, CalendarDays, Printer } = icons;
   const locale = language === "en" ? "en-US" : "es-AR";
-  const formatCurrency = (amount) =>
-    new Intl.NumberFormat(locale, { style: "currency", currency: "ARS" }).format(
-      Number(amount || 0)
-    );
+  const formatCurrency = (amount, { withDecimals = true } = {}) => {
+    const options = withDecimals
+      ? { style: "currency", currency: "ARS" }
+      : { style: "currency", currency: "ARS", maximumFractionDigits: 0 };
+    return new Intl.NumberFormat(locale, options).format(Number(amount || 0));
+  };
+  const fallbackIfKey = (value, fallback) => (value?.startsWith?.("admin.") ? fallback : value);
+  const printActionLabel = fallbackIfKey(t("admin.payments.print.action"), "Imprimir");
   const statusLabels = {
     pending: t("admin.payments.status.pending"),
     paid: t("admin.payments.status.paid"),
@@ -33,6 +37,13 @@ export default function AdminPaymentsView({
     return [];
   };
 
+  const escapeHtml = (value) =>
+    String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+
   function handlePrint(order) {
     const items = getOrderItems(order);
     const printWindow = window.open("", "_blank", "width=900,height=700");
@@ -42,51 +53,120 @@ export default function AdminPaymentsView({
       value ? new Date(value).toLocaleString(locale) : t("admin.payments.print.emptyValue");
     const statusKey = String(order?.status || "pending").toLowerCase();
     const statusLabel = statusLabels[statusKey] || order?.status || t("admin.payments.print.emptyValue");
-    const totalAmount = formatCurrency(order?.totalAmount);
+    const totalAmount = formatCurrency(order?.totalAmount, { withDecimals: false });
 
-    const itemsHtml =
-      items.length === 0
-        ? `<p class="empty-items">${t("admin.payments.print.emptyItems")}</p>`
-        : `<table class="items-table">
-            <thead>
-              <tr>
-                <th>${t("admin.payments.print.headers.item")}</th>
-                <th>${t("admin.payments.print.headers.quantity")}</th>
-                <th>${t("admin.payments.print.headers.price")}</th>
-                <th>${t("admin.payments.print.headers.subtotal")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${items
-                .map((item) => {
-                  const quantity = item?.quantity ?? item?.qty ?? item?.count ?? 1;
-                  const price = item?.price ?? item?.unitPrice ?? item?.unit_price ?? item?.total ?? 0;
-                  const subtotal =
-                    item?.subtotal ?? item?.total ?? Number(quantity || 0) * Number(price || 0);
-                  const name =
-                    item?.name ||
-                    item?.title ||
-                    item?.productName ||
-                    item?.product?.name ||
-                    t("admin.payments.print.fallbackItem");
-                  return `<tr>
-                    <td>${name}</td>
-                    <td>${quantity}</td>
-                    <td>${formatCurrency(price)}</td>
-                    <td>${formatCurrency(subtotal)}</td>
-                  </tr>`;
-                })
-                .join("")}
-            </tbody>
-          </table>`;
+    const ticketWidth = 32;
+    const separator = "-".repeat(ticketWidth);
+    const labelWidth = 10;
+    const blankLabel = " ".repeat(labelWidth);
 
+    const wrapText = (text, width) => {
+      const words = String(text || "").split(/\s+/).filter(Boolean);
+      if (words.length === 0) return [""];
+      const lines = [];
+      let line = "";
+      words.forEach((word) => {
+        const next = line ? `${line} ${word}` : word;
+        if (next.length > width) {
+          if (line) lines.push(line);
+          line = word;
+        } else {
+          line = next;
+        }
+      });
+      if (line) lines.push(line);
+      return lines;
+    };
+
+    const keyValueLine = (label, value) => {
+      const lines = wrapText(value || t("admin.payments.print.emptyValue"), ticketWidth - labelWidth);
+      return lines
+        .map((line, index) => `${index === 0 ? label.padEnd(labelWidth) : blankLabel}${line}`)
+        .join("\n");
+    };
+
+    const formatItemLine = (name, quantity, subtotal) => {
+      const amount = formatCurrency(subtotal, { withDecimals: false });
+      const amountWidth = Math.max(10, amount.length + 1);
+      const nameWidth = ticketWidth - amountWidth;
+      const label = `${name} x${quantity}`;
+      const wrapped = wrapText(label, nameWidth);
+      return wrapped
+        .map((line, index) =>
+          index === 0
+            ? `${line.padEnd(nameWidth)}${amount.padStart(amountWidth)}`
+            : `${line.padEnd(nameWidth)}${"".padStart(amountWidth)}`
+        )
+        .join("\n");
+    };
+
+    const customerName = order?.customerName || order?.customer?.name;
+    const email = order?.email || order?.customer?.email;
+    const phone = order?.phone || order?.customerPhone || order?.customer?.phone;
+    const paymentMethod = order?.paymentMethod || order?.payment_method;
     const notes = order?.notes || order?.comment || order?.observations;
-    const notesHtml = notes
-      ? `<div class="notes">
-          <h3>${t("admin.payments.print.notes")}</h3>
-          <p>${notes}</p>
-        </div>`
+    const deliveryMethod = order?.deliveryMethod || order?.delivery_method;
+    const deliveryLabel =
+      deliveryMethod === "delivery"
+        ? t("admin.payments.print.deliveryLabel")
+        : t("admin.payments.print.pickupLabel");
+    const deliveryInstruction =
+      deliveryMethod === "delivery"
+        ? t("admin.payments.print.deliveryInstruction")
+        : t("admin.payments.print.pickupInstruction");
+
+    const itemLines =
+      items.length === 0
+        ? t("admin.payments.print.emptyItems")
+        : items
+            .map((item) => {
+              const quantity = item?.quantity ?? item?.qty ?? item?.count ?? 1;
+              const price = item?.price ?? item?.unitPrice ?? item?.unit_price ?? 0;
+              const subtotal =
+                item?.subtotal ?? item?.total ?? Number(quantity || 0) * Number(price || 0);
+              const name =
+                item?.name ||
+                item?.title ||
+                item?.productName ||
+                item?.product?.name ||
+                t("admin.payments.print.fallbackItem");
+              return formatItemLine(name, quantity, subtotal);
+            })
+            .join("\n");
+
+    const notesBlock = notes
+      ? `${t("admin.payments.print.notes")}\n${wrapText(notes, ticketWidth).join("\n")}\n${separator}`
       : "";
+    const deliveryBlock =
+      deliveryLabel && deliveryInstruction
+        ? `${deliveryLabel}\n${wrapText(deliveryInstruction, ticketWidth).join("\n")}\n${separator}`
+        : "";
+
+    const amountLabel = t("admin.payments.print.amount");
+    const ticketLines = [
+      t("admin.payments.print.brand").toUpperCase(),
+      separator,
+      t("admin.payments.print.ticketTitle"),
+      separator,
+      keyValueLine(t("admin.payments.print.orderLabel"), `#${order?.id ?? ""}`),
+      keyValueLine(t("admin.payments.print.date"), formatDate(order?.createdAt)),
+      keyValueLine(t("admin.payments.print.customer"), customerName),
+      keyValueLine(t("admin.payments.print.email"), email),
+      keyValueLine(t("admin.payments.print.phone"), phone),
+      keyValueLine(t("admin.payments.print.method"), paymentMethod),
+      keyValueLine(t("admin.payments.print.status"), statusLabel),
+      separator,
+      `${t("admin.payments.print.items").padEnd(ticketWidth - amountLabel.length)}${amountLabel}`,
+      itemLines,
+      separator,
+      `${t("admin.payments.print.total").padEnd(ticketWidth - totalAmount.length)}${totalAmount}`,
+      separator,
+      notesBlock,
+      deliveryBlock,
+      t("admin.payments.print.actionLine"),
+    ]
+      .filter(Boolean)
+      .join("\n");
 
     printWindow.document.write(`
       <html lang="${language}">
@@ -95,61 +175,28 @@ export default function AdminPaymentsView({
           <title>${t("admin.payments.print.title", { id: order?.id })}</title>
           <style>
             :root { color-scheme: light; }
-            body { font-family: "Inter", "Segoe UI", sans-serif; margin: 24px; color: #0f172a; }
-            h1 { font-size: 20px; margin-bottom: 12px; }
-            h2 { font-size: 16px; margin: 16px 0 8px; }
-            h3 { font-size: 14px; margin-bottom: 6px; }
-            .summary { display: grid; gap: 8px; margin-bottom: 16px; }
-            .summary-row { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
-            .label { font-weight: 600; color: #334155; }
-            .value { font-weight: 700; }
-            .items-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-            .items-table th, .items-table td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; }
-            .items-table th { background: #f8fafc; font-size: 13px; }
-            .total { margin-top: 12px; font-size: 16px; font-weight: 700; text-align: right; }
-            .notes { margin-top: 16px; padding: 12px; border: 1px dashed #cbd5f5; border-radius: 10px; }
-            .empty-items { font-size: 14px; color: #64748b; }
+            body { font-family: "Courier New", "Courier", monospace; margin: 0; color: #0f172a; }
+            .ticket { padding: 12px; }
+            pre { margin: 0; font-size: 12px; line-height: 1.35; white-space: pre-wrap; }
             @media print {
-              body { margin: 0; }
               .no-print { display: none; }
             }
+            @page { size: 80mm auto; margin: 4mm; }
           </style>
         </head>
         <body>
           <div class="no-print" style="text-align:right; margin-bottom: 16px;">
             <button onclick="window.print()" style="padding:8px 14px; border-radius: 10px; border: none; background: #0ea5e9; color: #fff; font-weight: 600;">
-              ${t("admin.payments.print.action")}
+              ${printActionLabel}
             </button>
           </div>
-          <h1>${t("admin.payments.print.title", { id: order?.id })}</h1>
-          <div class="summary">
-            <div class="summary-row">
-              <span class="label">${t("admin.payments.print.customer")}</span>
-              <span class="value">${order?.customerName || t("admin.payments.print.emptyValue")}</span>
-            </div>
-            <div class="summary-row">
-              <span class="label">${t("admin.payments.print.email")}</span>
-              <span class="value">${order?.email || t("admin.payments.print.emptyValue")}</span>
-            </div>
-            <div class="summary-row">
-              <span class="label">${t("admin.payments.print.date")}</span>
-              <span class="value">${formatDate(order?.createdAt)}</span>
-            </div>
-            <div class="summary-row">
-              <span class="label">${t("admin.payments.print.status")}</span>
-              <span class="value">${statusLabel}</span>
-            </div>
-            <div class="summary-row">
-              <span class="label">${t("admin.payments.print.method")}</span>
-              <span class="value">${order?.paymentMethod || t("admin.payments.print.emptyValue")}</span>
-            </div>
+          <div class="ticket">
+            <pre>${escapeHtml(ticketLines)}</pre>
           </div>
-
-          <h2>${t("admin.payments.print.items")}</h2>
-          ${itemsHtml}
-          <div class="total">${t("admin.payments.print.total")}: ${totalAmount}</div>
-          ${notesHtml}
         </body>
+        <script>
+          window.onload = () => setTimeout(() => window.print(), 200);
+        </script>
       </html>
     `);
     printWindow.document.close();

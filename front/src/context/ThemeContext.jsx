@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 const ThemeContext = createContext();
 
 const STORAGE_KEY = "theme";
-const DEFAULT_THEME = "light";
+const DEFAULT_THEME = "dark";
 
 function getInitialTheme() {
   if (typeof window === "undefined") return DEFAULT_THEME;

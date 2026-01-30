@@ -31,6 +31,7 @@ import {
   Save,
   ShieldCheck,
   Tag,
+  Printer,
   X,
   XCircle,
 } from "lucide-react";
@@ -755,7 +756,7 @@ export default function Admin() {
               onChangeStatus={handleOrderStatusChange}
               onPrevPage={() => setOrdersPage((p) => Math.max(1, p - 1))}
               onNextPage={() => setOrdersPage((p) => Math.min(totalOrderPages, p + 1))}
-              icons={{ ClipboardList, Loader2, CreditCard, CalendarDays }}
+              icons={{ ClipboardList, Loader2, CreditCard, CalendarDays, Printer }}
               cardAnimateClass="card-animate"
             />
           )}

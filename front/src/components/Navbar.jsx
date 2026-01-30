@@ -460,7 +460,7 @@ function Navbar() {
                 <Tag size={16} /> {t("nav.offers")}
               </NavLink>
 
-              <NavLink to="/" className="nav-link">
+              <NavLink to="/store" className="nav-link">
                 <ShoppingCart size={16} /> {t("nav.store")}
               </NavLink>
 

@@ -12,6 +12,7 @@ from email_utils import (
     send_admin_order_paid_email,
     send_admin_product_out_of_stock_email,
     send_buyer_order_email,
+    send_admin_order_ticket_to_printer,
 )
 from models import Order, Product, User, db
 from services.reservation_service import release_order_reservation
@@ -269,6 +270,13 @@ def _apply_mp_payment(order: Order, payment_id: str, payment_data: dict) -> None
                     f"[MAIL] Error mail admin pago aprobado: {exc}"
                 )
 
+            try:
+                send_admin_order_ticket_to_printer(order, order.items, reason="mp_paid")
+            except Exception as exc:
+                current_app.logger.exception(
+                    f"[PRINT] Error imprimiendo ticket mp_paid: {exc}"
+                )
+                
             try:
                 send_buyer_order_email(
                     order,

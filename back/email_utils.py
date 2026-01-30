@@ -8,6 +8,7 @@ import html
 from datetime import datetime
 from email.message import EmailMessage
 
+import requests #type: ignore
 
 # ----------------------------
 # Text / encoding helpers
@@ -143,17 +144,7 @@ def _format_datetime(value) -> str:
 # ----------------------------
 # Admin order emails
 # ----------------------------
-def send_order_confirmation_email(order, items=None):
-    """
-    Envía mail al admin con el detalle de una orden.
-    items puede ser:
-      - lista de dicts (como tu order_items)
-      - lista de modelos OrderItem (SQLAlchemy)
-    """
-    admin_email = os.getenv("EMAIL_ADMIN")
-    if not admin_email:
-        print("[MAIL] EMAIL_ADMIN no configurado, no se envía aviso admin.")
-        return False
+def build_admin_order_ticket(order, items=None) -> tuple[str, str, str]:
 
     order_id = _get(order, "id")
     customer_name = _get(order, "customer_name") or _get(order, "customerName") or "—"
@@ -173,7 +164,6 @@ def send_order_confirmation_email(order, items=None):
     total_amount = _get(order, "total_amount") or _get(order, "totalAmount") or 0
     created_at = _get(order, "created_at") or _get(order, "createdAt")
     created_at_fmt = _format_datetime(created_at)
-
     subject = f"🧾 Ticket de orden #{order_id} · {payment_method} · {status}"
 
     store_name = os.getenv("STORE_NAME", "Abul Cell")
@@ -266,10 +256,54 @@ def send_order_confirmation_email(order, items=None):
         f"{html.escape(body)}"
         "</div>"
     )
+    return subject, body, html_body
 
+
+def send_order_confirmation_email(order, items=None):
+    """
+    Envía mail al admin con el detalle de una orden.
+    items puede ser:
+      - lista de dicts (como tu order_items)
+      - lista de modelos OrderItem (SQLAlchemy)
+    """
+    admin_email = os.getenv("EMAIL_ADMIN")
+    if not admin_email:
+        print("[MAIL] EMAIL_ADMIN no configurado, no se envía aviso admin.")
+        return False
+
+    subject, body, html_body = build_admin_order_ticket(order, items)
     return send_email(admin_email, subject, body, cc=None, html_body=html_body)
 
 
+def send_admin_order_ticket_to_printer(order, items=None, reason: str = "order_created") -> bool:
+    print_url = os.getenv("PRINT_SERVICE_URL", "").strip()
+    if not print_url:
+        print("[PRINT] PRINT_SERVICE_URL no configurado, no se imprime ticket.")
+        return False
+
+    token = os.getenv("PRINT_SERVICE_TOKEN", "").strip()
+    subject, body, html_body = build_admin_order_ticket(order, items)
+    payload = {
+        "order_id": _get(order, "id"),
+        "reason": reason,
+        "subject": subject,
+        "body": body,
+        "html": html_body,
+    }
+    headers = {"Content-Type": "application/json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    try:
+        response = requests.post(print_url, json=payload, headers=headers, timeout=5)
+        response.raise_for_status()
+        print(f"[PRINT] Ticket enviado a servicio local ({reason}).")
+        return True
+    except Exception as ex:
+        print(f"[PRINT] Error enviando ticket a servicio local: {ex!r}")
+        return False
+    
+    
 def _format_mp_payment_summary(payment_data: dict) -> list[str]:
     if not payment_data:
         return []

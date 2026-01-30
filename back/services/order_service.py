@@ -10,6 +10,7 @@ from sqlalchemy import update
 from email_utils import (
     send_order_confirmation_email,
     send_admin_product_out_of_stock_email,
+    send_admin_order_ticket_to_printer,
     send_buyer_order_email,
 )
 from helpers import get_effective_price, parse_discount_percent
@@ -190,6 +191,12 @@ def create_order():
             current_app.logger.exception(f"[MAIL] Error mail confirmación: {exc}")
 
         if payment_method == "efectivo":
+            try:
+                send_admin_order_ticket_to_printer(order, order.items, reason="cash_created")
+            except Exception as exc:
+                current_app.logger.exception(
+                    f"[PRINT] Error imprimiendo ticket efectivo: {exc}"
+                )
             try:
                 send_buyer_order_email(order, order.items, mode="cash_created")
             except Exception as exc:

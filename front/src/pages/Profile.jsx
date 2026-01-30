@@ -162,7 +162,9 @@ function Profile() {
             <span className="profile-label">{t("profile.labels.verification")}</span>
             <span className={`profile-badge ${isEmailVerified ? "ok" : "pending"}`}>
               <BadgeCheck size={16} />
-              {isEmailVerified ? t("profile.verified") : t("profile.pending")}
+              <span className="profile-badge-text">
+                {isEmailVerified ? t("profile.verified") : t("profile.pending")}
+              </span>
             </span>
           </div>
         </div>
@@ -174,14 +176,22 @@ function Profile() {
           </div>
           <button
             type="button"
-            className="btn-secondary btn-small"
+            className={`theme-toggle ${theme === "dark" ? "is-dark" : "is-light"}`}
             onClick={toggleTheme}
             aria-label={t("profile.theme.toggle")}
           >
-            {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-            {theme === "dark"
-              ? t("profile.theme.light")
-              : t("profile.theme.dark")}
+            <span className="theme-toggle-icon">
+              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+            </span>
+            <span className="theme-toggle-labels">
+              <span className="theme-toggle-label theme-toggle-label--light">
+                {t("profile.theme.light")}
+              </span>
+              <span className="theme-toggle-label theme-toggle-label--dark">
+                {t("profile.theme.dark")}
+              </span>
+            </span>
+            <span className="theme-toggle-thumb" aria-hidden="true" />
           </button>
         </div>
         

@@ -66,11 +66,7 @@ export default function CartMiniPreview() {
                 </button>
               </div>
             ))}
-          </div>
-
-         <div className="cart-mini-more">
-              {t("cartMini.moreItems", { count: items.length - 4 })}
-            </div>
+          </div>        
 
           <div className="cart-mini-foot">
             <div className="cart-mini-total">

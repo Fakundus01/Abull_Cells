@@ -1,6 +1,8 @@
 import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import ScrollToTop from "./components/ScrollToTop";
+import BackToTopButton from "./components/BackToTopButton";
 
 import Home from "./pages/Home";
 import Store from "./pages/Store";
@@ -26,6 +28,7 @@ import { RequireAuth, RequireAdmin } from "./routes/guards";
 function App() {
   return (
     <div className="app-container">
+      <ScrollToTop />
       <Navbar />
 
       <main className="app-main">
@@ -57,6 +60,7 @@ function App() {
       </main>
 
       <Footer />
+      <BackToTopButton />
     </div>
   );
 }

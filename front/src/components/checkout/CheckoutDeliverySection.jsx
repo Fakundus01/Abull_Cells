@@ -17,6 +17,7 @@ function CheckoutDeliverySection({
   return (
     <div className="checkout-section card-animate">
       <h2 className="checkout-h2">{t("checkout.deliveryTitle")}</h2>
+      <p className="checkout-delivery-note">{t("checkout.delivery.areaNotice")}</p>
 
       <div className="delivery-options">
         <label className={`delivery-option ${deliveryMethod === "pickup" ? "active" : ""}`}>

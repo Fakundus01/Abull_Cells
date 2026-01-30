@@ -161,6 +161,7 @@ const TRANSLATIONS = {
       delivery: {
         pickup: "Retiro en el local",
         delivery: "Envío a domicilio",
+        areaNotice: "Envíos disponibles solo para el exterior de Buenos Aires.",
         areaNote: "Envíos disponibles solo para el exterior de Buenos Aires.",
         savedAddressHint: "Elegí una dirección guardada (o cargá una manual).",
         manualToggle: "Cargar dirección manual",
@@ -507,6 +508,12 @@ const TRANSLATIONS = {
         pending: "Pendiente",
         paid: "Pagada",
         cancelled: "Cancelada",
+      },
+      paymentMethods: {
+        mercadopago: "Mercado Pago",
+        mercadopagoAccountMoney: "Mercado Pago · dinero en cuenta",
+        cash: "Efectivo",
+        card: "Tarjeta",
       },
       detail: {
         loading: "Cargando detalle...",
@@ -1038,6 +1045,7 @@ const TRANSLATIONS = {
       delivery: {
         pickup: "In-store pickup",
         delivery: "Home delivery",
+        areaNotice: "Delivery available only outside Buenos Aires.",
         areaNote: "Delivery available only outside Buenos Aires.",
         savedAddressHint: "Choose a saved address (or enter one manually).",
         manualToggle: "Enter a manual address",
@@ -1384,6 +1392,12 @@ const TRANSLATIONS = {
         pending: "Pending",
         paid: "Paid",
         cancelled: "Cancelled",
+      },
+      paymentMethods: {
+        mercadopago: "Mercado Pago",
+        mercadopagoAccountMoney: "Mercado Pago · account balance",
+        cash: "Cash",
+        card: "Card",
       },
       detail: {
         loading: "Loading details...",

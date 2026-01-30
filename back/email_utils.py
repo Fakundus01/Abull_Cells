@@ -47,6 +47,22 @@ def normalize_hours(hours: str) -> str:
     return hours
 
 
+def _humanize_payment_method(method: str | None) -> str:
+    if not method:
+        return "—"
+
+    raw = str(method).lower()
+    if "mercadopago" in raw and re.search(r"account[_-]?money", raw):
+        return "Mercado Pago · dinero en cuenta"
+    if "mercadopago" in raw:
+        return "Mercado Pago"
+    if "efectivo" in raw or "cash" in raw:
+        return "Efectivo"
+    if "tarjeta" in raw or "card" in raw:
+        return "Tarjeta"
+    return str(method)
+
+
 # ----------------------------
 # SMTP core
 # ----------------------------
@@ -155,6 +171,7 @@ def build_admin_order_ticket(order, items=None) -> tuple[str, str, str]:
     delivery_method = _get(order, "delivery_method") or _get(order, "deliveryMethod") or ""
     is_delivery = delivery_method == "delivery" or ("ENVÍO" in notes_u) or ("ENVIO" in notes_u)
     payment_method = _get(order, "payment_method") or _get(order, "paymentMethod") or "—"
+    payment_label = _humanize_payment_method(payment_method)
     status = _get(order, "status") or "—"
     status_map = {
         "pendingpayment": "pago pendiente",
@@ -164,7 +181,7 @@ def build_admin_order_ticket(order, items=None) -> tuple[str, str, str]:
     total_amount = _get(order, "total_amount") or _get(order, "totalAmount") or 0
     created_at = _get(order, "created_at") or _get(order, "createdAt")
     created_at_fmt = _format_datetime(created_at)
-    subject = f"🧾 Ticket de orden #{order_id} · {payment_method} · {status}"
+    subject = f"🧾 Ticket de orden #{order_id} · {payment_label} · {status}"
 
     store_name = os.getenv("STORE_NAME", "Abul Cell")
     store_address = os.getenv("STORE_ADDRESS", "")
@@ -198,7 +215,7 @@ def build_admin_order_ticket(order, items=None) -> tuple[str, str, str]:
         _row("Cliente", _truncate(customer_name, 18)),
         _row("Email", _truncate(customer_email, 18)),
         _row("Tel", _truncate(phone, 18)),
-        _row("Pago", _truncate(payment_method, 18)),
+        _row("Pago", _truncate(payment_label, 18)),
         _row("Estado", _truncate(status_label, 18)),
         _sep(),
         _row("ITEMS", "IMPORTE"),
@@ -303,7 +320,7 @@ def send_admin_order_ticket_to_printer(order, items=None, reason: str = "order_c
         print(f"[PRINT] Error enviando ticket a servicio local: {ex!r}")
         return False
     
-    
+
 def _format_mp_payment_summary(payment_data: dict) -> list[str]:
     if not payment_data:
         return []

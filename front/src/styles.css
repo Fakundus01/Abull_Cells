@@ -1281,12 +1281,13 @@ input:focus, select:focus, textarea:focus{
   padding: 1rem;
   background: linear-gradient(180deg, var(--surface), var(--surface-2));
 }
-.profile-label{ color: var(--muted); font-weight: 800; font-size: .9rem; }
+.profile-label{ color: var(--muted); font-weight: 800; font-size: .9rem; display: block; }
 .profile-value{ display: block; margin-top: .15rem; font-weight: 900; }
 .profile-badge{
   display: inline-flex;
   align-items: center;
   gap: .45rem;
+  margin-top: .35rem;
   padding: .35rem .6rem;
   border-radius: 999px;
   font-weight: 900;
@@ -1313,6 +1314,89 @@ input:focus, select:focus, textarea:focus{
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+}
+
+.theme-toggle{
+  position: relative;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  border-radius: 999px;
+  padding: .35rem .6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  min-height: 40px;
+  min-width: 190px;
+  font-weight: 800;
+  overflow: hidden;
+}
+.theme-toggle:focus-visible{
+  outline: 2px solid rgba(14,165,233,.5);
+  outline-offset: 2px;
+}
+.theme-toggle-labels{
+  display: inline-flex;
+  align-items: center;
+  gap: .6rem;
+  z-index: 1;
+}
+.theme-toggle-label{
+  opacity: .6;
+  transition: opacity .2s ease, color .2s ease;
+}
+.theme-toggle.is-light .theme-toggle-label--light,
+.theme-toggle.is-dark .theme-toggle-label--dark{
+  opacity: 1;
+}
+.theme-toggle-icon{
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(14,165,233,.12);
+  color: var(--brand);
+  z-index: 1;
+}
+.theme-toggle-thumb{
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 46%;
+  border-radius: 999px;
+  background: rgba(14,165,233,.16);
+  transition: transform .25s ease;
+  left: 4px;
+  z-index: 0;
+}
+.theme-toggle.is-dark .theme-toggle-thumb{
+  transform: translateX(100%);
+}
+
+.checkout-delivery-note{
+  margin: .4rem 0 1rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.back-to-top{
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  display: none;
+  place-items: center;
+  box-shadow: var(--shadow);
+  z-index: 100;
+}
+.back-to-top:hover{
+  background: var(--surface-2);
 }
 
 .profile-verify{
@@ -3906,6 +3990,31 @@ input:disabled, textarea:disabled, select:disabled{
   .checkout-form,
   .checkout-summary{
     padding: 1rem;
+  }
+  
+  .cart-pill-label{
+    display: none;
+  }
+  .cart-clear-text{
+    display: none;
+  }
+  .cart-clear-btn{
+    width: auto;
+  }
+  .profile-badge-text{
+    display: none;
+  }
+  .theme-toggle{
+    min-width: 0;
+    padding: .35rem .5rem;
+  }
+  .theme-toggle-labels{
+    display: none;
+  }
+  .back-to-top{
+    display: grid;
+    right: .85rem;
+    bottom: .85rem;
   }
   .payment-option{
     align-items: flex-start;

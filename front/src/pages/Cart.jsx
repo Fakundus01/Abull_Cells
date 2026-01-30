@@ -73,14 +73,15 @@ function Cart() {
 
           <p className="cart-subtitle">
             <span className="cart-pill">
-              {totalItems} {labelAdded}
+              <span className="cart-pill-count">{totalItems}</span>
+              <span className="cart-pill-label"> {labelAdded}</span>
             </span>
           </p>
         </div>
 
-        <button className="btn-secondary btn-icon" onClick={clearCart}>
+        <button className="btn-secondary btn-icon cart-clear-btn" onClick={clearCart}>
           <Trash2 size={18} className="icon" />
-          {t("cart.clear")}
+          <span className="cart-clear-text">{t("cart.clear")}</span>
         </button>
       </header>
 

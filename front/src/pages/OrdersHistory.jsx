@@ -11,6 +11,25 @@ function formatCurrency(value, locale) {
   });
 }
 
+function formatPaymentMethod(method, t) {
+  const raw = String(method || "").toLowerCase();
+  if (!raw) return t("orders.emptyValue");
+
+  if (raw.includes("mercadopago") && /account[_-]?money/.test(raw)) {
+    return t("orders.paymentMethods.mercadopagoAccountMoney");
+  }
+  if (raw.includes("mercadopago")) {
+    return t("orders.paymentMethods.mercadopago");
+  }
+  if (raw.includes("efectivo") || raw.includes("cash")) {
+    return t("orders.paymentMethods.cash");
+  }
+  if (raw.includes("tarjeta") || raw.includes("card")) {
+    return t("orders.paymentMethods.card");
+  }
+  return method;
+}
+
 function OrdersHistory() {
   const { t, language } = useLanguage();
   const [orders, setOrders] = useState([]);
@@ -120,6 +139,10 @@ function OrdersHistory() {
               const statusKey = String(order?.status || "pending").toLowerCase();
               const detail = detailById[order.id];
               const detailError = detailErrorById[order.id];
+              const paymentLabel = formatPaymentMethod(
+                order.paymentMethod || order.payment_method,
+                t
+              );
 
               return (
                 <article key={order.id} className="order-card">
@@ -148,7 +171,7 @@ function OrdersHistory() {
                     <div>
                       <span className="order-label">{t("orders.labels.payment")}</span>
                       <span className="order-value">
-                         {order.paymentMethod || t("orders.emptyValue")}
+                         {paymentLabel}
                         {order.paymentBrand
                           ? ` · ${order.paymentBrand}${order.paymentLast4 ? ` •••• ${order.paymentLast4}` : ""}`
                           : ""}

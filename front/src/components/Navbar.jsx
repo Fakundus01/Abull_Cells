@@ -1,5 +1,5 @@
 // src/components/Navbar.jsx
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -22,6 +22,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 function Navbar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { language, setLanguage, t } = useLanguage();
 
   const [isMobileUI, setIsMobileUI] = useState(false);
@@ -211,6 +212,13 @@ function Navbar() {
     };
   }, [isMobileUI, cartOpen, profileOpen, mobileMenuOpen]);
 
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    setCartOpen(false);
+    setProfileOpen(false);
+  }, [location.pathname]);
+
+  
   return (
     <header className="navbar">
       <div className="navbar-inner">

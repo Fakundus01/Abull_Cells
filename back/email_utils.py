@@ -4,6 +4,8 @@ import ssl
 import smtplib
 import mimetypes
 import re
+import html
+from datetime import datetime
 from email.message import EmailMessage
 
 
@@ -121,6 +123,23 @@ def _get(obj, key, default=None):
     return getattr(obj, key, default)
 
 
+def _format_datetime(value) -> str:
+    if not value:
+        return ""
+    if isinstance(value, datetime):
+        return value.strftime("%d/%m/%Y %H:%M")
+    if isinstance(value, str):
+        iso = value.strip()
+        if iso.endswith("Z"):
+            iso = iso[:-1] + "+00:00"
+        try:
+            parsed = datetime.fromisoformat(iso)
+            return parsed.strftime("%d/%m/%Y %H:%M")
+        except ValueError:
+            return value
+    return str(value)
+
+
 # ----------------------------
 # Admin order emails
 # ----------------------------
@@ -146,38 +165,58 @@ def send_order_confirmation_email(order, items=None):
     is_delivery = delivery_method == "delivery" or ("ENVÍO" in notes_u) or ("ENVIO" in notes_u)
     payment_method = _get(order, "payment_method") or _get(order, "paymentMethod") or "—"
     status = _get(order, "status") or "—"
+    status_map = {
+        "pendingpayment": "pago pendiente",
+        "pending_payment": "pago pendiente",
+    }
+    status_label = status_map.get(str(status).lower(), status)
     total_amount = _get(order, "total_amount") or _get(order, "totalAmount") or 0
     created_at = _get(order, "created_at") or _get(order, "createdAt")
+    created_at_fmt = _format_datetime(created_at)
 
-    subject = f"🧾 Nueva orden #{order_id} · {payment_method} · {status}"
+    subject = f"🧾 Ticket de orden #{order_id} · {payment_method} · {status}"
 
-    lines = []
-    lines.append("📦 NUEVA ORDEN - ABUL CELL")
-    lines.append("")
-    lines.append(f"Orden: #{order_id}")
-    if created_at:
-        lines.append(f"Fecha: {created_at}")
-    lines.append(f"Cliente: {customer_name}")
-    lines.append(f"Email: {customer_email}")
-    lines.append(f"Tel: {phone}")
-    lines.append(f"Método de pago: {payment_method}")
-    lines.append(f"Estado: {status}")
-    lines.append(f"Total: {_money(total_amount)}")
+    store_name = os.getenv("STORE_NAME", "Abul Cell")
+    store_address = os.getenv("STORE_ADDRESS", "")
+    store_contact = os.getenv("STORE_CONTACT", "")
 
-    if notes.strip():
-        lines.append("")
-        lines.append(f"Notas: {notes.strip()}")
+    def _sep(width: int = 32) -> str:
+        return "-" * width
 
-    if not is_delivery:
-        lines.append("")
-        lines.append("🧾 Verificación para retiro:")
-        lines.append("Solicitar N° de orden + nombre y apellido o email del cliente.")
+    def _row(left: str, right: str = "", width: int = 32) -> str:
+        left = to_text_safe(left)
+        right = to_text_safe(right)
+        if right:
+            space = width - len(left) - len(right)
+            space = 1 if space < 1 else space
+            return f"{left}{' ' * space}{right}"
+        return left
 
-    # Items
-    lines.append("")
-    lines.append("🧾 Detalle de ítems:")
+    def _truncate(text: str, width: int) -> str:
+        text = to_text_safe(text)
+        return text if len(text) <= width else f"{text[: max(0, width - 1)]}…"
+
+    lines = [
+        _row(store_name.upper()),
+        *([_row(store_address)] if store_address else []),
+        *([_row(store_contact)] if store_contact else []),
+        _sep(),
+        _row("TICKET DE COMPRA"),
+        _sep(),
+        _row("Orden", f"#{order_id}"),
+        *([_row("Fecha", created_at_fmt)] if created_at_fmt else []),
+        _row("Cliente", _truncate(customer_name, 18)),
+        _row("Email", _truncate(customer_email, 18)),
+        _row("Tel", _truncate(phone, 18)),
+        _row("Pago", _truncate(payment_method, 18)),
+        _row("Estado", _truncate(status_label, 18)),
+        _sep(),
+        _row("ITEMS", "IMPORTE"),
+        _sep(),
+    ]
+
     if not items:
-        lines.append("— (Sin detalle de ítems)")
+        lines.append(_row("— Sin ítems"))
     else:
         grand = 0
         for it in items:
@@ -186,7 +225,6 @@ def send_order_confirmation_email(order, items=None):
             unit = _get(it, "unit_price") or _get(it, "unitPrice") or 0
             sub = _get(it, "subtotal")
 
-            # si subtotal no viene, lo calculamos
             if sub is None:
                 try:
                     sub = int(unit) * int(qty)
@@ -198,16 +236,38 @@ def send_order_confirmation_email(order, items=None):
             except Exception:
                 pass
 
-            lines.append(f"- {name}  x{qty}  ({_money(unit)} c/u)  =>  {_money(sub)}")
+            item_label = f"{_truncate(name, 18)} x{qty}"
+            lines.append(_row(item_label, _money(sub)))
 
-        lines.append("")
-        lines.append(f"Subtotal calculado (ítems): {_money(grand)}")
+        lines += [
+        _sep(),
+        _row("TOTAL", _money(total_amount)),
+    ]
 
-    lines.append("")
-    lines.append("✅ Acción: preparar productos / reservar stock / coordinar entrega o retiro.")
+    if notes.strip():
+        lines += [_sep(), _row("Notas"), _row(_truncate(notes.strip(), 32))]
+
+    if not is_delivery:
+        lines += [
+            _sep(),
+            _row("Retiro"),
+            _row("Presentar orden + email"),
+        ]
+
+    lines += [
+        _sep(),
+        _row("Acción: preparar y coordinar"),
+    ]
+
     body = "\n".join(lines)
+    html_body = (
+        "<div style=\"font-family: 'Courier New', monospace; font-size: 12px; "
+        "white-space: pre; line-height: 1.3;\">"
+        f"{html.escape(body)}"
+        "</div>"
+    )
 
-    return send_email(admin_email, subject, body, cc=None)
+    return send_email(admin_email, subject, body, cc=None, html_body=html_body)
 
 
 def _format_mp_payment_summary(payment_data: dict) -> list[str]:

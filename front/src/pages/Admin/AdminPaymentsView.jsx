@@ -264,7 +264,7 @@ export default function AdminPaymentsView({
                     onClick={() => handlePrint(o)}
                     title={t("admin.payments.print.action")}
                   >
-                    <Printer size={14} className="icon" /> {t("admin.payments.print.action")}
+                    <Printer size={14} className="icon" />
                   </button>
                 </span>
               </div>

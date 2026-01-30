@@ -30,7 +30,7 @@ const TRANSLATIONS = {
       subtitle: "Tu tienda de productos electrónicos",
       heroChip: "Compra segura • Soporte real",
       heroSubtitle:
-        "Tu tienda de confianza para celulares, notebooks y periféricos gamers. Comprá fácil, rápido y seguro.",
+        "Tu tienda de confianza en accesorios para celulares, notebooks y gaming. Comprá fácil, rápido y seguro.",
       viewStore: "Ver tienda",
       viewDeals: "Ver ofertas",
       benefits: {
@@ -39,8 +39,8 @@ const TRANSLATIONS = {
         support: "Atención personalizada",
       },
       devicePills: {
-        phones: "Celulares",
-        laptops: "Notebooks",
+        phones: "Accesorios",
+        laptops: "Periféricos",
         gaming: "Gaming",
       },
       categories: {
@@ -49,12 +49,12 @@ const TRANSLATIONS = {
         viewAll: "Ver todo",
         items: {
           phones: {
-            title: "Celulares",
-            description: "Gama alta, media y opciones económicas.",
+            title: "Accesorios para celulares",
+            description: "Fundas, cargadores, cables y protectores.",
           },
           laptops: {
-            title: "Notebooks",
-            description: "Equipos para estudio, trabajo y gaming.",
+            title: "Accesorios para notebooks",
+            description: "Mochilas, docks, cargadores y más.",
           },
           peripherals: {
             title: "Periféricos",
@@ -471,7 +471,7 @@ const TRANSLATIONS = {
     },
     footer: {
       description:
-        "Tienda de tecnología y productos electrónicos. Celulares, notebooks y periféricos.",
+        "Tienda de tecnología y accesorios electrónicos. Accesorios para celulares, notebooks y periféricos.",
       sectionsTitle: "Secciones",
       cta: "Ver tienda",
       sections: {
@@ -914,7 +914,7 @@ const TRANSLATIONS = {
       subtitle: "Your electronic products store",
       heroChip: "Secure checkout • Real support",
       heroSubtitle:
-        "Your trusted store for phones, laptops, and gaming accessories. Shop fast, simple, and safe.",
+        "Your trusted store for accessories for phones, laptops, and gaming. Shop fast, simple, and safe.",
       viewStore: "View store",
       viewDeals: "View deals",
       benefits: {
@@ -923,8 +923,8 @@ const TRANSLATIONS = {
         support: "Personalized support",
       },
       devicePills: {
-        phones: "Phones",
-        laptops: "Laptops",
+        phones: "Accessories",
+        laptops: "Peripherals",
         gaming: "Gaming",
       },
       categories: {
@@ -933,12 +933,12 @@ const TRANSLATIONS = {
         viewAll: "View all",
         items: {
           phones: {
-            title: "Phones",
-            description: "High-end, mid-range, and budget options.",
+            title: "Phone accessories",
+            description: "Cases, chargers, cables, and screen protectors.",
           },
           laptops: {
-            title: "Laptops",
-            description: "Gear for study, work, and gaming.",
+            title: "Laptop accessories",
+            description: "Bags, docks, chargers, and more.",
           },
           peripherals: {
             title: "Peripherals",
@@ -1355,7 +1355,7 @@ const TRANSLATIONS = {
     },
     footer: {
       description:
-        "Technology and electronics store. Phones, laptops, and accessories.",
+        "Tech and electronic accessories store. Accessories for phones, laptops, and peripherals.",
       sectionsTitle: "Sections",
       cta: "View store",
       sections: {

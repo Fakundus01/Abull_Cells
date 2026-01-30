@@ -11,6 +11,8 @@ function Offers() {
   const [products, setProducts] = useState([]);
   const [status, setStatus] = useState("idle");
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
 
   async function load() {
     try {
@@ -39,6 +41,16 @@ function Offers() {
       ),
     [products]
   );
+
+  const totalPages = Math.max(1, Math.ceil(offers.length / pageSize));
+  const pagedOffers = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return offers.slice(start, start + pageSize);
+  }, [offers, page]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [offers.length]);
 
   return (
   <main className="home-section">
@@ -85,7 +97,7 @@ function Offers() {
 
       {offers.length > 0 && (
         <div className="product-grid store-grid">
-          {offers.map((product) => (
+         {pagedOffers.map((product) => (
             <ProductCard
               key={product.id}
               product={product}
@@ -94,6 +106,40 @@ function Offers() {
           ))}
         </div>
       )}
+      
+      {offers.length > pageSize && (
+        <div className="store-pagination">
+          <span className="store-pagination-label">
+            {t("store.pagination.showing", {
+              start: (page - 1) * pageSize + 1,
+              end: Math.min(page * pageSize, offers.length),
+              total: offers.length,
+            })}
+          </span>
+          <div className="store-pagination-actions">
+            <button
+              type="button"
+              className="btn-small"
+              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              disabled={page === 1}
+            >
+              {t("store.pagination.prev")}
+            </button>
+            <span className="page-pill">
+              {page}/{totalPages}
+            </span>
+            <button
+              type="button"
+              className="btn-small"
+              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={page === totalPages}
+            >
+              {t("store.pagination.next")}
+            </button>
+          </div>
+        </div>
+      )}
+
       {selectedProduct && (
         <ProductModal
           product={selectedProduct}

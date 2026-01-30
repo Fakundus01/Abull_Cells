@@ -218,7 +218,7 @@ function Navbar() {
     setProfileOpen(false);
   }, [location.pathname]);
 
-  
+
   return (
     <header className="navbar">
       <div className="navbar-inner">
@@ -458,6 +458,10 @@ function Navbar() {
 
               <NavLink to="/ofertas" className="nav-link">
                 <Tag size={16} /> {t("nav.offers")}
+              </NavLink>
+
+              <NavLink to="/" className="nav-link">
+                <ShoppingCart size={16} /> {t("nav.store")}
               </NavLink>
 
               <NavLink to="/faq" className="nav-link">

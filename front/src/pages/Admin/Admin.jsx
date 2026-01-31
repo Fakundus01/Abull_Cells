@@ -824,6 +824,7 @@ export default function Admin() {
                 ImageIcon,
                 Loader2,
                 Save,
+                Search,
                 X,
                 XCircle,
                 CheckCircle2,

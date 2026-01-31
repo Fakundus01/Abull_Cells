@@ -1512,6 +1512,15 @@ input:focus, select:focus, textarea:focus{
 }
 .order-label{ color: var(--muted); font-weight: 700; font-size: .85rem; }
 .order-value{ display: block; font-weight: 800; margin-top: .15rem; }
+.payment-method{
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  font-weight: 800;
+}
+.payment-method-emoji{
+  font-size: 1.05rem;
+}
 
 .order-actions{ display: flex; justify-content: flex-end; }
 .order-detail-panel{
@@ -1599,6 +1608,7 @@ input:focus, select:focus, textarea:focus{
   .address-form-row{ grid-template-columns: 1fr; }
   .delivery-row{ grid-template-columns: 1fr; }
   .profile-theme{ align-items: flex-start; }
+  .payment-method-text{ display: none; }
 }
 
 /* =========================
@@ -2571,6 +2581,27 @@ input:disabled, textarea:disabled, select:disabled{
   border-color: rgba(16,185,129,.9);
 }
 
+.admin-image-preview-remove{
+  position: absolute;
+  top: .35rem;
+  right: .35rem;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid rgba(239,68,68,.5);
+  background: rgba(15,23,42,.85);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform .15s ease, background .15s ease, border-color .15s ease;
+}
+.admin-image-preview-remove:hover{
+  transform: translateY(-1px);
+  background: rgba(239,68,68,.85);
+  border-color: rgba(239,68,68,.9);
+}
+
 .admin-image-preview-badge{
   position: absolute;
   top: .4rem;
@@ -2713,7 +2744,32 @@ input:disabled, textarea:disabled, select:disabled{
 }
 .admin-orders-actions{
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
+  align-items: center;
+}
+.admin-tooltip{
+  position: relative;
+}
+.admin-tooltip::after{
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + .45rem);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15,23,42,.92);
+  color: #fff;
+  font-size: .72rem;
+  font-weight: 700;
+  padding: .25rem .45rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease, transform .15s ease;
+}
+.admin-tooltip:hover::after{
+  opacity: 1;
+  transform: translateX(-50%) translateY(-2px);
 }
 .admin-users-header{ grid-template-columns: .6fr 1.2fr 1.3fr .7fr; }
 .admin-users-row{

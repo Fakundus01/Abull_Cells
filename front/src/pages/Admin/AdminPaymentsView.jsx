@@ -29,6 +29,43 @@ export default function AdminPaymentsView({
     paid: t("admin.payments.status.paid"),
     cancelled: t("admin.payments.status.cancelled"),
   };
+  const formatPaymentMethod = (method) => {
+    const raw = String(method || "").toLowerCase();
+    if (!raw) {
+      return {
+        label: t("orders.emptyValue"),
+        emoji: "💳",
+      };
+    }
+    if (raw.includes("mercadopago") && /account[_-]?money/.test(raw)) {
+      return {
+        label: t("orders.paymentMethods.mercadopagoAccountMoney"),
+        emoji: "💳",
+      };
+    }
+    if (raw.includes("mercadopago")) {
+      return {
+        label: t("orders.paymentMethods.mercadopago"),
+        emoji: "💳",
+      };
+    }
+    if (raw.includes("efectivo") || raw.includes("cash")) {
+      return {
+        label: t("orders.paymentMethods.cash"),
+        emoji: "💵",
+      };
+    }
+    if (raw.includes("tarjeta") || raw.includes("card")) {
+      return {
+        label: t("orders.paymentMethods.card"),
+        emoji: "💳",
+      };
+    }
+    return {
+      label: method,
+      emoji: "💳",
+    };
+  };
 
   const getOrderItems = (order) => {
     if (Array.isArray(order?.items)) return order.items;
@@ -50,7 +87,7 @@ export default function AdminPaymentsView({
     if (!printWindow) return;
 
     const formatDate = (value) =>
-      value ? new Date(value).toLocaleString(locale) : t("admin.payments.print.emptyValue");
+      value ? new Date(value).toLocaleDateString(locale) : t("admin.payments.print.emptyValue");
     const statusKey = String(order?.status || "pending").toLowerCase();
     const statusLabel = statusLabels[statusKey] || order?.status || t("admin.payments.print.emptyValue");
     const totalAmount = formatCurrency(order?.totalAmount, { withDecimals: false });
@@ -104,6 +141,7 @@ export default function AdminPaymentsView({
     const email = order?.email || order?.customer?.email;
     const phone = order?.phone || order?.customerPhone || order?.customer?.phone;
     const paymentMethod = order?.paymentMethod || order?.payment_method;
+    const paymentLabel = formatPaymentMethod(paymentMethod).label;
     const notes = order?.notes || order?.comment || order?.observations;
     const deliveryMethod = order?.deliveryMethod || order?.delivery_method;
     const deliveryLabel =
@@ -153,7 +191,7 @@ export default function AdminPaymentsView({
       keyValueLine(t("admin.payments.print.customer"), customerName),
       keyValueLine(t("admin.payments.print.email"), email),
       keyValueLine(t("admin.payments.print.phone"), phone),
-      keyValueLine(t("admin.payments.print.method"), paymentMethod),
+      keyValueLine(t("admin.payments.print.method"), paymentLabel),
       keyValueLine(t("admin.payments.print.status"), statusLabel),
       separator,
       `${t("admin.payments.print.items").padEnd(ticketWidth - amountLabel.length)}${amountLabel}`,
@@ -230,18 +268,24 @@ export default function AdminPaymentsView({
               <span>{t("admin.payments.headers.actions")}</span>
             </div>
 
-            {pagedOrders.map((o) => (
+            {pagedOrders.map((o) => {
+              const paymentDisplay = formatPaymentMethod(o.paymentMethod);
+              return (
               <div key={o.id} className="admin-orders-row">
                 <span className="cell-strong">#{o.id}</span>
                 <span>{o.customerName}</span>
 
                 <span className="cell-muted">
-                  <CreditCard size={14} className="icon" /> {o.paymentMethod}
+                  <CreditCard size={14} className="icon" />
+                  <span className="payment-method">
+                    <span className="payment-method-emoji">{paymentDisplay.emoji}</span>
+                    <span className="payment-method-text">{paymentDisplay.label}</span>
+                  </span>
                 </span>
 
                 <span className="cell-muted">
                   <CalendarDays size={14} className="icon" />{" "}
-                  {o.createdAt ? new Date(o.createdAt).toLocaleString(locale) : "—"}
+                  {o.createdAt ? new Date(o.createdAt).toLocaleDateString(locale) : "—"}
                 </span>
 
                 <span>
@@ -260,15 +304,17 @@ export default function AdminPaymentsView({
                 <span className="admin-orders-actions">
                   <button
                     type="button"
-                    className="btn-small"
+                    className="btn-small admin-tooltip"
                     onClick={() => handlePrint(o)}
-                    title={t("admin.payments.print.action")}
+                    data-tooltip={t("admin.payments.print.tooltip")}
+                    title={t("admin.payments.print.tooltip")}
                   >
                     <Printer size={14} className="icon" />
                   </button>
                 </span>
               </div>
-            ))}
+            );
+            })}
           </div>
         )}
       </div>

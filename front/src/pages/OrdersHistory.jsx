@@ -13,21 +13,23 @@ function formatCurrency(value, locale) {
 
 function formatPaymentMethod(method, t) {
   const raw = String(method || "").toLowerCase();
-  if (!raw) return t("orders.emptyValue");
+  if (!raw) {
+    return { label: t("orders.emptyValue"), emoji: "💳" };
+  }
 
   if (raw.includes("mercadopago") && /account[_-]?money/.test(raw)) {
-    return t("orders.paymentMethods.mercadopagoAccountMoney");
+    return { label: t("orders.paymentMethods.mercadopagoAccountMoney"), emoji: "💳" };
   }
   if (raw.includes("mercadopago")) {
-    return t("orders.paymentMethods.mercadopago");
+    return { label: t("orders.paymentMethods.mercadopago"), emoji: "💳" };
   }
   if (raw.includes("efectivo") || raw.includes("cash")) {
-    return t("orders.paymentMethods.cash");
+    return { label: t("orders.paymentMethods.cash"), emoji: "💵" };
   }
   if (raw.includes("tarjeta") || raw.includes("card")) {
-    return t("orders.paymentMethods.card");
+    return { label: t("orders.paymentMethods.card"), emoji: "💳" };
   }
-  return method;
+  return { label: method, emoji: "💳" };
 }
 
 function OrdersHistory() {
@@ -139,7 +141,7 @@ function OrdersHistory() {
               const statusKey = String(order?.status || "pending").toLowerCase();
               const detail = detailById[order.id];
               const detailError = detailErrorById[order.id];
-              const paymentLabel = formatPaymentMethod(
+              const paymentDisplay = formatPaymentMethod(
                 order.paymentMethod || order.payment_method,
                 t
               );
@@ -157,7 +159,7 @@ function OrdersHistory() {
                         </span>
                         <span className="order-date">
                           {order.createdAt
-                            ? new Date(order.createdAt).toLocaleString(language)
+                            ? new Date(order.createdAt).toLocaleDateString(language)
                             : t("orders.emptyValue")}
                         </span>
                       </div>
@@ -171,7 +173,10 @@ function OrdersHistory() {
                     <div>
                       <span className="order-label">{t("orders.labels.payment")}</span>
                       <span className="order-value">
-                         {paymentLabel}
+                         <span className="payment-method">
+                          <span className="payment-method-emoji">{paymentDisplay.emoji}</span>
+                          <span className="payment-method-text">{paymentDisplay.label}</span>
+                        </span>
                         {order.paymentBrand
                           ? ` · ${order.paymentBrand}${order.paymentLast4 ? ` •••• ${order.paymentLast4}` : ""}`
                           : ""}

@@ -25,8 +25,10 @@ def _parse_product_payload():
         legacy_image = request.files.get("image")
         if legacy_image:
             image_files.append(legacy_image)
+        image_urls = data.getlist("imageUrls") or data.getlist("image_urls")
     else:
-        data = request.get_json() or {}    
+        data = request.get_json() or {}
+        image_urls = data.get("imageUrls") or data.get("image_urls")   
 
     payload = {
         "name": data.get("name"),
@@ -34,7 +36,7 @@ def _parse_product_payload():
         "price": data.get("price"),
         "category": data.get("category"),
         "imageUrl": data.get("imageUrl") or data.get("image_url"),
-        "imageUrls": data.get("imageUrls") or data.get("image_urls"),
+        "imageUrls": image_urls,
         "mainImageIndex": data.get("mainImageIndex") or data.get("main_image_index"),
         "isOffer": data.get("isOffer"),
         "offerLabel": data.get("offerLabel"),
@@ -119,13 +121,19 @@ def _coerce_image_urls(raw):
 
 
 def _sync_product_images(product, image_urls):
-    if not image_urls:
+    if image_urls is None:
         return
-    existing = [img.image_url for img in product.images or []]
-    for url in image_urls:
-        if url in existing:
-            continue
-        product.images.append(ProductImage(image_url=url, position=len(product.images)))
+    normalized = [url for url in image_urls if url]
+    existing_map = {img.image_url: img for img in product.images or []}
+    for img in list(product.images or []):
+        if img.image_url not in normalized:
+            product.images.remove(img)
+    for index, url in enumerate(normalized):
+        image = existing_map.get(url)
+        if not image:
+            image = ProductImage(image_url=url, position=index)
+            product.images.append(image)
+        image.position = index
 
 
 def _enforce_image_limit(product, new_images):
@@ -259,12 +267,16 @@ def admin_update_product(product_id: int):
         elif uploaded_images and not image_url:
             image_url = uploaded_images[0]
 
-        if image_url is not None and image_url != "":
-            product.image_url = image_url
+        if image_url is None or image_url == "":
+            image_url = combined_images[0] if combined_images else None
             if image_url not in combined_images:
                 combined_images.insert(0, image_url)
+                
+            else:
+                combined_images = [image_url] + [url for url in combined_images if url != image_url]
+
         else:
-            combined_images = [image_url] + [url for url in combined_images if url != image_url]
+            product.image_url = None
 
         _sync_product_images(product, combined_images)
 

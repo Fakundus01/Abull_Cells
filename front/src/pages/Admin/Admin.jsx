@@ -320,6 +320,59 @@ export default function Admin() {
     });
   }
 
+  function handleRemoveImage(selection) {
+    setForm((prev) => {
+      if (selection?.type === "existing") {
+        const existing = Array.isArray(prev.existingImages) ? prev.existingImages : [];
+        const remaining = existing.filter((url) => url !== selection.url);
+        let imageUrl = prev.imageUrl;
+        let mainImageIndex = prev.mainImageIndex;
+
+        if (imageUrl === selection.url) {
+          imageUrl = remaining[0] || "";
+          if (!imageUrl && Array.isArray(prev.imageFiles) && prev.imageFiles.length > 0) {
+            mainImageIndex = 0;
+          } else {
+            mainImageIndex = null;
+          }
+        }
+
+        return {
+          ...prev,
+          existingImages: remaining,
+          imageUrl,
+          mainImageIndex,
+        };
+      }
+
+      if (selection?.type === "new") {
+        const files = Array.isArray(prev.imageFiles) ? prev.imageFiles : [];
+        const nextFiles = files.filter((_, index) => index !== selection.index);
+        let mainImageIndex = prev.mainImageIndex;
+
+        if (Number.isInteger(mainImageIndex)) {
+          if (mainImageIndex === selection.index) {
+            mainImageIndex = nextFiles.length > 0 ? 0 : null;
+          } else if (mainImageIndex > selection.index) {
+            mainImageIndex -= 1;
+          }
+        }
+
+        if (!prev.imageUrl && mainImageIndex == null && nextFiles.length > 0) {
+          mainImageIndex = 0;
+        }
+
+        return {
+          ...prev,
+          imageFiles: nextFiles,
+          mainImageIndex,
+        };
+      }
+
+      return prev;
+    });
+  }
+  
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
@@ -336,6 +389,7 @@ export default function Admin() {
         stock: Number(form.stock || 0),
         category: form.category,
         imageUrl: form.imageUrl,
+        imageUrls: Array.isArray(form.existingImages) ? form.existingImages : [],
         description: form.description,
         isOffer: form.isOffer,
         offerLabel: form.offerLabel,
@@ -351,6 +405,9 @@ export default function Admin() {
         payload.append("description", form.description || "");
         payload.append("offerLabel", form.offerLabel || "");
         payload.append("imageUrl", form.imageUrl || "");
+        (form.existingImages || []).forEach((url) => {
+          if (url) payload.append("imageUrls", url);
+        });
         payload.append("isOffer", String(form.isOffer));
         if (form.mainImageIndex != null) {
           payload.append("mainImageIndex", String(form.mainImageIndex));
@@ -719,6 +776,7 @@ export default function Admin() {
           onReset={resetForm}
           onEdit={handleEditClick}
           onSelectMainImage={handleSelectMainImage}
+          onRemoveImage={handleRemoveImage}
           onDeactivate={openConfirmDeactivate}
           onActivate={handleActivateProduct}
           productsPage={productsPage}
@@ -737,6 +795,7 @@ export default function Admin() {
                 ImageIcon,
                 Loader2,
                 Save,
+                X,
                 XCircle,
                 CheckCircle2,
               }}

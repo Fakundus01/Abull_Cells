@@ -15,6 +15,7 @@ export default function AdminProductsView({
   onReset,
   onEdit,
   onSelectMainImage,
+  onRemoveImage,
   onDeactivate,
   onActivate,
   productsPage,
@@ -37,6 +38,7 @@ export default function AdminProductsView({
     ImageIcon,
     Loader2,
     Save,
+    X,
     XCircle,
     CheckCircle2,
   } = icons;
@@ -198,6 +200,15 @@ export default function AdminProductsView({
                       {isMain
                         ? t("admin.products.form.mainImageSelected")
                         : t("admin.products.form.mainImageSelect")}
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-image-preview-remove"
+                      onClick={() => onRemoveImage?.(selection)}
+                      aria-label={t("admin.products.form.imageRemove")}
+                      title={t("admin.products.form.imageRemove")}
+                    >
+                      <X size={14} aria-hidden="true" />
                     </button>
                   </div>
                   );

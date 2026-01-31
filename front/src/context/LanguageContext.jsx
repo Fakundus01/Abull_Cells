@@ -510,8 +510,8 @@ const TRANSLATIONS = {
         cancelled: "Cancelada",
       },
       paymentMethods: {
-        mercadopago: "Mercado Pago",
-        mercadopagoAccountMoney: "Mercado Pago · dinero en cuenta",
+        mercadopago: "MP",
+        mercadopagoAccountMoney: "MP · Dinero en cuenta",
         cash: "Efectivo",
         card: "Tarjeta",
       },
@@ -678,6 +678,7 @@ const TRANSLATIONS = {
       print: {
           action: "Imprimir",
           title: "Ticket de orden #{id}",
+          tooltip: "Imprimir ticket",
           brand: "Abul Cell",
           ticketTitle: "TICKET DE COMPRA",
           orderLabel: "Orden",
@@ -748,6 +749,7 @@ const TRANSLATIONS = {
           mainImageHint: "Marcá cuál será la imagen principal en la tienda.",
           mainImageSelect: "Elegir principal",
           mainImageSelected: "Imagen principal",
+          imageRemove: "Eliminar imagen",
           description: "Descripción",
           isOffer: "Marcar como oferta",
           offerLabel: "Etiqueta de oferta",
@@ -1394,8 +1396,8 @@ const TRANSLATIONS = {
         cancelled: "Cancelled",
       },
       paymentMethods: {
-        mercadopago: "Mercado Pago",
-        mercadopagoAccountMoney: "Mercado Pago · account balance",
+        mercadopago: "MP",
+        mercadopagoAccountMoney: "MP · Balance",
         cash: "Cash",
         card: "Card",
       },
@@ -1561,6 +1563,7 @@ const TRANSLATIONS = {
         },
         print: {
           action: "Print",
+          tooltip: "Print ticket",
           title: "Order ticket #{id}",
           brand: "Abul Cell",
           ticketTitle: "PURCHASE TICKET",
@@ -1632,6 +1635,7 @@ const TRANSLATIONS = {
           mainImageHint: "Select which image will be the main one in the store.",
           mainImageSelect: "Set as main",
           mainImageSelected: "Main image",
+          imageRemove: "Remove image",
           description: "Description",
           isOffer: "Mark as offer",
           offerLabel: "Offer label",

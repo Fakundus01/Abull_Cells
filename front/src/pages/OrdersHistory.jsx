@@ -20,8 +20,8 @@ function formatPaymentMethod(method, t) {
   if (raw.includes("mercadopago") && /account[_-]?money/.test(raw)) {
     return { label: t("orders.paymentMethods.mercadopagoAccountMoney"), emoji: "💳" };
   }
-  if (raw.includes("mercadopago")) {
-    return { label: t("orders.paymentMethods.mercadopago"), emoji: "💳" };
+  if (/account[_-]?money/.test(raw)) {
+    return { label: t("orders.paymentMethods.mercadopagoAccountMoney"), emoji: "💳" };
   }
   if (raw.includes("efectivo") || raw.includes("cash")) {
     return { label: t("orders.paymentMethods.cash"), emoji: "💵" };

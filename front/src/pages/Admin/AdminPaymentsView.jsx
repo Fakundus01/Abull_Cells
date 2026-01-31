@@ -14,7 +14,7 @@ export default function AdminPaymentsView({
   cardAnimateClass = "",
 }) {
   const { t, language } = useLanguage();
-  const { ClipboardList, Loader2, CreditCard, CalendarDays, Printer } = icons;
+  const { ClipboardList, Loader2, CalendarDays, Printer } = icons;
   const locale = language === "en" ? "en-US" : "es-AR";
   const formatCurrency = (amount, { withDecimals = true } = {}) => {
     const options = withDecimals
@@ -276,7 +276,6 @@ export default function AdminPaymentsView({
                 <span>{o.customerName}</span>
 
                 <span className="cell-muted">
-                  <CreditCard size={14} className="icon" />
                   <span className="payment-method">
                     <span className="payment-method-emoji">{paymentDisplay.emoji}</span>
                     <span className="payment-method-text">{paymentDisplay.label}</span>
@@ -304,12 +303,13 @@ export default function AdminPaymentsView({
                 <span className="admin-orders-actions">
                   <button
                     type="button"
-                    className="btn-small admin-tooltip"
+                    className="btn-small admin-tooltip admin-print-button"
                     onClick={() => handlePrint(o)}
                     data-tooltip={t("admin.payments.print.tooltip")}
                     title={t("admin.payments.print.tooltip")}
                   >
                     <Printer size={14} className="icon" />
+                    <span className="print-label">{t("admin.payments.print.action")}</span>
                   </button>
                 </span>
               </div>

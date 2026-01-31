@@ -1609,6 +1609,7 @@ input:focus, select:focus, textarea:focus{
   .delivery-row{ grid-template-columns: 1fr; }
   .profile-theme{ align-items: flex-start; }
   .payment-method-text{ display: none; }
+  .print-label{ display: inline; }
 }
 
 /* =========================
@@ -2602,6 +2603,12 @@ input:disabled, textarea:disabled, select:disabled{
   border-color: rgba(239,68,68,.9);
 }
 
+.admin-image-preview-remove:hover{
+  transform: translateY(-1px);
+  background: rgba(239,68,68,.85);
+  border-color: rgba(239,68,68,.9);
+}
+
 .admin-image-preview-badge{
   position: absolute;
   top: .4rem;
@@ -2746,6 +2753,16 @@ input:disabled, textarea:disabled, select:disabled{
   display: flex;
   justify-content: center;
   align-items: center;
+  width: 100%;
+}
+.admin-print-button{
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+}
+.print-label{
+  display: none;
+  font-weight: 700;
 }
 .admin-tooltip{
   position: relative;

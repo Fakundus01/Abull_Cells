@@ -493,6 +493,13 @@ function Navbar() {
                   </button>
 
                   <button
+                    className="user-menu-item"
+                    onClick={() => navigate("/mis-pedidos")}
+                  >
+                    <ClipboardList size={16} /> {t("nav.myOrders")}
+                  </button>
+
+                  <button
                     className="user-menu-item danger"
                     onClick={handleLogout}
                   >

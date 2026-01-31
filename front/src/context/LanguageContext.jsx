@@ -66,7 +66,7 @@ const TRANSLATIONS = {
           },
           gaming: {
             title: "Gaming",
-            description: "Monitores, sillas gamers y accesorios.",
+            description: "Monitores y accesorios.",
           },
           accessories: {
             title: "Accesorios",
@@ -952,7 +952,7 @@ const TRANSLATIONS = {
           },
           gaming: {
             title: "Gaming",
-            description: "Monitors, gaming chairs, and accessories.",
+            description: "Monitors and accessories.",
           },
           accessories: {
             title: "Accessories",

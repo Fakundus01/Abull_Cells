@@ -270,13 +270,11 @@ def admin_update_product(product_id: int):
         if image_url is None or image_url == "":
             image_url = combined_images[0] if combined_images else None
             if image_url not in combined_images:
-                combined_images.insert(0, image_url)
-                
+                combined_images.insert(0, image_url)             
             else:
                 combined_images = [image_url] + [url for url in combined_images if url != image_url]
 
-        else:
-            product.image_url = None
+        product.image_url = image_url or None
 
         _sync_product_images(product, combined_images)
 

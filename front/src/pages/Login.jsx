@@ -1,7 +1,6 @@
 // src/pages/Login.jsx
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, ShieldCheck, Loader2 } from "lucide-react";
 import { login } from "../services/api";
 import { useAuth } from "../context/AuthContext";

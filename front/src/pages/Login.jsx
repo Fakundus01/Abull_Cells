@@ -1,5 +1,6 @@
 // src/pages/Login.jsx
 import { useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, ShieldCheck, Loader2 } from "lucide-react";
 import { login } from "../services/api";
@@ -19,6 +20,7 @@ function Login() {
   const { saveSession, refreshUser } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -37,7 +39,9 @@ function Login() {
         message: t("auth.login.toastSuccessMessage", { email }),
       });
 
-      navigate("/perfil");
+      const nextParam = searchParams.get("next");
+      const target = nextParam && nextParam.startsWith("/") ? nextParam : "/perfil";
+      navigate(target);
     } catch (err) {
       setFailCount((n) => n + 1);
 

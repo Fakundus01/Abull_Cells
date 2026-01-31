@@ -382,6 +382,8 @@ export default function Admin() {
       setSaving(true);
 
       const hasImageFiles = Array.isArray(form.imageFiles) && form.imageFiles.length > 0;
+      const resolvedMainImageIndex =
+        form.imageUrl || !hasImageFiles ? form.mainImageIndex : form.mainImageIndex ?? 0;
       const payload = hasImageFiles ? new FormData() : {
         name: form.name,
         slug: form.slug,
@@ -393,7 +395,7 @@ export default function Admin() {
         description: form.description,
         isOffer: form.isOffer,
         offerLabel: form.offerLabel,
-        mainImageIndex: form.mainImageIndex ?? undefined,
+        mainImageIndex: resolvedMainImageIndex ?? undefined,
       };
 
       if (hasImageFiles) {
@@ -409,8 +411,8 @@ export default function Admin() {
           if (url) payload.append("imageUrls", url);
         });
         payload.append("isOffer", String(form.isOffer));
-        if (form.mainImageIndex != null) {
-          payload.append("mainImageIndex", String(form.mainImageIndex));
+        if (resolvedMainImageIndex != null) {
+          payload.append("mainImageIndex", String(resolvedMainImageIndex));
         }
         form.imageFiles.forEach((file) => {
           payload.append("images", file);

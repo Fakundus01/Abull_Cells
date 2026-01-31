@@ -768,6 +768,11 @@ const TRANSLATIONS = {
           title: "Productos actuales",
           loading: "Cargando productos...",
           empty: "No hay productos cargados todavía.",
+          searchPlaceholder: "Buscar por nombre, slug, categoría o ID",
+          searchLabel: "Buscar productos",
+          searchClear: "Limpiar búsqueda",
+          searchResults: "{count} resultados",
+          searchEmpty: "No hay productos que coincidan con la búsqueda.",
           headers: {
             name: "Nombre",
             category: "Categoría",
@@ -1654,6 +1659,11 @@ const TRANSLATIONS = {
           title: "Current products",
           loading: "Loading products...",
           empty: "There are no products yet.",
+          searchPlaceholder: "Search by name, slug, category, or ID",
+          searchLabel: "Search products",
+          searchClear: "Clear search",
+          searchResults: "{count} results",
+          searchEmpty: "No products match your search.",
           headers: {
             name: "Name",
             category: "Category",

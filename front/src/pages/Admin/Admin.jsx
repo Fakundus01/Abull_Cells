@@ -29,6 +29,7 @@ import {
   Pencil,
   PlusCircle,
   Save,
+  Search,
   ShieldCheck,
   Tag,
   Printer,
@@ -56,6 +57,7 @@ export default function Admin() {
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [saving, setSaving] = useState(false);
   const [productsPage, setProductsPage] = useState(1);
+  const [productSearch, setProductSearch] = useState("");
 
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -204,9 +206,26 @@ export default function Admin() {
   // -------------------------
   // Derived: Products paging
   // -------------------------
+  const filteredProducts = useMemo(() => {
+    const query = productSearch.trim().toLowerCase();
+    if (!query) return products || [];
+    return (products || []).filter((product) => {
+      const name = String(product?.name || "").toLowerCase();
+      const slug = String(product?.slug || "").toLowerCase();
+      const category = String(product?.category || "").toLowerCase();
+      const id = String(product?.id || "").toLowerCase();
+      return (
+        name.includes(query) ||
+        slug.includes(query) ||
+        category.includes(query) ||
+        id.includes(query)
+      );
+    });
+  }, [productSearch, products]);
+
   const totalProductPages = useMemo(() => {
-    return Math.max(1, Math.ceil((products?.length || 0) / PAGE_SIZE));
-  }, [products?.length]);
+    return Math.max(1, Math.ceil((filteredProducts?.length || 0) / PAGE_SIZE));
+  }, [filteredProducts?.length]);
 
   useEffect(() => {
     setProductsPage((p) => Math.min(Math.max(1, p), totalProductPages));
@@ -214,8 +233,12 @@ export default function Admin() {
 
   const pagedProducts = useMemo(() => {
     const start = (productsPage - 1) * PAGE_SIZE;
-    return (products || []).slice(start, start + PAGE_SIZE);
-  }, [products, productsPage]);
+    return (filteredProducts || []).slice(start, start + PAGE_SIZE);
+  }, [filteredProducts, productsPage]);
+
+  useEffect(() => {
+    setProductsPage(1);
+  }, [productSearch]);
 
   // -------------------------
   // Products handlers
@@ -767,6 +790,7 @@ export default function Admin() {
           {tab === "products" && (
             <AdminProductsView
           products={products}
+          filteredProducts={filteredProducts}
           pagedProducts={pagedProducts}
           loadingProducts={loadingProducts}
           saving={saving}
@@ -784,6 +808,9 @@ export default function Admin() {
           productsPage={productsPage}
               totalProductPages={totalProductPages}
               pageSize={PAGE_SIZE}
+              productSearch={productSearch}
+              onSearchChange={setProductSearch}
+              onClearSearch={() => setProductSearch("")}
               onPrevPage={() => setProductsPage((p) => Math.max(1, p - 1))}
               onNextPage={() => setProductsPage((p) => Math.min(totalProductPages, p + 1))}
               icons={{

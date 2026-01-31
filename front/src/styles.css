@@ -2674,6 +2674,19 @@ input:disabled, textarea:disabled, select:disabled{
   gap: .6rem;
   margin-bottom: .9rem;
 }
+.admin-products-toolbar{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  flex-wrap: wrap;
+  margin-bottom: .9rem;
+}
+.admin-products-search{
+  flex: 1;
+  min-width: 220px;
+  max-width: 360px;
+}
 .summary-pill{
   display: flex;
   align-items: center;

@@ -4,6 +4,7 @@ import { useLanguage } from "../../context/LanguageContext";
 import { resolveImageUrl } from "../../utils/imageUrl";
 export default function AdminProductsView({
   products,
+  filteredProducts,
   pagedProducts,
   loadingProducts,
   saving,
@@ -21,6 +22,9 @@ export default function AdminProductsView({
   productsPage,
   totalProductPages,
   pageSize,
+  productSearch,
+  onSearchChange,
+  onClearSearch,
   onPrevPage,
   onNextPage,
   icons,
@@ -38,11 +42,13 @@ export default function AdminProductsView({
     ImageIcon,
     Loader2,
     Save,
+    Search,
     X,
     XCircle,
     CheckCircle2,
   } = icons;
   const totalProducts = products.length;
+  const filteredCount = filteredProducts.length;
   const offersCount = products.filter((p) => p.isOffer).length;
   const lowStockCount = products.filter((p) => Number(p.stock || 0) <= 5).length;
   const previewImages = useMemo(() => {
@@ -285,6 +291,34 @@ export default function AdminProductsView({
             <Package size={18} className="icon" /> {t("admin.products.list.title")}
           </h2>
         </div>
+        
+        <div className="admin-products-toolbar">
+          <div className="input-with-icon admin-products-search">
+            <Search size={16} className="icon" aria-hidden="true" />
+            <input
+              type="text"
+              value={productSearch}
+              onChange={(event) => onSearchChange?.(event.target.value)}
+              placeholder={t("admin.products.list.searchPlaceholder")}
+              aria-label={t("admin.products.list.searchLabel")}
+            />
+            {productSearch ? (
+              <button
+                type="button"
+                className="clear-input"
+                onClick={() => onClearSearch?.()}
+                aria-label={t("admin.products.list.searchClear")}
+                title={t("admin.products.list.searchClear")}
+              >
+                <X size={16} aria-hidden="true" />
+              </button>
+            ) : null}
+          </div>
+
+          <span className="admin-muted">
+            {t("admin.products.list.searchResults", { count: filteredCount })}
+          </span>
+        </div>
 
         <div className="admin-products-summary">
           <div className="summary-pill">
@@ -305,8 +339,12 @@ export default function AdminProductsView({
           <p className="admin-muted">
             <Loader2 size={16} className="icon spin" /> {t("admin.products.list.loading")}
           </p>
-        ) : products.length === 0 ? (
-          <p className="admin-muted">{t("admin.products.list.empty")}</p>
+        ) : filteredProducts.length === 0 ? (
+          <p className="admin-muted">
+            {productSearch
+              ? t("admin.products.list.searchEmpty")
+              : t("admin.products.list.empty")}
+          </p>
         ) : (
             <>
             <div className="admin-products-table modern">
@@ -405,9 +443,9 @@ export default function AdminProductsView({
              <div className="admin-pagination">
               <span className="admin-muted">
                 {t("admin.pagination.showing", {
-                  start: products.length === 0 ? 0 : (productsPage - 1) * pageSize + 1,
-                  end: Math.min(productsPage * pageSize, products.length),
-                  total: products.length,
+                  start: filteredProducts.length === 0 ? 0 : (productsPage - 1) * pageSize + 1,
+                  end: Math.min(productsPage * pageSize, filteredProducts.length),
+                  total: filteredProducts.length,
                 })}
               </span>
 

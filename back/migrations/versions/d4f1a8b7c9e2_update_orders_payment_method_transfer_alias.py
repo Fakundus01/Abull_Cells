@@ -18,6 +18,7 @@ depends_on = None
 
 
 def upgrade() -> None:
+    op.drop_constraint("ck_orders_payment_method_valid", "orders", type_="check")
     op.execute(
         """
         UPDATE orders
@@ -25,7 +26,6 @@ def upgrade() -> None:
         WHERE payment_method = 'mercadopago'
         """
     )
-    op.drop_constraint("ck_orders_payment_method_valid", "orders", type_="check")
     op.create_check_constraint(
         "ck_orders_payment_method_valid",
         "orders",
@@ -34,6 +34,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    op.drop_constraint("ck_orders_payment_method_valid", "orders", type_="check")
     op.execute(
         """
         UPDATE orders
@@ -41,7 +42,6 @@ def downgrade() -> None:
         WHERE payment_method = 'transferencia_alias'
         """
     )
-    op.drop_constraint("ck_orders_payment_method_valid", "orders", type_="check")
     op.create_check_constraint(
         "ck_orders_payment_method_valid",
         "orders",

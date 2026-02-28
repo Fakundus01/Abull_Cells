@@ -1,5 +1,5 @@
 // FASE 3: modularización de Checkout (medios de pago).
-import { CreditCard } from "lucide-react";
+import { Landmark } from "lucide-react";
 
 function CheckoutPaymentSection({
   t,
@@ -17,23 +17,23 @@ function CheckoutPaymentSection({
           <label
             className={[
               "payment-option",
-              "payment-option--mp",
-              paymentMethod === "mercadopago" ? "active" : "",
+              "payment-option--transfer",
+              paymentMethod === "transferencia_alias" ? "active" : "",
             ].join(" ")}
           >
             <input
               type="radio"
               name="paymentMethod"
-              value="mercadopago"
-              checked={paymentMethod === "mercadopago"}
-              onChange={() => setPaymentMethod("mercadopago")}
+              value="transferencia_alias"
+              checked={paymentMethod === "transferencia_alias"}
+              onChange={() => setPaymentMethod("transferencia_alias")}
             />
             <span className="payment-icon">
-              <CreditCard size={20} className="icon" />
+              <Landmark size={20} className="icon" />
             </span>
             <div className="payment-info">
-              <span className="payment-title">{t("checkout.payment.mercadoPago.title")}</span>
-              <span className="payment-subtitle">{t("checkout.payment.mercadoPago.subtitle")}</span>
+              <span className="payment-title">{t("checkout.payment.transferAlias.title")}</span>
+              <span className="payment-subtitle">{t("checkout.payment.transferAlias.subtitle")}</span>
             </div>
             <span className="payment-tag">{t("checkout.payment.recommended")}</span>
           </label>

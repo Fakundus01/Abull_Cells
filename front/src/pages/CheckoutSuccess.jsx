@@ -1,26 +1,23 @@
 // src/pages/CheckoutSuccess.jsx
 import { Link, useSearchParams } from "react-router-dom";
-import { CheckCircle2, ShieldCheck, ArrowRight, ShoppingBag, Mail } from "lucide-react";
+import { CheckCircle2, ShieldCheck, ArrowRight, ShoppingBag, MessageCircle } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
-import { useEffect } from "react";
-import { confirmMpPayment } from "../services/api";
+const WHATSAPP_NUMBER = import.meta.env.VITE_CHECKOUT_WHATSAPP_NUMBER || "";
+const MP_ALIAS = import.meta.env.VITE_MP_ALIAS || "";
+
 
 function CheckoutSuccess() {
   const { t } = useLanguage();
   const [params] = useSearchParams();
-  useEffect(() => {
-    const paymentId = params.get("payment_id") || params.get("collection_id");
-    const externalRef = params.get("external_reference");
+  const orderId = params.get("orderId");
 
-    if (!paymentId && !externalRef) return;
+  const message = encodeURIComponent(
+  `Hola! Realicé un pedido${orderId ? ` #${orderId}` : ""} y quiero enviar el comprobante de transferencia por alias${MP_ALIAS ? ` (${MP_ALIAS})` : ""}.`
+  );
+const whatsappHref = WHATSAPP_NUMBER
+  ? `https://wa.me/${WHATSAPP_NUMBER}?text=${message}`
+  : null;
 
-    confirmMpPayment({
-      paymentId,
-      orderId: externalRef,
-    }).catch((err) => {
-      console.error("[MP] Error confirmando pago:", err);
-    });
-  }, [params]);
   return (
     <section className="home-section checkout-success-page">
       <div className="checkout-success-card card-animate">
@@ -35,19 +32,17 @@ function CheckoutSuccess() {
           </div>
 
           <h1>{t("checkoutStatus.success.title")}</h1>
-          <p className="muted">
-            {t("checkoutStatus.success.subtitle")}
-          </p>
+          <p className="muted">{t("checkoutStatus.success.subtitle")}</p>
         </div>
 
         <div className="checkout-success-steps">
           <div className="success-step">
             <span className="step-ico">
-              <Mail size={16} className="icon" />
+              <MessageCircle size={16} className="icon" />
             </span>
             <div>
-              <div className="step-title">{t("checkoutStatus.success.steps.email.title")}</div>
-              <div className="step-sub">{t("checkoutStatus.success.steps.email.subtitle")}</div>
+              <div className="step-title">{t("checkoutStatus.success.steps.whatsapp.title")}</div>
+              <div className="step-sub">{t("checkoutStatus.success.steps.whatsapp.subtitle")}</div>
             </div>
           </div>
 
@@ -63,7 +58,14 @@ function CheckoutSuccess() {
         </div>
 
         <div className="checkout-success-actions">
-          <Link to="/" className="btn-primary btn-icon">
+          {whatsappHref && (
+            <a href={whatsappHref} target="_blank" rel="noreferrer" className="btn-primary btn-icon">
+              <MessageCircle size={18} className="icon" />
+              {t("checkoutStatus.success.actions.whatsapp")}
+            </a>
+          )}
+
+          <Link to="/" className="btn-secondary btn-icon">
             <ArrowRight size={18} className="icon" />
             {t("checkoutStatus.success.actions.home")}
           </Link>

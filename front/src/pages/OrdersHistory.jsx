@@ -17,11 +17,8 @@ function formatPaymentMethod(method, t) {
     return { label: t("orders.emptyValue"), emoji: "💳" };
   }
 
-  if (raw.includes("mercadopago") && /account[_-]?money/.test(raw)) {
-    return { label: t("orders.paymentMethods.mercadopagoAccountMoney"), emoji: "💳" };
-  }
-  if (/account[_-]?money/.test(raw)) {
-    return { label: t("orders.paymentMethods.mercadopagoAccountMoney"), emoji: "💳" };
+  if (raw.includes("transferencia_alias") || raw.includes("transfer") || raw.includes("alias")) {
+    return { label: t("orders.paymentMethods.transferAlias"), emoji: "🏦" };
   }
   if (raw.includes("efectivo") || raw.includes("cash")) {
     return { label: t("orders.paymentMethods.cash"), emoji: "💵" };

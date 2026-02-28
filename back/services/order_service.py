@@ -25,7 +25,7 @@ def create_order():
     {
     "customer": { "phone": "...", "notes": "..." },
     "items": [ { "productId": 1, "quantity": 2 }, ... ],
-    "paymentMethod": "efectivo" | "mercadopago"
+    "paymentMethod": "efectivo" | "transferencia_alias"
     }
     """
     try:
@@ -45,16 +45,14 @@ def create_order():
             return jsonify({"msg": "Carrito vacío"}), 400
 
         payment_method = (data.get("paymentMethod") or "").strip().lower()
-        valid_methods = ["efectivo", "mercadopago"]
+        valid_methods = ["efectivo", "transferencia_alias"]
         if payment_method not in valid_methods:
             current_app.logger.warning(
                 f"[ORDER] Método de pago inválido recibido: {payment_method!r}"
             )
             return jsonify({"msg": "Método de pago inválido"}), 400
 
-        if payment_method == "mercadopago":
-            if not current_app.config.get("MP_CLIENT"):
-                return jsonify({"msg": "Mercado Pago no está configurado"}), 500
+        if payment_method == "transferencia_alias":
             status = "pending_payment"
         else:
             status = "pending"
@@ -146,7 +144,7 @@ def create_order():
             }
 
         reservation_expires_at = None
-        if payment_method == "mercadopago":
+        if payment_method == "transferencia_alias":
             reservation_minutes = int(
                 current_app.config.get("ORDER_RESERVATION_MINUTES", 30)
             )
@@ -164,7 +162,7 @@ def create_order():
             payment_brand=payment_brand,
             payment_last4=payment_last4,
             payment_txid=payment_txid,
-            stock_reserved=payment_method == "mercadopago",
+            stock_reserved=payment_method == "transferencia_alias",
             reservation_expires_at=reservation_expires_at,
             notes=(customer.get("notes") or "").strip() or None,
             delivery_method=delivery_method,

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
-import { ApiError, createOrder, createMpPreference, fetchAddresses } from "../services/api";
+import { ApiError, createOrder, fetchAddresses } from "../services/api";
 import { useToast } from "../context/ToastContext";
 import LoadingOverlay from "../components/LoadingOverlay";
 import { useLanguage } from "../context/LanguageContext";
@@ -65,7 +65,7 @@ function Checkout() {
     notes: "",
   });
 
-  const [paymentMethod, setPaymentMethod] = useState("mercadopago"); // mercadopago | efectivo
+  const [paymentMethod, setPaymentMethod] = useState("transferencia_alias"); // transferencia_alias | efectivo
   const [cashGiven, setCashGiven] = useState(""); // "con cuánto abonás"
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -248,17 +248,6 @@ function Checkout() {
       const orderPayload = buildOrderPayload(selectedAddr);
 
       const { order } = await createOrder(orderPayload);
-
-      if (paymentMethod === "mercadopago") {
-        const pref = await createMpPreference({ orderId: order.id });
-
-        console.log("[MP][front] initPoint recibido:", pref.initPoint);
-
-        clearCart();
-
-        window.location.assign(pref.initPoint);
-        return;
-      }
 
       setSuccessOrderId(order.id);
       clearCart();

@@ -139,7 +139,7 @@ class Order(db.Model):
             name="ck_orders_delivery_method_valid",
         ),
         db.CheckConstraint(
-            "payment_method IN ('efectivo', 'mercadopago', 'tarjeta')",
+            "payment_method IN ('efectivo', 'transferencia_alias', 'tarjeta')",
             name="ck_orders_payment_method_valid",
         ),
     )

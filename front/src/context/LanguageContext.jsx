@@ -197,10 +197,10 @@ const TRANSLATIONS = {
       },
       payment: {
         recommended: "Recomendado",
-        mercadoPago: {
-          title: "Mercado Pago",
+        transferAlias: {
+          title: "Transferencia por alias",
           subtitle:
-            "Abrimos Mercado Pago en otra ventana para que pagues con tarjeta, saldo o efectivo en puntos habilitados. Al finalizar, volvés al checkout con el estado del pago."
+            "Te mostramos el alias y te redirigimos a WhatsApp para que envíes el comprobante del pago."
         },
         cash: {
           title: "Efectivo al retirar",
@@ -510,8 +510,7 @@ const TRANSLATIONS = {
         cancelled: "Cancelada",
       },
       paymentMethods: {
-        mercadopago: "MP",
-        mercadopagoAccountMoney: "MP · Dinero en cuenta",
+        transferAlias: "Transferencia por alias",
         cash: "Efectivo",
         card: "Tarjeta",
       },
@@ -830,65 +829,67 @@ const TRANSLATIONS = {
     },
     checkoutStatus: {
       success: {
-        badge: "Pago acreditado",
-        title: "Pago exitoso",
-        subtitle: "¡Gracias por tu compra! En breve recibirás un correo con los detalles.",
+        badge: "Orden registrada",
+        title: "¡Pedido confirmado!",
+        subtitle: "Te compartimos el alias para pagar por transferencia y enviar comprobante por WhatsApp.",
         steps: {
-          email: {
-            title: "Confirmación por email",
-            subtitle: "Te llega el detalle del pedido y el estado del pago.",
+          whatsapp: {
+            title: "Enviar comprobante por WhatsApp",
+            subtitle: "Tocá el botón para abrir el chat y compartir el número de orden junto al comprobante.",
           },
           prep: {
             title: "Preparación del pedido",
-            subtitle: "Armamos tu compra y coordinamos el envío/retiro.",
+            subtitle: "Cuando validemos el pago, avanzamos con el armado y coordinamos envío/retiro.",
           },
         },
         actions: {
+          whatsapp: "Enviar comprobante",
           home: "Volver al inicio",
           store: "Seguir comprando",
         },
       },
       pending: {
-        badge: "Pago en curso",
-        title: "Estamos esperando la confirmación de tu pago",
+        badge: "Pago pendiente de validación",
+        title: "Estamos esperando tu comprobante",
         subtitle:
-          "La ventana de Mercado Pago quedó abierta para que completes el pago. Cuando termine, Mercado Pago te redirige automáticamente y actualizamos tu pedido.",
+          "Realizá la transferencia por alias y enviá el comprobante por WhatsApp para que podamos validarlo.",
         orderNumber: "Orden asociada: #{orderId}.",
         steps: {
           payment: {
-            title: "Finalizá el pago en Mercado Pago",
+            title: "Transferí al alias indicado",
             subtitle:
-              "Podés usar tarjeta, saldo, transferencia o efectivo. Mercado Pago confirma la acreditación y nos avisa en segundos.",
+              "Usá tu homebanking o billetera para hacer la transferencia por el total del pedido.",
           },
           email: {
-            title: "Comprobante y aviso automático",
+            title: "Compartí el comprobante",
             subtitle:
-              "Te enviamos el comprobante/estado de Mercado Pago por email y avisamos al administrador cuando se acredita.",
+              "Mandanos por WhatsApp el comprobante junto con tu número de orden.",
           },
         },
         details: [
-          "Si pagás con tarjeta, la acreditación suele ser inmediata.",
-          "Si pagás con efectivo o transferencia, puede demorar hasta que se acredite el pago.",
-          "Cuando Mercado Pago confirma, tu pedido pasa de pendiente a pagado automáticamente.",
-          "Si cerraste la ventana, podés reabrir el link desde tu email o consultar en “Mis pedidos”.",
+          "Tu pedido queda registrado al confirmar la compra.",
+          "La validación del pago puede demorar unos minutos según el horario.",
+          "Una vez validado, actualizamos el estado y te avisamos por email.",
+          "Si necesitás ayuda, escribinos por WhatsApp.",
         ],
         actions: {
+          whatsapp: "Enviar comprobante",
           orders: "Ver mis pedidos",
           home: "Volver al inicio",
         },
       },
       failure: {
-        badge: "Pago no completado",
-        title: "Pago no completado",
+        badge: "No se pudo validar el pago",
+        title: "No pudimos validar el pago",
         subtitle:
-          "Tu pago no se pudo completar. No te preocupes: no se confirma la compra hasta que el pago se acredite.",
+          "Si ya transferiste, escribinos por WhatsApp con tu comprobante para revisarlo.",
         tips: {
-          balance: "Revisá que tengas saldo / límite disponible.",
-          method: "Probá con otra tarjeta o método dentro de Mercado Pago.",
-          retry: "Si se trabó el flujo, volvé al carrito y reintentá.",
+          alias: "Verificá que el alias sea correcto antes de transferir.",
+          receipt: "Asegurate de adjuntar el comprobante y número de orden.",
+          contact: "Si tenés dudas, contactanos por WhatsApp.",
         },
         actions: {
-          retry: "Reintentar pago",
+          whatsapp: "Contactar por WhatsApp",
           cart: "Volver al carrito",
           store: "Ir a la tienda",
         },
@@ -1088,10 +1089,10 @@ const TRANSLATIONS = {
       },
       payment: {
         recommended: "Recommended",
-        mercadoPago: {
-          title: "Mercado Pago",
+        transferAlias: {
+          title: "Alias bank transfer",
           subtitle:
-            "We open Mercado Pago in a new window so you can pay with card, balance, or cash at supported locations. After finishing, you return to checkout with the payment status.",
+            "We show the alias and redirect you to WhatsApp so you can send the payment receipt.",
         },
         cash: {
           title: "Cash on pickup",
@@ -1401,8 +1402,7 @@ const TRANSLATIONS = {
         cancelled: "Cancelled",
       },
       paymentMethods: {
-        mercadopago: "MP",
-        mercadopagoAccountMoney: "MP · Balance",
+        transferAlias: "Alias transfer",
         cash: "Cash",
         card: "Card",
       },
@@ -1721,65 +1721,67 @@ const TRANSLATIONS = {
     },
     checkoutStatus: {
       success: {
-        badge: "Payment received",
-        title: "Payment successful",
-        subtitle: "Thanks for your purchase! You'll receive an email with the details shortly.",
+        badge: "Order registered",
+        title: "Order confirmed!",
+        subtitle: "Use the alias transfer method and send the receipt via WhatsApp.",
         steps: {
-          email: {
-            title: "Email confirmation",
-            subtitle: "You'll receive the order details and payment status.",
+          whatsapp: {
+            title: "Send receipt on WhatsApp",
+            subtitle: "Open chat and share your order number plus payment receipt.",
           },
           prep: {
             title: "Order preparation",
-            subtitle: "We prepare your order and coordinate shipping or pickup.",
+            subtitle: "Once payment is validated, we continue with packing and shipping/pickup coordination.",
           },
         },
         actions: {
+          whatsapp: "Send receipt",
           home: "Back to home",
           store: "Continue shopping",
         },
       },
       pending: {
-        badge: "Payment in progress",
-        title: "We are waiting for your payment confirmation",
+        badge: "Payment pending validation",
+        title: "We are waiting for your receipt",
         subtitle:
-          "The Mercado Pago window is open so you can finish the payment. When it ends, Mercado Pago redirects you back and we update your order.",
+          "Complete the alias transfer and send your receipt via WhatsApp so we can validate it.",
         orderNumber: "Linked order: #{orderId}.",
         steps: {
           payment: {
-            title: "Finish the payment in Mercado Pago",
+            title: "Transfer to the provided alias",
             subtitle:
               "You can pay with card, balance, transfer, or cash. Mercado Pago confirms and notifies us in seconds.",
           },
           email: {
             title: "Receipt and automatic notice",
             subtitle:
-              "We send you the receipt/status via email and notify the admin once the payment is approved.",
+              "Use your bank app or wallet to transfer the full order amount.",
           },
         },
         details: [
-          "Card payments are usually instant.",
-          "Cash or bank transfers can take longer to be approved.",
-          "Once Mercado Pago confirms, your order moves from pending to paid automatically.",
-          "If you closed the window, you can reopen the link from your email or check “My orders”.",
+          "Your order is registered as soon as you confirm checkout.",
+          "Payment validation may take a few minutes depending on schedule.",
+          "After validation, we update the order status and notify you by email.",
+          "If you need help, contact us on WhatsApp.",
         ],
         actions: {
+          whatsapp: "Send receipt",
           orders: "View my orders",
           home: "Back to home",
         },
       },
       failure: {
-        badge: "Payment not completed",
-        title: "Payment not completed",
+        badge: "Payment could not be validated",
+        title: "We could not validate the payment",
         subtitle:
-          "Your payment could not be completed. Don't worry: the purchase isn't confirmed until payment clears.",
+          "If you already transferred, contact us on WhatsApp and share the receipt.",
         tips: {
-          balance: "Check your balance or available limit.",
-          method: "Try another card or method in Mercado Pago.",
-          retry: "If the flow got stuck, go back to the cart and retry.",
+          alias: "Double-check the alias before transferring.",
+          receipt: "Attach the payment receipt and order number.",
+          contact: "If you need assistance, message us on WhatsApp.",
         },
         actions: {
-          retry: "Retry payment",
+          whatsapp: "Contact on WhatsApp",
           cart: "Back to cart",
           store: "Go to store",
         },

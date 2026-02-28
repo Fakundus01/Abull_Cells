@@ -37,16 +37,10 @@ export default function AdminPaymentsView({
         emoji: "💳",
       };
     }
-    if (raw.includes("mercadopago") && /account[_-]?money/.test(raw)) {
+    if (raw.includes("transferencia_alias") || raw.includes("transfer") || raw.includes("alias")) {
       return {
-        label: t("orders.paymentMethods.mercadopagoAccountMoney"),
-        emoji: "💳",
-      };
-    }
-    if (raw.includes("mercadopago")) {
-      return {
-        label: t("orders.paymentMethods.mercadopago"),
-        emoji: "💳",
+        llabel: t("orders.paymentMethods.transferAlias"),
+        emoji: "🏦",
       };
     }
     if (raw.includes("efectivo") || raw.includes("cash")) {

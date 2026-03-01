@@ -2,20 +2,15 @@
 import { Link, useSearchParams } from "react-router-dom";
 import { XCircle, AlertTriangle, ArrowRight, ShoppingBag, MessageCircle } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
-import { useEffect } from "react";
-const WHATSAPP_NUMBER = import.meta.env.VITE_CHECKOUT_WHATSAPP_NUMBER || "";
+import { buildCheckoutWhatsappHref } from "../utils/whatsapp";
 
 function CheckoutFailure() {
   const { t } = useLanguage();
   const [params] = useSearchParams();
   const orderId = params.get("orderId") || params.get("external_reference");
 
-  const message = encodeURIComponent(
-    `Hola! Necesito ayuda con un pago${orderId ? ` de la orden #${orderId}` : ""}.`
-  );
-  const whatsappHref = WHATSAPP_NUMBER
-    ? `https://wa.me/${WHATSAPP_NUMBER}?text=${message}`
-    : null;
+  const message = `Hola! Necesito ayuda con un pago${orderId ? ` de la orden #${orderId}` : ""}.`;
+  const whatsappHref = buildCheckoutWhatsappHref(message);
 
   return (
     <section className="home-section checkout-failure-page">
@@ -31,7 +26,7 @@ function CheckoutFailure() {
           </div>
 
           <h1>{t("checkoutStatus.failure.title")}</h1>
-           <p className="muted">{t("checkoutStatus.failure.subtitle")}</p>
+            <p className="muted">{t("checkoutStatus.failure.subtitle")}</p>
         </div>
 
         <div className="checkout-failure-help">

@@ -2,19 +2,15 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Clock, ShieldCheck, ArrowRight, Receipt, MessageCircle } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 
-const WHATSAPP_NUMBER = import.meta.env.VITE_CHECKOUT_WHATSAPP_NUMBER || "";
+import { buildCheckoutWhatsappHref } from "../utils/whatsapp";
 
 function CheckoutPending() {
   const { t } = useLanguage();
   const [params] = useSearchParams();
   const orderId = params.get("orderId");
 
-  const message = encodeURIComponent(
-    `Hola! Quiero enviar el comprobante de transferencia${orderId ? ` para la orden #${orderId}` : ""}.`
-  );
-  const whatsappHref = WHATSAPP_NUMBER
-    ? `https://wa.me/${WHATSAPP_NUMBER}?text=${message}`
-    : null;
+  const message = `Hola! Quiero enviar el comprobante de transferencia${orderId ? ` para la orden #${orderId}` : ""}.`;
+  const whatsappHref = buildCheckoutWhatsappHref(message);
 
   return (
     <section className="home-section checkout-pending-page">

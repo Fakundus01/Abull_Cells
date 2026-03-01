@@ -2,21 +2,17 @@
 import { Link, useSearchParams } from "react-router-dom";
 import { CheckCircle2, ShieldCheck, ArrowRight, ShoppingBag, MessageCircle } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
-const WHATSAPP_NUMBER = import.meta.env.VITE_CHECKOUT_WHATSAPP_NUMBER || "";
-const MP_ALIAS = import.meta.env.VITE_MP_ALIAS || "";
+import { buildCheckoutWhatsappHref } from "../utils/whatsapp";
 
+const MP_ALIAS = import.meta.env.VITE_MP_ALIAS || "";
 
 function CheckoutSuccess() {
   const { t } = useLanguage();
   const [params] = useSearchParams();
   const orderId = params.get("orderId");
 
-  const message = encodeURIComponent(
-  `Hola! Realicé un pedido${orderId ? ` #${orderId}` : ""} y quiero enviar el comprobante de transferencia por alias${MP_ALIAS ? ` (${MP_ALIAS})` : ""}.`
-  );
-const whatsappHref = WHATSAPP_NUMBER
-  ? `https://wa.me/${WHATSAPP_NUMBER}?text=${message}`
-  : null;
+  const message = `Hola! Realicé un pedido${orderId ? ` #${orderId}` : ""} y quiero enviar el comprobante de transferencia por alias${MP_ALIAS ? ` (${MP_ALIAS})` : ""}.`;
+  const whatsappHref = buildCheckoutWhatsappHref(message);
 
   return (
     <section className="home-section checkout-success-page">

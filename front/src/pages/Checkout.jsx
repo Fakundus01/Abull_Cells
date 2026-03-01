@@ -69,7 +69,6 @@ function Checkout() {
   const [cashGiven, setCashGiven] = useState(""); // "con cuánto abonás"
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [successOrderId, setSuccessOrderId] = useState(null);
   const { showToast } = useToast();
 
   const requiredFields = useMemo(() => ["name", "email"], []);
@@ -127,7 +126,7 @@ function Checkout() {
     load();
   }, [user, deliveryMethod]);
 
-  if (isCartEmpty && !successOrderId) {
+  if (isCartEmpty) {
     return (
       <section className="home-section checkout-empty card-animate">
         <div className="checkout-empty-icon">
@@ -249,8 +248,8 @@ function Checkout() {
 
       const { order } = await createOrder(orderPayload);
 
-      setSuccessOrderId(order.id);
       clearCart();
+      navigate(`/checkout/success?orderId=${order.id}`);
     } catch (err) {
       console.error("[CHECKOUT] Error en handleSubmit:", err);
       if (err instanceof ApiError) {
@@ -267,28 +266,6 @@ function Checkout() {
     } finally {
       setLoading(false);
     }
-  }
-
-  if (successOrderId) {
-    return (
-      <section className="home-section checkout-success card-animate">
-        <div className="checkout-success-icon">
-          <CheckCircle2 size={26} className="icon" />
-        </div>
-        <div>
-          <h1>{t("checkout.success.title")}</h1>
-          <p>
-            {t("checkout.success.orderNumber", { orderId: successOrderId })}
-          </p>
-          <p>{t("checkout.success.emailNotice")}</p>
-
-          <button className="btn-primary btn-icon" onClick={() => navigate("/")}>
-            <ArrowRight size={18} className="icon" />
-            {t("checkout.success.backHome")}
-          </button>
-        </div>
-      </section>
-    );
   }
 
   return (

@@ -200,7 +200,7 @@ const TRANSLATIONS = {
         transferAlias: {
           title: "Transferencia por alias",
           subtitle:
-            "Te mostramos el alias y te redirigimos a WhatsApp para que envíes el comprobante del pago."
+            "Te redirigimos a WhatsApp para pedir el alias y luego enviar el comprobante del pago."
         },
         cash: {
           title: "Efectivo al retirar",
@@ -831,7 +831,7 @@ const TRANSLATIONS = {
       success: {
         badge: "Orden registrada",
         title: "¡Pedido confirmado!",
-        subtitle: "Te compartimos el alias para pagar por transferencia y enviar comprobante por WhatsApp.",
+        subtitle: "Escribinos por WhatsApp para pedir el alias y enviar el comprobante de pago.",
         steps: {
           whatsapp: {
             title: "Enviar comprobante por WhatsApp",
@@ -852,13 +852,13 @@ const TRANSLATIONS = {
         badge: "Pago pendiente de validación",
         title: "Estamos esperando tu comprobante",
         subtitle:
-          "Realizá la transferencia por alias y enviá el comprobante por WhatsApp para que podamos validarlo.",
+          "Pedinos el alias por WhatsApp, realizá la transferencia y enviá el comprobante para validarlo.",
         orderNumber: "Orden asociada: #{orderId}.",
         steps: {
           payment: {
             title: "Transferí al alias indicado",
             subtitle:
-              "Usá tu homebanking o billetera para hacer la transferencia por el total del pedido.",
+              "Por WhatsApp te pasamos el alias; luego transferí el total del pedido desde tu homebanking o billetera.",
           },
           email: {
             title: "Compartí el comprobante",
@@ -884,7 +884,7 @@ const TRANSLATIONS = {
         subtitle:
           "Si ya transferiste, escribinos por WhatsApp con tu comprobante para revisarlo.",
         tips: {
-          alias: "Verificá que el alias sea correcto antes de transferir.",
+          alias: "Pedinos el alias por WhatsApp antes de transferir.",
           receipt: "Asegurate de adjuntar el comprobante y número de orden.",
           contact: "Si tenés dudas, contactanos por WhatsApp.",
         },
@@ -1092,7 +1092,7 @@ const TRANSLATIONS = {
         transferAlias: {
           title: "Alias bank transfer",
           subtitle:
-            "We show the alias and redirect you to WhatsApp so you can send the payment receipt.",
+            "We redirect you to WhatsApp so you can request the alias and then send the payment receipt.",
         },
         cash: {
           title: "Cash on pickup",
@@ -1723,7 +1723,7 @@ const TRANSLATIONS = {
       success: {
         badge: "Order registered",
         title: "Order confirmed!",
-        subtitle: "Use the alias transfer method and send the receipt via WhatsApp.",
+        subtitle: "Message us on WhatsApp to request the alias and send the payment receipt.",
         steps: {
           whatsapp: {
             title: "Send receipt on WhatsApp",
@@ -1744,18 +1744,18 @@ const TRANSLATIONS = {
         badge: "Payment pending validation",
         title: "We are waiting for your receipt",
         subtitle:
-          "Complete the alias transfer and send your receipt via WhatsApp so we can validate it.",
+          "Request the alias on WhatsApp, complete the transfer, and send your receipt so we can validate it.",
         orderNumber: "Linked order: #{orderId}.",
         steps: {
           payment: {
-            title: "Transfer to the provided alias",
+            title: "Request the alias and make the transfer",
             subtitle:
-              "You can pay with card, balance, transfer, or cash. Mercado Pago confirms and notifies us in seconds.",
+              "We will share the alias on WhatsApp; then use your bank app or wallet to transfer the full order amount.",
           },
           email: {
             title: "Receipt and automatic notice",
             subtitle:
-              "Use your bank app or wallet to transfer the full order amount.",
+              "We will share the alias on WhatsApp; then transfer the full order amount from your bank app or wallet.",
           },
         },
         details: [
@@ -1776,7 +1776,7 @@ const TRANSLATIONS = {
         subtitle:
           "If you already transferred, contact us on WhatsApp and share the receipt.",
         tips: {
-          alias: "Double-check the alias before transferring.",
+          alias: "Request the alias on WhatsApp before making the transfer.",
           receipt: "Attach the payment receipt and order number.",
           contact: "If you need assistance, message us on WhatsApp.",
         },

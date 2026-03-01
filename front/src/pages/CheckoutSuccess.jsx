@@ -4,14 +4,12 @@ import { CheckCircle2, ShieldCheck, ArrowRight, ShoppingBag, MessageCircle } fro
 import { useLanguage } from "../context/LanguageContext";
 import { buildCheckoutWhatsappHref } from "../utils/whatsapp";
 
-const MP_ALIAS = import.meta.env.VITE_MP_ALIAS || "";
-
 function CheckoutSuccess() {
   const { t } = useLanguage();
   const [params] = useSearchParams();
   const orderId = params.get("orderId");
 
-  const message = `Hola! Realicé un pedido${orderId ? ` #${orderId}` : ""} y quiero enviar el comprobante de transferencia por alias${MP_ALIAS ? ` (${MP_ALIAS})` : ""}.`;
+  const message = `Hola! Realicé un pedido${orderId ? ` #${orderId}` : ""}. ¿Me pasan el alias para transferir? También les envío el comprobante por acá cuando lo tenga.`;
   const whatsappHref = buildCheckoutWhatsappHref(message);
 
   return (

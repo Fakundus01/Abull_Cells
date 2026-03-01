@@ -45,6 +45,14 @@ def create_order():
             return jsonify({"msg": "Carrito vacío"}), 400
 
         payment_method = (data.get("paymentMethod") or "").strip().lower()
+        payment_aliases = {
+            "mercadopago": "transferencia_alias",
+            "mercado_pago": "transferencia_alias",
+            "mercado pago": "transferencia_alias",
+            "transferencia": "transferencia_alias",
+        }
+        payment_method = payment_aliases.get(payment_method, payment_method)
+        
         valid_methods = ["efectivo", "transferencia_alias"]
         if payment_method not in valid_methods:
             current_app.logger.warning(

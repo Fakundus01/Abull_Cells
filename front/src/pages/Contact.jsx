@@ -193,7 +193,7 @@ function Contact() {
             <strong>{t("contact.storeHoursLabel")}</strong>{" "}
             <Clock size={16} className="icon muted" /> {t("contact.storeHoursValue")}
           </p>
-          <p><strong>{t("contact.storeEmailLabel")}</strong> contacto@abulcells.com</p>
+          <p><strong>{t("contact.storeEmailLabel")}</strong> Abulcell185@gmail.com</p>
           <p>
             <strong>{t("contact.storePhoneLabel")}</strong>{" "}
             <Phone size={16} className="icon muted" /> {t("contact.storePhoneValue")}

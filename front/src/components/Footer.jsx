@@ -79,7 +79,7 @@ function Footer() {
 
             <p className="contact-row">
               <Mail size={16} className="icon" />
-              {t("footer.emailLabel")} contacto@abulcell.com
+              {t("footer.emailLabel")} Abulcell185@gmail.com
             </p>
           </div>
         </div>

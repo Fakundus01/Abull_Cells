@@ -438,7 +438,7 @@ const TRANSLATIONS = {
       storeAddressLabel: "Dirección:",
       storeAddressValue: "Azcuenaga 185",
       storeHoursLabel: "Horario:",
-      storeHoursValue: "Lunes a viernes de 8 a 18 hs. Sábados de 8 a 15 hs. Domingos de 8 a 13",
+      storeHoursValue: "Lunes a viernes de 8 a 18 hs. Sábados de 8 a 15 hs. Domingos de 8 a 13hs",
       storeEmailLabel: "Email:",
       storePhoneValue: "+54 11 5098-3612",
     },

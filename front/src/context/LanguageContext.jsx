@@ -440,7 +440,7 @@ const TRANSLATIONS = {
       storeHoursLabel: "Horario:",
       storeHoursValue: "Lunes a viernes de 8 a 18 hs. Sábados de 8 a 15 hs. Domingos de 8 a 13",
       storeEmailLabel: "Email:",
-      storePhoneValue: "+54 11 50983612",
+      storePhoneValue: "+54 11 5098-3612",
     },
     faq: {
       badge: "FAQ",
@@ -1332,7 +1332,7 @@ const TRANSLATIONS = {
       storeHoursLabel: "Hours:",
       storeHoursValue: "Monday to Friday, 8am to 6pm. Saturdays 8am to 3pm. Sundays 8am to 1pm",
       storeEmailLabel: "Email:",
-      storePhoneValue: "+54 11 50983612",
+      storePhoneValue: "+54 11 5098-3612",
     },
     faq: {
       badge: "FAQ",

@@ -1,4 +1,4 @@
-const DEFAULT_CHECKOUT_WHATSAPP_NUMBER = "1123971452";
+const DEFAULT_CHECKOUT_WHATSAPP_NUMBER = "1150983612";
 
 function normalizeWhatsappPhone(rawPhone) {
   const digits = String(rawPhone || "").replace(/\D/g, "");

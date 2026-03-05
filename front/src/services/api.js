@@ -1,7 +1,12 @@
 import { getCookie } from "./helpers.js";
 
+const ENV_API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL;
+
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL
+  String(ENV_API_BASE_URL || "")
+    .trim()
+    .replace(/\/+$/, "") || "/api";
 
 // ---------------------------------------------
 // API Error (para UI: toasts, manejo de status)
@@ -339,3 +344,5 @@ export async function resetPassword(payload) {
     body: JSON.stringify(payload),
   });
 }
+
+

@@ -5,7 +5,6 @@ import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import {
   ShoppingCart,
-  Globe,
   Tag,
   Home,
   HelpCircle,
@@ -23,7 +22,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { language, setLanguage, t } = useLanguage();
+  const { t } = useLanguage();
 
   const [isMobileUI, setIsMobileUI] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -129,10 +128,6 @@ function Navbar() {
     if (typeof logout === "function") logout();
     else if (typeof clearSession === "function") clearSession();
     navigate("/");
-  }
-
-  function handleLanguageToggle() {
-    setLanguage((prev) => (prev === "es" ? "en" : "es"));
   }
 
   // =========================
@@ -258,16 +253,6 @@ function Navbar() {
 
         {/* Acciones derecha */}
         <div className="navbar-actions">
-          {/* Idioma */}
-          <button
-            type="button"
-            className="lang-btn lang-pill"
-            onClick={handleLanguageToggle}
-            aria-label={t("nav.changeLanguage")}
-          >
-            <Globe size={16} className="icon" />
-            {language.toUpperCase()}
-          </button>
 
           {/* Carrito */}
           <div

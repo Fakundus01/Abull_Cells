@@ -1,7 +1,4 @@
 // src/context/LanguageContext.jsx
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-
-const LanguageContext = createContext();
 
 const TRANSLATIONS = {
   es: {
@@ -1790,50 +1787,35 @@ const TRANSLATIONS = {
   },
 };
 
+const FIXED_LANGUAGE = "es";
+
+function translate(key, params = {}) {
+  const parts = key.split(".");
+  let current = TRANSLATIONS[FIXED_LANGUAGE];
+
+  for (const p of parts) {
+    if (!current || typeof current !== "object") return key;
+    current = current[p];
+  }
+
+  if (current == null) return key;
+  if (typeof current === "string" && params && Object.keys(params).length > 0) {
+    return current.replace(/\{(\w+)\}/g, (match, k) =>
+      Object.prototype.hasOwnProperty.call(params, k) ? params[k] : match
+    );
+  }
+
+  return current;
+}
+
 export function LanguageProvider({ children }) {
-  const [language, setLanguage] = useState(
-    () => localStorage.getItem("language") || "es"
-  );
-
-  useEffect(() => {
-    localStorage.setItem("language", language);
-  }, [language]);
-
-  const value = useMemo(() => {
-    function t(key, params = {}) {
-      const parts = key.split(".");
-      let current = TRANSLATIONS[language];
-      for (const p of parts) {
-        if (!current || typeof current !== "object") return key;
-        current = current[p];
-      }
-      if (current == null) return key;
-      if (typeof current === "string" && params && Object.keys(params).length > 0) {
-        return current.replace(/\{(\w+)\}/g, (match, k) =>
-          Object.prototype.hasOwnProperty.call(params, k) ? params[k] : match
-        );
-      }
-      return current;
-    }
-
-    return {
-      language,
-      setLanguage,
-      t,
-    };
-  }, [language]);
-
-  return (
-    <LanguageContext.Provider value={value}>
-      {children}
-    </LanguageContext.Provider>
-  );
+  return children;
 }
 
 export function useLanguage() {
-  const ctx = useContext(LanguageContext);
-  if (!ctx) {
-    throw new Error("useLanguage debe usarse dentro de LanguageProvider");
-  }
-  return ctx;
+  return {
+    language: FIXED_LANGUAGE,
+    setLanguage: () => {},
+    t: translate,
+  };
 }

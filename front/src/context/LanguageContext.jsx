@@ -451,7 +451,7 @@ const TRANSLATIONS = {
         },
         {
           q: "¿Qué medios de pago aceptan?",
-          a: "Trabajamos con Mercado Pago: tarjetas de crédito, débito, efectivo en puntos de pago y otros métodos disponibles en la plataforma.",
+          a: "Trabajamos con Mercado Pago: Debes contactarte por WhatsApp (esto se hace automaticamente cuando confirmas tu compra) y pedir el Alias de Mercado Pago.",
         },
         {
           q: "¿Los productos tienen garantía?",

@@ -1,4 +1,4 @@
-// src/components/Footer.jsx
+﻿// src/components/Footer.jsx
 import { Link } from "react-router-dom";
 import {
   MapPin,
@@ -16,6 +16,12 @@ function Footer() {
   const { t } = useLanguage();
   const year = new Date().getFullYear();
 
+  const storeAddressFull = "Azcuénaga 185, C1029AAC Cdad. Autónoma de Buenos Aires";
+  const storeAddressShort = "Azcuénaga 185";
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    storeAddressFull
+  )}`;
+
   return (
     <footer className="site-footer site-footer--v2">
       <div className="footer-inner footer-inner--v2">
@@ -26,9 +32,7 @@ function Footer() {
             <span className="logo-sub">Cell</span>
           </div>
 
-          <p className="footer-text">
-            {t("footer.description")}
-          </p>
+          <p className="footer-text">{t("footer.description")}</p>
 
           <Link to="/tienda" className="footer-cta">
             {t("footer.cta")} <ArrowRight size={16} className="icon" />
@@ -67,10 +71,16 @@ function Footer() {
           <h4 className="footer-title">{t("footer.contactTitle")}</h4>
 
           <div className="footer-contact">
-            <p className="contact-row">
+            <a
+              className="contact-row footer-contact-link"
+              href={mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`${t("footer.addressLabel")} ${storeAddressFull}`}
+            >
               <MapPin size={16} className="icon" />
-              {t("footer.addressLabel")} {t("contact.storeAddressValue")}
-            </p>
+              {t("footer.addressLabel")} {storeAddressShort}
+            </a>
 
             <p className="contact-row">
               <Phone size={16} className="icon" />

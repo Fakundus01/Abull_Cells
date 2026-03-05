@@ -11,7 +11,7 @@ import Faq from "./pages/Faq";
 import Contact from "./pages/Contact";
 import Cart from "./pages/Cart";
 import Login from "./pages/Login";
-import Admin from "./pages/Admin/Admin"; // la creamos abajo
+import Admin from "./pages/Admin/Admin";
 import Checkout from "./pages/Checkout";
 import CheckoutSuccess from "./pages/CheckoutSuccess";
 import CheckoutFailure from "./pages/CheckoutFailure";
@@ -23,7 +23,7 @@ import VerifyEmail from "./components/VerifyEmail";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
-import { RequireAuth, RequireAdmin } from "./routes/guards";
+import { RequireAuth, RequireAdmin, RequireGuest } from "./routes/guards";
 
 function App() {
   return (
@@ -39,22 +39,29 @@ function App() {
           <Route path="/faq" element={<Faq />} />
           <Route path="/contacto" element={<Contact />} />
           <Route path="/carrito" element={<Cart />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route element={<RequireAdmin />}>
-          <Route path="/admin" element={<Admin />} />
+
+          <Route element={<RequireGuest />}>
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
           </Route>
+
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+
+          <Route element={<RequireAdmin />}>
+            <Route path="/admin" element={<Admin />} />
+          </Route>
+
           <Route element={<RequireAuth />}>
             <Route path="/perfil" element={<Profile />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/mis-pedidos" element={<OrdersHistory />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/checkout/success" element={<CheckoutSuccess />} />
+            <Route path="/checkout/failure" element={<CheckoutFailure />} />
+            <Route path="/checkout/pending" element={<CheckoutPending />} />
           </Route>
-          <Route path="/checkout/success" element={<CheckoutSuccess />} />
-          <Route path="/checkout/failure" element={<CheckoutFailure />} />
-          <Route path="/checkout/pending" element={<CheckoutPending />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

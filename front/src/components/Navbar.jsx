@@ -282,8 +282,14 @@ function Navbar() {
               </div>
             )}
           </div>
+          {loadingAuth && (
+            <div className="navbar-auth-loading" aria-hidden="true">
+              <span className="nav-loading-pill" />
+              <span className="nav-loading-pill" />
+              <span className="nav-loading-avatar" />
+            </div>
+          )}
 
-          {/* Login / Signup (no drawer) */}
           {!loadingAuth && !isLogged && (
             <div className="navbar-auth">
               <NavLink to="/login" className="nav-auth-link" aria-label={t("nav.login")}>
@@ -459,6 +465,14 @@ function Navbar() {
             </div>
 
             <div className="navbar-actions">
+              {loadingAuth && (
+                <div className="navbar-auth-loading" aria-hidden="true">
+                  <span className="nav-loading-pill" />
+                  <span className="nav-loading-pill" />
+                  <span className="nav-loading-avatar" />
+                </div>
+              )}
+
               {!loadingAuth && isLogged && (
                 <>
                   {isAdmin && (
@@ -501,3 +515,5 @@ function Navbar() {
 }
 
 export default Navbar;
+
+

@@ -1,4 +1,5 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
+import AppLoader from "../components/AppLoader";
 import { useAuth } from "../context/AuthContext";
 
 function sanitizeNextTarget(rawTarget) {
@@ -12,22 +13,13 @@ function buildCurrentTarget(location) {
   return `${location.pathname}${location.search}${location.hash}`;
 }
 
-function GuardRouteLoading({ message = "Cargando sesion..." }) {
-  return (
-    <main className="auth-route-loading" aria-live="polite" aria-busy="true">
-      <div className="auth-route-loading-card card">
-        <div className="auth-route-loading-spinner" />
-        <p>{message}</p>
-      </div>
-    </main>
-  );
-}
-
 export function RequireAuth() {
   const { isAuthenticated, loadingAuth } = useAuth();
   const location = useLocation();
 
-  if (loadingAuth) return <GuardRouteLoading message="Cargando tu sesion..." />;
+  if (loadingAuth) {
+    return <AppLoader variant="page" label="Cargando tu sesion..." />;
+  }
 
   if (!isAuthenticated) {
     const requested = buildCurrentTarget(location);
@@ -41,7 +33,9 @@ export function RequireAdmin() {
   const { isAuthenticated, isAdmin, loadingAuth } = useAuth();
   const location = useLocation();
 
-  if (loadingAuth) return <GuardRouteLoading message="Validando acceso..." />;
+  if (loadingAuth) {
+    return <AppLoader variant="page" label="Validando acceso..." />;
+  }
 
   if (!isAuthenticated) {
     const requested = buildCurrentTarget(location);
@@ -57,7 +51,9 @@ export function RequireGuest() {
   const { isAuthenticated, loadingAuth } = useAuth();
   const location = useLocation();
 
-  if (loadingAuth) return <GuardRouteLoading message="Preparando acceso..." />;
+  if (loadingAuth) {
+    return <AppLoader variant="page" label="Preparando acceso..." />;
+  }
 
   if (isAuthenticated) {
     const params = new URLSearchParams(location.search);

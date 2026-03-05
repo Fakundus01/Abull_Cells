@@ -17,6 +17,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import CartMiniPreview from "./CartMiniPreview";
+import AppLoader from "./AppLoader";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 function Navbar() {
@@ -282,13 +283,7 @@ function Navbar() {
               </div>
             )}
           </div>
-          {loadingAuth && (
-            <div className="navbar-auth-loading" aria-hidden="true">
-              <span className="nav-loading-pill" />
-              <span className="nav-loading-pill" />
-              <span className="nav-loading-avatar" />
-            </div>
-          )}
+          {loadingAuth && <AppLoader variant="nav" label="Cargando sesion..." />}
 
           {!loadingAuth && !isLogged && (
             <div className="navbar-auth">
@@ -465,13 +460,7 @@ function Navbar() {
             </div>
 
             <div className="navbar-actions">
-              {loadingAuth && (
-                <div className="navbar-auth-loading" aria-hidden="true">
-                  <span className="nav-loading-pill" />
-                  <span className="nav-loading-pill" />
-                  <span className="nav-loading-avatar" />
-                </div>
-              )}
+              {loadingAuth && <AppLoader variant="nav" label="Cargando sesion..." />}
 
               {!loadingAuth && isLogged && (
                 <>
@@ -515,5 +504,7 @@ function Navbar() {
 }
 
 export default Navbar;
+
+
 
 

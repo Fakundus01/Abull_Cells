@@ -4547,35 +4547,66 @@ input:disabled, textarea:disabled, select:disabled{
     padding: 0 0.28rem;
   }
 }
-/* Guards + Navbar auth loading */
-.navbar-auth-loading{
+/* App loader + route/config guards */
+.app-loader{
+  color: var(--text);
+}
+
+.app-loader--page{
+  min-height: calc(100dvh - 72px);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.app-loader-card,
+.app-loader--card{
+  width: min(420px, 100%);
+  padding: 1.1rem;
+  display: grid;
+  gap: 0.7rem;
+  justify-items: center;
+  text-align: center;
+}
+
+.app-loader--card{
+  width: 100%;
+}
+
+.app-loader--inline{
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.app-loader--nav{
   display: flex;
   align-items: center;
   gap: .45rem;
 }
 
-.nav-loading-pill,
-.nav-loading-avatar{
+.app-loader-pill,
+.app-loader-avatar{
   position: relative;
   overflow: hidden;
   border: 1px solid var(--border);
   background: var(--surface-2);
 }
 
-.nav-loading-pill{
+.app-loader-pill{
   width: 88px;
   height: 40px;
   border-radius: 999px;
 }
 
-.nav-loading-avatar{
+.app-loader-avatar{
   width: 40px;
   height: 40px;
   border-radius: 999px;
 }
 
-.nav-loading-pill::after,
-.nav-loading-avatar::after{
+.app-loader-pill::after,
+.app-loader-avatar::after{
   content: "";
   position: absolute;
   inset: 0;
@@ -4586,27 +4617,83 @@ input:disabled, textarea:disabled, select:disabled{
     rgba(255,255,255,.35),
     transparent
   );
-  animation: nav-skeleton 1.15s ease-in-out infinite;
+  animation: app-loader-shimmer 1.15s ease-in-out infinite;
 }
 
-@keyframes nav-skeleton{
+@keyframes app-loader-shimmer{
   100%{ transform: translateX(100%); }
 }
 
+.route-error-screen,
+.config-error-screen{
+  min-height: calc(100dvh - 72px);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.route-error-card,
+.config-error-card{
+  width: min(640px, 100%);
+  padding: 1.2rem;
+  display: grid;
+  gap: .85rem;
+}
+
+.route-error-card h1,
+.config-error-card h1{
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.route-error-card p,
+.config-error-card p{
+  margin: 0;
+  color: var(--muted);
+}
+
+.route-error-actions{
+  display: flex;
+  flex-wrap: wrap;
+  gap: .6rem;
+}
+
+.config-error-list-wrap{
+  display: grid;
+  gap: .35rem;
+}
+
+.config-error-list{
+  margin: 0;
+  padding-left: 1rem;
+  color: var(--text);
+}
+
+.config-error-hint code{
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: .12rem .38rem;
+}
+
 @media (max-width: 900px){
-  .mobile-drawer .navbar-auth-loading{
+  .mobile-drawer .app-loader--nav{
     width: 100%;
     flex-direction: column;
     align-items: stretch;
   }
 
-  .mobile-drawer .nav-loading-pill{
+  .mobile-drawer .app-loader-pill{
     width: 100%;
     height: 42px;
     border-radius: 12px;
   }
 
-  .mobile-drawer .nav-loading-avatar{
+  .mobile-drawer .app-loader-avatar{
     display: none;
+  }
+
+  .route-error-actions{
+    flex-direction: column;
   }
 }

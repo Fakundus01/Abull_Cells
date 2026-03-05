@@ -214,6 +214,13 @@ function Navbar() {
     setProfileOpen(false);
   }, [location.pathname]);
 
+  useEffect(() => {
+    if (!isMobileUI) {
+      setMobileMenuOpen(false);
+      return;
+    }
+    setProfileOpen(false);
+  }, [isMobileUI]);
 
   return (
     <header className="navbar">
@@ -225,32 +232,34 @@ function Navbar() {
         </Link>
 
         {/* Links principales (desktop) */}
-        <nav className="navbar-links">
-          <NavLink to="/" end className="nav-link">
-            <Home size={16} className="icon" />
-            {t("nav.home")}
-          </NavLink>
+        {!isMobileUI && (
+          <nav className="navbar-links">
+            <NavLink to="/" end className="nav-link">
+              <Home size={16} className="icon" />
+              {t("nav.home")}
+            </NavLink>
 
-          <NavLink to="/ofertas" className="nav-link">
-            <Tag size={16} className="icon" />
-            {t("nav.offers")}
-          </NavLink>
+            <NavLink to="/ofertas" className="nav-link">
+              <Tag size={16} className="icon" />
+              {t("nav.offers")}
+            </NavLink>
 
-          <NavLink to="/tienda" className="nav-link">
-            <ShoppingCart size={16} className="icon" />
-            {t("nav.store")}
-          </NavLink>
+            <NavLink to="/tienda" className="nav-link">
+              <ShoppingCart size={16} className="icon" />
+              {t("nav.store")}
+            </NavLink>
 
-          <NavLink to="/faq" className="nav-link">
-            <HelpCircle size={16} className="icon" />
-            {t("nav.faq")}
-          </NavLink>
+            <NavLink to="/faq" className="nav-link">
+              <HelpCircle size={16} className="icon" />
+              {t("nav.faq")}
+            </NavLink>
 
-          <NavLink to="/contacto" className="nav-link">
-            <Mail size={16} className="icon" />
-            {t("nav.contact")}
-          </NavLink>
-        </nav>
+            <NavLink to="/contacto" className="nav-link">
+              <Mail size={16} className="icon" />
+              {t("nav.contact")}
+            </NavLink>
+          </nav>
+        )}
 
         {/* Acciones derecha */}
         <div className="navbar-actions">
@@ -300,7 +309,7 @@ function Navbar() {
           )}
 
           {/* Profile preview (same pattern as cart) */}
-          {!loadingAuth && isLogged && initials && (
+          {!isMobileUI && !loadingAuth && isLogged && initials && (
             <div
               ref={profileWrapRef}
               className="nav-profile-wrap"
@@ -391,26 +400,29 @@ function Navbar() {
           )}
 
           {/* Burger (mobile) */}
-          <button
-            type="button"
-            className="nav-burger"
-            aria-label="Abrir menú"
-            aria-expanded={mobileMenuOpen}
-            onClick={() => {
-              setCartOpen(false);
-              setProfileOpen(false);
-              setMobileMenuOpen(true);
-            }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M4 6h16M4 12h16M4 18h16"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
+          {isMobileUI && (
+            <button
+              type="button"
+              className="nav-burger"
+              style={{ display: "inline-flex" }}
+              aria-label="Abrir menu"
+              aria-expanded={mobileMenuOpen}
+              onClick={() => {
+                setCartOpen(false);
+                setProfileOpen(false);
+                setMobileMenuOpen(true);
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M4 6h16M4 12h16M4 18h16"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 
@@ -424,13 +436,14 @@ function Navbar() {
 
           <aside className="mobile-drawer" role="dialog" aria-modal="true">
             <div className="mobile-drawer-header">
-              <strong>Menú</strong>
+              <strong>Menu</strong>
               <button
                 className="nav-burger"
+                style={{ display: "inline-flex" }}
                 onClick={() => setMobileMenuOpen(false)}
-                aria-label="Cerrar menú"
+                aria-label="Cerrar menu"
               >
-                ✕
+                X
               </button>
             </div>
 
@@ -504,6 +517,7 @@ function Navbar() {
 }
 
 export default Navbar;
+
 
 
 

@@ -66,6 +66,10 @@ def _humanize_payment_method(method: str | None) -> str:
 # ----------------------------
 # SMTP core
 # ----------------------------
+def _get_mail_sender() -> str | None:
+    # EMAIL_ADMIN funciona como respaldo para dejar una sola cuenta operativa.
+    return (os.getenv("EMAIL_SENDER") or os.getenv("EMAIL_ADMIN") or "").strip() or None
+
 def send_email(
     to_email: str,
     subject: str,
@@ -75,13 +79,14 @@ def send_email(
     html_body: str | None = None,
 ) -> bool:
     """
-    Envia un email usando Gmail SMTP (EMAIL_SENDER / EMAIL_PASSWORD) con UTF-8.
+    Envia un email usando Gmail SMTP con UTF-8.
+    Usa EMAIL_SENDER y, si falta, EMAIL_ADMIN como respaldo.
     """
-    email_sender = os.getenv("EMAIL_SENDER")
+    email_sender = _get_mail_sender()
     email_password = os.getenv("EMAIL_PASSWORD")
 
     if not email_sender or not email_password:
-        print("[MAIL] Falta EMAIL_SENDER o EMAIL_PASSWORD. No se envia correo.")
+        print("[MAIL] Falta EMAIL_SENDER/EMAIL_ADMIN o EMAIL_PASSWORD. No se envia correo.")
         return False
 
     if not to_email:
@@ -419,12 +424,12 @@ def send_contact_message_to_admin(
     Envía al EMAIL_ADMIN el mensaje del formulario "Contáctanos".
     Soporta adjuntos (imágenes/PDF).
     """
-    email_sender = os.getenv("EMAIL_SENDER")
+    email_sender = _get_mail_sender()
     email_password = os.getenv("EMAIL_PASSWORD")
     admin_email = os.getenv("EMAIL_ADMIN")
 
     if not email_sender or not email_password:
-        print("[MAIL] Falta EMAIL_SENDER o EMAIL_PASSWORD. No se envia correo.")
+        print("[MAIL] Falta EMAIL_SENDER/EMAIL_ADMIN o EMAIL_PASSWORD. No se envia correo.")
         return False
     if not admin_email:
         print("[MAIL] Falta EMAIL_ADMIN. No se envia correo.")
@@ -497,11 +502,11 @@ def send_contact_autoreply(email_receiver: str, name: str = "") -> bool:
     """
     Respuesta automatica al usuario confirmando recepcion.
     """
-    email_sender = os.getenv("EMAIL_SENDER")
+    email_sender = _get_mail_sender()
     email_password = os.getenv("EMAIL_PASSWORD")
 
     if not email_sender or not email_password:
-        print("[MAIL] Falta EMAIL_SENDER o EMAIL_PASSWORD. No se envia autoreply.")
+        print("[MAIL] Falta EMAIL_SENDER/EMAIL_ADMIN o EMAIL_PASSWORD. No se envia autoreply.")
         return False
     if not email_receiver:
         return False
@@ -701,3 +706,4 @@ Si vos no pediste esto, podés ignorar este correo.
         html_body=html_body,
         reply_to=None,
     )
+

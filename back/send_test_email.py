@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 # Cargar variables de entorno desde .env
 load_dotenv()
 
-email_sender = os.getenv("EMAIL_SENDER")
+email_sender = (os.getenv("EMAIL_SENDER") or os.getenv("EMAIL_ADMIN") or "").strip() or None
 email_password = os.getenv("EMAIL_PASSWORD")
 email_receiver = os.getenv("EMAIL_TEST_RECEIVER", email_sender)
 
@@ -20,7 +20,7 @@ Si ves este mensaje, el SMTP esta funcionando :)
 
 if not email_sender or not email_password:
     raise RuntimeError(
-        "Faltan EMAIL_SENDER o EMAIL_PASSWORD en el .env para la prueba de email."
+        "Faltan EMAIL_SENDER/EMAIL_ADMIN o EMAIL_PASSWORD en el .env para la prueba de email."
     )
 
 em = EmailMessage()
@@ -36,3 +36,4 @@ with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as smtp:
     smtp.login(email_sender, email_password)
     smtp.send_message(em)
 print("[MAIL-TEST] Mail de prueba enviado OK.")
+

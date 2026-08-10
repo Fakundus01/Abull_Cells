@@ -6,16 +6,37 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+def _normalize_database_url(url: str) -> str:
+    """
+    Acepta el formato `postgres://` que exportan varios proveedores (Supabase,
+    Railway, Heroku) y lo pasa al dialecto que entiende SQLAlchemy.
+    """
+    if url.startswith("postgres://"):
+        return "postgresql://" + url[len("postgres://"):]
+    return url
+
+
 class Config:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     SECRET_KEY = os.getenv("SECRET_KEY")
     #SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
-    DATABASE_URL = os.getenv(
-        "DATABASE_URL",
-        "postgresql+psycopg://postgres:postgres@localhost:5432/abul_cells",
+    DATABASE_URL = _normalize_database_url(
+        os.getenv(
+            "DATABASE_URL",
+            "postgresql+psycopg://postgres:postgres@localhost:5432/abul_cells",
+        )
     )
     SQLALCHEMY_DATABASE_URI = DATABASE_URL
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # El pooler de Supabase corta conexiones ociosas; sin esto el primer request
+    # despues de un rato falla con "server closed the connection unexpectedly".
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,
+        "pool_recycle": int(os.getenv("DB_POOL_RECYCLE", "280")),
+        "pool_size": int(os.getenv("DB_POOL_SIZE", "5")),
+        "max_overflow": int(os.getenv("DB_MAX_OVERFLOW", "5")),
+    }
 
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 
@@ -33,7 +54,13 @@ class Config:
 
     # ✅ Cookies seguras
     _frontend_url = (os.getenv("FRONTEND_URL", "") or "").strip().lower()
-    _backend_url = (os.getenv("RENDER_EXTERNAL_URL", "") or "").strip().lower()
+    # Railway expone RAILWAY_PUBLIC_DOMAIN (sin esquema); Render exponia la URL completa.
+    _railway_domain = (os.getenv("RAILWAY_PUBLIC_DOMAIN", "") or "").strip().lower()
+    _backend_url = (
+        (os.getenv("BACKEND_URL", "") or "").strip().lower()
+        or (f"https://{_railway_domain}" if _railway_domain else "")
+        or (os.getenv("RENDER_EXTERNAL_URL", "") or "").strip().lower()
+    )
 
     _frontend_parsed = urlparse(_frontend_url) if _frontend_url else None
     _backend_parsed = urlparse(_backend_url) if _backend_url else None
@@ -48,14 +75,35 @@ class Config:
             return host
         return ".".join(parts[-2:])
 
+    # Dominios compartidos de hosting: estan en la Public Suffix List, asi que el
+    # browser descarta cualquier cookie con Domain=.railway.app y el login queda roto.
+    # En estos casos no seteamos JWT_COOKIE_DOMAIN y dejamos la cookie host-only.
+    _PUBLIC_SUFFIXES = {
+        "railway.app",
+        "onrender.com",
+        "vercel.app",
+        "netlify.app",
+        "herokuapp.com",
+        "fly.dev",
+        "pages.dev",
+        "github.io",
+    }
+
     _frontend_is_https = _frontend_url.startswith("https://")
     _frontend_is_local = "localhost" in _frontend_url or "127.0.0.1" in _frontend_url
-    _is_cross_site = bool(_frontend_host and _backend_host and _frontend_host != _backend_host)
+    # "Same-site" se define por dominio registrable, no por host: abulcell.com y
+    # api.abulcell.com son same-site y les alcanza SameSite=Lax. Comparar hosts pelados
+    # daba cross-site y forzaba SameSite=None sin necesidad.
+    _is_cross_site = bool(
+        _frontend_host
+        and _backend_host
+        and _base_domain(_frontend_host) != _base_domain(_backend_host)
+    )
     _shared_base_domain = ""
     if _frontend_host and _backend_host:
         frontend_base = _base_domain(_frontend_host)
         backend_base = _base_domain(_backend_host)
-        if frontend_base == backend_base:
+        if frontend_base == backend_base and frontend_base not in _PUBLIC_SUFFIXES:
             _shared_base_domain = frontend_base
     _secure_default = _frontend_is_https and not _frontend_is_local
 

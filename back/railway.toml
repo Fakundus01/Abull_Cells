@@ -1,0 +1,17 @@
+# Config del servicio "backend" en Railway.
+# En Railway: Settings -> Root Directory = back
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+# Corre las migraciones de Alembic antes de levantar la app nueva.
+# Si falla, Railway aborta el deploy y deja la version anterior corriendo.
+preDeployCommand = "flask db upgrade"
+
+startCommand = "gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --worker-class gthread --timeout 120 --forwarded-allow-ips=* --access-logfile - --error-logfile -"
+
+healthcheckPath = "/api/health"
+healthcheckTimeout = 120
+
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5

@@ -1,4 +1,8 @@
-# Deploy (Fase 5)
+# Deploy (Fase 5) — histórico
+
+> ⚠️ **Desactualizado.** Describe el deploy en Render, que ya no se usa.
+> La guía vigente es [RAILWAY.md](RAILWAY.md): Railway (backend) + Vercel (frontend) + Supabase (base).
+> Este archivo queda como referencia de las opciones de configuración.
 
 Este documento resume el plan de despliegue para el backend y frontend.
 

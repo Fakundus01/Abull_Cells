@@ -16,6 +16,15 @@ from models import Order, Product, ProductImage, User, db
 # entera bloquee la base con una transaccion gigante.
 BULK_MAX_ITEMS = 200
 
+# Tope de imagenes por tanda de subida. Mas que esto y el request tarda
+# demasiado desde un celular con datos moviles.
+UPLOAD_MAX_FILES = 20
+
+# Tope de una imagen embebida como data URL. El front la reduce a 512px antes
+# de mandarla, asi que ~1,5 MB en base64 es holgado y frena un envio accidental
+# de la foto original de 4 MB.
+AI_MAX_DATA_URL_CHARS = 1_500_000
+
 
 def _parse_bool(value):
     if value is None:
@@ -168,6 +177,7 @@ def _save_product_image(image_file):
                 image_file,
                 folder=folder,
                 public_id=os.path.splitext(unique_name)[0],
+                asset_folder=current_app.config.get("CLOUDINARY_ASSET_FOLDER"),
             )
         except Exception as exc:
             current_app.logger.exception(f"[Cloudinary] Error al subir imagen: {exc!r}")
@@ -504,15 +514,68 @@ def admin_ai_suggest_products():
     cleaned = []
     for item in images:
         url = (item or {}).get("url") if isinstance(item, dict) else None
-        if not url or not str(url).startswith("https://"):
-            return jsonify({"msg": "Cada imagen necesita una url https válida."}), 400
-        cleaned.append({"id": (item.get("id") or url), "url": url})
+        url = str(url or "")
+        # Se acepta data: además de https porque el formulario de producto
+        # manda la foto elegida antes de subirla a Cloudinary.
+        is_https = url.startswith("https://")
+        is_data = url.startswith("data:image/")
+
+        if not (is_https or is_data):
+            return jsonify(
+                {"msg": "Cada imagen necesita una url https o una imagen embebida."}
+            ), 400
+        if is_data and len(url) > AI_MAX_DATA_URL_CHARS:
+            return jsonify(
+                {"msg": "La imagen es demasiado grande. Reducila antes de enviarla."}
+            ), 413
+
+        cleaned.append({"id": (item.get("id") or url[:120]), "url": url})
 
     try:
         return jsonify(ai_service.suggest_for_images(cleaned))
     except Exception as exc:
         current_app.logger.exception(f"Error en sugerencias de IA: {exc}")
         return jsonify({"msg": "No se pudieron generar las sugerencias."}), 502
+
+
+def admin_upload_cloudinary_assets():
+    """
+    Sube imágenes a la biblioteca sin crear productos todavía.
+
+    Sirve para el caso normal a futuro: sacás las fotos de 15 productos nuevos,
+    las subís todas juntas y quedan disponibles en el selector. Como no las usa
+    ningún producto, aparecen sin filtrar en la carga masiva.
+    """
+    if (current_app.config.get("PRODUCT_IMAGE_STORAGE") or "local").lower() != "cloudinary":
+        return jsonify(
+            {"msg": "El almacenamiento de imágenes no está configurado en Cloudinary."}
+        ), 400
+
+    files = request.files.getlist("images")
+    if not files:
+        return jsonify({"msg": "No llegó ninguna imagen."}), 400
+    if len(files) > UPLOAD_MAX_FILES:
+        return jsonify(
+            {"msg": f"Máximo {UPLOAD_MAX_FILES} imágenes por tanda (mandaste {len(files)})."}
+        ), 400
+
+    uploaded, errors = [], []
+    for image_file in files:
+        name = getattr(image_file, "filename", "") or "sin nombre"
+        try:
+            url = _save_product_image(image_file)
+            if url:
+                uploaded.append({"filename": name, "url": url})
+        except ValueError as exc:
+            errors.append({"filename": name, "msg": str(exc)})
+        except Exception as exc:
+            current_app.logger.exception(f"[Cloudinary] Error subiendo {name}: {exc}")
+            errors.append({"filename": name, "msg": "No se pudo subir."})
+
+    # Subida parcial a proposito: que una foto salga mal no tiene por que tirar
+    # abajo las otras catorce que si subieron.
+    status = 201 if uploaded else 400
+    return jsonify({"uploaded": uploaded, "errors": errors}), status
 
 
 def admin_list_products():

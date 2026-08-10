@@ -5731,3 +5731,22 @@ html{
   padding-top: .5rem;
   border-top: 1px solid var(--border);
 }
+
+/* Sugerencia de IA en el formulario de producto */
+.admin-ai-suggest{
+  display: grid;
+  gap: .25rem;
+  justify-items: start;
+  padding: .625rem;
+  border-radius: 12px;
+  border: 1px dashed var(--border-strong);
+  background: var(--surface-2);
+}
+
+/* Subida de fotos dentro del selector */
+.picker-upload{
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+}

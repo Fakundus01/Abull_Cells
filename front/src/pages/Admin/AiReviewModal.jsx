@@ -55,7 +55,6 @@ export default function AiReviewModal({ groups, onClose, onDone }) {
   const [index, setIndex] = useState(0);
   const [aiState, setAiState] = useState("idle"); // idle | running | done | error
   const [aiError, setAiError] = useState("");
-  const [cost, setCost] = useState(null);
   const startedRef = useRef(false);
 
   const current = entries[index];
@@ -71,8 +70,6 @@ export default function AiReviewModal({ groups, onClose, onDone }) {
   async function runAi() {
     setAiState("running");
     setAiError("");
-    let totalCost = 0;
-
     try {
       // Se piden sugerencias por la imagen principal de cada producto.
       const targets = entries.map((e) => ({
@@ -82,7 +79,6 @@ export default function AiReviewModal({ groups, onClose, onDone }) {
 
       for (let start = 0; start < targets.length; start += AI_BATCH) {
         const data = await aiSuggestProducts(targets.slice(start, start + AI_BATCH));
-        totalCost += data?.usage?.costUsd || 0;
 
         setEntries((prev) => {
           const byId = new Map((data.results || []).map((r) => [r.id, r]));
@@ -101,7 +97,6 @@ export default function AiReviewModal({ groups, onClose, onDone }) {
           });
         });
       }
-      setCost(totalCost);
       setAiState("done");
     } catch (err) {
       setAiError(err?.message || "No se pudieron generar las sugerencias.");
@@ -187,12 +182,6 @@ export default function AiReviewModal({ groups, onClose, onDone }) {
                 Reintentar
               </button>
             </div>
-          )}
-
-          {aiState === "done" && cost !== null && (
-            <p className="bulk-hint">
-              Sugerencias listas. Costo de esta tanda: USD {cost.toFixed(4)}.
-            </p>
           )}
 
           {current && (

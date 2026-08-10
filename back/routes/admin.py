@@ -20,6 +20,12 @@ def admin_list_cloudinary_assets():
     return admin_service.admin_list_cloudinary_assets()
 
 
+@admin_bp.route("/api/admin/cloudinary/upload", methods=["POST"])
+@auth_service.admin_required
+def admin_upload_cloudinary_assets():
+    return admin_service.admin_upload_cloudinary_assets()
+
+
 @admin_bp.route("/api/admin/products/ai-suggest", methods=["POST"])
 @auth_service.admin_required
 def admin_ai_suggest_products():

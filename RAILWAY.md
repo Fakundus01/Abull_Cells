@@ -52,6 +52,23 @@ python -c "import secrets; print(secrets.token_urlsafe(48))"
 
 Agregale `?sslmode=require` al final de la URI.
 
+### ⚠️ El usuario lleva el project-ref pegado
+
+El usuario del pooler es **`postgres.wtivtshzvsnfwnhanrsj`**, no `postgres` a secas. El pooler
+usa esa parte para saber a qué proyecto rutear la conexión.
+
+Si copiás el usuario de la pestaña *Direct connection* (que sí es `postgres`) y lo pegás con
+el host del pooler, obtenés:
+
+```
+FATAL:  password authentication failed for user "postgres"
+```
+
+que despista, porque el problema es el usuario y no la contraseña.
+
+Si la contraseña tiene caracteres especiales (`@ : / ? # % &`), hay que percent-encodearla
+dentro de la URL o el parseo se rompe.
+
 ### Datos de la base vieja
 
 La base de Render (`dpg-d5ngi8n5r7bs73do9u5g-a`) **ya no responde** — la verifiqué y rechaza
@@ -150,6 +167,13 @@ CLOUDINARY_API_KEY=<rotada>
 CLOUDINARY_API_SECRET=<rotada>
 CLOUDINARY_SECURE=true
 CLOUDINARY_PRODUCT_FOLDER=products
+CLOUDINARY_ASSET_FOLDER=products_clientes/Productos_abul
+
+# Sugerencias de titulo y descripcion desde la foto, en el panel de admin.
+# Opcional: sin la key el panel anda igual, solo sin ese boton.
+# Costo medido: ~USD 0.0005 por imagen.
+OPENAI_API_KEY=<tu key de platform.openai.com>
+OPENAI_VISION_MODEL=gpt-4o-mini
 
 MAX_UPLOAD_MB=8
 UPLOAD_TEMP_DIR=/tmp/abul_cells_uploads

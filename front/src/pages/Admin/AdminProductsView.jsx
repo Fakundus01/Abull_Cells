@@ -19,6 +19,10 @@ export default function AdminProductsView({
   onRemoveImage,
   onDeactivate,
   onActivate,
+  onDuplicate,
+  duplicatingId,
+  bulkOpen,
+  onToggleBulk,
   productsPage,
   totalProductPages,
   pageSize,
@@ -46,6 +50,8 @@ export default function AdminProductsView({
     X,
     XCircle,
     CheckCircle2,
+    Copy,
+    Table2,
   } = icons;
   const totalProducts = products.length;
   const filteredCount = filteredProducts.length;
@@ -102,10 +108,21 @@ export default function AdminProductsView({
             )}
           </h2>
 
-          {isEditing && (
+          {isEditing ? (
             <span className="admin-chip">
               <Hash size={14} className="icon" /> {t("admin.products.form.idLabel", { id: editingId })}
             </span>
+          ) : (
+            <button
+              type="button"
+              className={`btn-small btn-icon ${bulkOpen ? "is-active" : ""}`}
+              onClick={onToggleBulk}
+              aria-pressed={bulkOpen}
+              aria-expanded={bulkOpen}
+            >
+              <Table2 size={16} className="icon" />
+              {bulkOpen ? "Cerrar carga masiva" : "Carga masiva"}
+            </button>
           )}
         </div>
 
@@ -405,6 +422,20 @@ export default function AdminProductsView({
                     )}
                   </span>
                   <span className="admin-actions">
+                    <button
+                      type="button"
+                      className="btn-small btn-icon"
+                      onClick={() => onDuplicate?.(p)}
+                      disabled={duplicatingId === p.id}
+                      aria-label={`Duplicar ${p.name}`}
+                      title="Duplicar: crea una copia lista para editar"
+                    >
+                      {duplicatingId === p.id ? (
+                        <Loader2 size={16} className="icon spin" />
+                      ) : (
+                        <Copy size={16} className="icon" />
+                      )}
+                    </button>
                     <button
                       type="button"
                       className="btn-small btn-icon"

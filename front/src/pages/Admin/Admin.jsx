@@ -4,7 +4,9 @@ import { useAuth } from "../../context/AuthContext";
 import { Link } from "react-router-dom";
 import { useLanguage } from "../../context/LanguageContext";
 import {
+  bulkCreateProducts,
   createProduct,
+  duplicateProduct,
   fetchAdminProducts,
   fetchOrders,
   fetchAdminUsers,
@@ -33,11 +35,16 @@ import {
   ShieldCheck,
   Tag,
   Printer,
+  Copy,
+  Table2,
   X,
   XCircle,
 } from "lucide-react";
 
+import { slugify } from "../../utils/slugify";
+
 import AdminProductsView from "./AdminProductsView";
+import AdminBulkImport from "./AdminBulkImport";
 import AdminPaymentsView from "./AdminPaymentsView";
 import AdminUsersView from "./AdminUsersView";
 import AdminProfitsView from "./AdminProfitsView";
@@ -61,6 +68,11 @@ export default function Admin() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
+
+  // Carga masiva y duplicado
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [duplicatingId, setDuplicatingId] = useState(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -277,10 +289,23 @@ export default function Admin() {
       e.target.value = "";
       return;
     }
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    setForm((prev) => {
+      const next = {
+        ...prev,
+        [name]: type === "checkbox" ? checked : value,
+      };
+
+      // El slug se deriva del nombre mientras el admin no lo haya tocado a mano.
+      // Es un campo que casi nunca se personaliza y obliga a tipear dos veces.
+      if (name === "name" && !isEditing && !prev.slugTouched) {
+        next.slug = slugify(value);
+      }
+      if (name === "slug") {
+        next.slugTouched = true;
+      }
+
+      return next;
+    });
   }
 
   function resetForm() {
@@ -299,6 +324,7 @@ export default function Admin() {
       description: "",
       isOffer: false,
       offerLabel: "",
+      slugTouched: false,
     });
   }
 
@@ -318,6 +344,7 @@ export default function Admin() {
       description: p.description || "",
       isOffer: !!p.isOffer,
       offerLabel: p.offerLabel || "",
+      slugTouched: true,
     });
     setSuccessMsg("");
     setError("");
@@ -502,6 +529,71 @@ export default function Admin() {
       await loadProducts();
     } catch (err) {
       setError(err?.message || t("admin.errors.toggleProduct"));
+    }
+  }
+
+  /**
+   * Duplica un producto y deja la copia abierta en el formulario, con foco en
+   * el nombre: el caso tipico es "igual pero otro modelo", asi que lo unico
+   * que suele cambiar es el titulo y quiza la imagen.
+   */
+  async function handleDuplicateProduct(product) {
+    if (!product?.id) return;
+    setError("");
+    setSuccessMsg("");
+    setDuplicatingId(product.id);
+
+    try {
+      const copy = await duplicateProduct(product.id);
+      await loadProducts();
+      handleEditClick(copy);
+      setSuccessMsg(`Copia creada: "${copy.name}". Editá lo que cambie y guardá.`);
+    } catch (err) {
+      setError(err?.message || "No se pudo duplicar el producto.");
+    } finally {
+      setDuplicatingId(null);
+    }
+  }
+
+  /**
+   * Alta masiva. Devuelve {ok} o {errors} para que el panel marque las filas
+   * que el backend rechazo; el backend no crea nada si alguna falla.
+   */
+  async function handleBulkSave(rows) {
+    setError("");
+    setSuccessMsg("");
+    setBulkSaving(true);
+
+    try {
+      const payload = rows.map((row) => ({
+        name: row.name,
+        price: row.price,
+        stock: row.stock,
+        category: row.category || null,
+        description: row.description || null,
+        offerLabel: row.offerLabel || null,
+        isOffer: Boolean(row.offerLabel),
+        // Las filas de la biblioteca ya traen sus fotos; la primera es la principal.
+        imageUrls: row.imageUrls || [],
+      }));
+
+      const result = await bulkCreateProducts(payload);
+      await loadProducts();
+      setSuccessMsg(
+        `Se crearon ${result.created} producto${result.created === 1 ? "" : "s"}.`
+      );
+      setBulkOpen(false);
+      return { ok: true };
+    } catch (err) {
+      const rowErrors = err?.data?.errors;
+      if (Array.isArray(rowErrors) && rowErrors.length > 0) {
+        setError(err.message);
+        return { errors: rowErrors };
+      }
+      setError(err?.message || "No se pudieron crear los productos.");
+      return { ok: false };
+    } finally {
+      setBulkSaving(false);
     }
   }
 
@@ -790,6 +882,14 @@ export default function Admin() {
           )}
 
           {/* ✅ PRODUCTS */}
+          {tab === "products" && bulkOpen && (
+            <AdminBulkImport
+              onCancel={() => setBulkOpen(false)}
+              onSave={handleBulkSave}
+              saving={bulkSaving}
+            />
+          )}
+
           {tab === "products" && (
             <AdminProductsView
           products={products}
@@ -808,6 +908,10 @@ export default function Admin() {
           onRemoveImage={handleRemoveImage}
           onDeactivate={openConfirmDeactivate}
           onActivate={handleActivateProduct}
+          onDuplicate={handleDuplicateProduct}
+          duplicatingId={duplicatingId}
+          bulkOpen={bulkOpen}
+          onToggleBulk={() => setBulkOpen((v) => !v)}
           productsPage={productsPage}
               totalProductPages={totalProductPages}
               pageSize={PAGE_SIZE}
@@ -828,6 +932,8 @@ export default function Admin() {
                 Loader2,
                 Save,
                 Search,
+                Copy,
+                Table2,
                 X,
                 XCircle,
                 CheckCircle2,

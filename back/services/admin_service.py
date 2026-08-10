@@ -1,18 +1,96 @@
 import os
+import re
+import unicodedata
 import uuid
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from flask import current_app, jsonify, request
 from werkzeug.exceptions import NotFound
 from werkzeug.utils import secure_filename
-from services.cloudinary_service import upload_product_image #type: ignore
+from services import ai_service
+from services.cloudinary_service import list_product_assets, upload_product_image #type: ignore
 
 from models import Order, Product, ProductImage, User, db
+
+# Tope de productos por lote. Evita que un pegado accidental de una planilla
+# entera bloquee la base con una transaccion gigante.
+BULK_MAX_ITEMS = 200
 
 
 def _parse_bool(value):
     if value is None:
         return None
     return str(value).strip().lower() in {"1", "true", "on", "yes"}
+
+
+def _slugify(value) -> str:
+    """Convierte 'Funda iPhone 15 Pro' en 'funda-iphone-15-pro'."""
+    text = unicodedata.normalize("NFKD", str(value or ""))
+    text = text.encode("ascii", "ignore").decode("ascii")
+    text = re.sub(r"[^a-zA-Z0-9]+", "-", text).strip("-").lower()
+    return text or "producto"
+
+
+def _unique_slug(base, taken=None) -> str:
+    """
+    Devuelve un slug libre. `taken` permite reservar los slugs de un mismo lote,
+    que todavia no estan commiteados y por lo tanto no aparecen en la query.
+    """
+    taken = taken if taken is not None else set()
+    root = _slugify(base)
+    slug = root
+    suffix = 2
+    while slug in taken or Product.query.filter_by(slug=slug).first():
+        slug = f"{root}-{suffix}"
+        suffix += 1
+    return slug
+
+
+def _parse_price(value):
+    """
+    Acepta '$ 12.500', '12500', '12.500,50' y devuelve un entero de pesos.
+
+    El precio se guarda como Integer, asi que no hay decimales que preservar.
+    La regla es: solo se considera decimal lo que viene despues del ultimo
+    separador si son 1 o 2 digitos. Cualquier otro punto o coma es separador
+    de miles. Sin esto '12.500' se leeria como 12,5 en vez de 12500.
+    """
+    if value is None or str(value).strip() == "":
+        raise ValueError("El precio es obligatorio.")
+    if isinstance(value, (int, float)):
+        return int(round(value))
+
+    text = re.sub(r"[^\d,.\-]", "", str(value)).strip()
+    if not text or text in {"-", ".", ","}:
+        raise ValueError(f"Precio invalido: {value!r}")
+
+    decimals = re.search(r"[.,](\d{1,2})$", text)
+    try:
+        if decimals:
+            whole = re.sub(r"[.,]", "", text[: decimals.start()]) or "0"
+            # ROUND_HALF_UP y no round(): el round() de Python usa redondeo
+            # bancario (12500.5 -> 12500) y el Math.round() del front redondea
+            # para arriba (12501). Sin esto el preview del importador muestra
+            # un precio y se guarda otro.
+            return int(
+                Decimal(f"{whole}.{decimals.group(1)}").quantize(
+                    Decimal("1"), rounding=ROUND_HALF_UP
+                )
+            )
+        return int(re.sub(r"[.,]", "", text))
+    except (ValueError, InvalidOperation) as exc:
+        raise ValueError(f"Precio invalido: {value!r}") from exc
+
+
+def _parse_int(value, default=0, field="valor"):
+    if value is None or str(value).strip() == "":
+        return default
+    if isinstance(value, (int, float)):
+        return int(value)
+    text = re.sub(r"[^\d\-]", "", str(value))
+    if not text or text == "-":
+        raise ValueError(f"{field} invalido: {value!r}")
+    return int(text)
 
 
 def _parse_product_payload():
@@ -211,6 +289,230 @@ def admin_create_product():
         current_app.logger.exception(f"Error inesperado en POST /api/admin/products: {exc}")
         db.session.rollback()
         return jsonify({"msg": "Error interno al crear el producto"}), 500
+
+
+def admin_duplicate_product(product_id: int):
+    """
+    Clona un producto existente, incluidas sus imagenes.
+
+    Las imagenes se reusan por URL en vez de resubirse: ya viven en Cloudinary,
+    asi que duplicar no cuesta ancho de banda ni cuota.
+    """
+    source = Product.query.get_or_404(product_id)
+    try:
+        data = request.get_json(silent=True) or {}
+
+        name = (data.get("name") or "").strip() or f"{source.name} (copia)"
+        slug = _unique_slug(data.get("slug") or name)
+
+        copy = Product(
+            name=name,
+            slug=slug,
+            price=_parse_price(data.get("price")) if data.get("price") is not None else source.price,
+            category=data.get("category", source.category),
+            image_url=source.image_url,
+            is_offer=source.is_offer,
+            offer_label=source.offer_label,
+            stock=_parse_int(data.get("stock"), source.stock or 0, "Stock"),
+            is_active=source.is_active,
+            description=source.description,
+        )
+        if copy.stock < 0:
+            raise ValueError("El stock no puede ser negativo.")
+
+        db.session.add(copy)
+        db.session.flush()
+
+        for image in sorted(source.images or [], key=lambda i: i.position):
+            copy.images.append(
+                ProductImage(image_url=image.image_url, position=image.position)
+            )
+
+        db.session.commit()
+        return jsonify(copy.to_dict()), 201
+    except ValueError as exc:
+        db.session.rollback()
+        return jsonify({"msg": str(exc)}), 400
+    except Exception as exc:
+        current_app.logger.exception(f"Error duplicando producto {product_id}: {exc}")
+        db.session.rollback()
+        return jsonify({"msg": "Error interno al duplicar el producto"}), 500
+
+
+def admin_bulk_create_products():
+    """
+    Alta masiva desde JSON.
+
+    Es todo-o-nada: si una fila falla no se crea ninguna, y se devuelven los
+    errores indexados para que el front marque exactamente cual corregir.
+    Crear un subconjunto dejaria al admin adivinando que entro y que no.
+    """
+    payload = request.get_json(silent=True)
+    items = payload.get("items") if isinstance(payload, dict) else payload
+
+    if not isinstance(items, list) or not items:
+        return jsonify({"msg": "Enviá una lista de productos en 'items'."}), 400
+    if len(items) > BULK_MAX_ITEMS:
+        return jsonify(
+            {"msg": f"Máximo {BULK_MAX_ITEMS} productos por lote (enviaste {len(items)})."}
+        ), 400
+
+    errors = []
+    prepared = []
+    slugs_in_batch = set()
+
+    for index, raw in enumerate(items):
+        if not isinstance(raw, dict):
+            errors.append({"index": index, "msg": "Fila con formato invalido."})
+            continue
+
+        name = str(raw.get("name") or "").strip()
+        try:
+            if not name:
+                raise ValueError("El nombre es obligatorio.")
+
+            price = _parse_price(raw.get("price"))
+            if price < 0:
+                raise ValueError("El precio no puede ser negativo.")
+
+            stock = _parse_int(raw.get("stock"), 0, "Stock")
+            if stock < 0:
+                raise ValueError("El stock no puede ser negativo.")
+
+            slug = _unique_slug(raw.get("slug") or name, slugs_in_batch)
+            slugs_in_batch.add(slug)
+
+            image_urls = _coerce_image_urls(raw.get("imageUrls") or raw.get("imageUrl"))
+            if len(image_urls) > 5:
+                raise ValueError("Hasta 5 imágenes por producto.")
+
+            prepared.append(
+                {
+                    "name": name,
+                    "slug": slug,
+                    "price": price,
+                    "stock": stock,
+                    "category": (str(raw.get("category")).strip() or None)
+                    if raw.get("category")
+                    else None,
+                    "description": (str(raw.get("description")).strip() or None)
+                    if raw.get("description")
+                    else None,
+                    "is_offer": bool(_parse_bool(raw.get("isOffer"))),
+                    "offer_label": (str(raw.get("offerLabel")).strip() or None)
+                    if raw.get("offerLabel")
+                    else None,
+                    "image_urls": image_urls,
+                }
+            )
+        except ValueError as exc:
+            errors.append({"index": index, "name": name, "msg": str(exc)})
+
+    if errors:
+        return jsonify(
+            {
+                "msg": f"{len(errors)} de {len(items)} filas tienen errores. No se creó ningún producto.",
+                "errors": errors,
+            }
+        ), 400
+
+    try:
+        created = []
+        for item in prepared:
+            image_urls = item.pop("image_urls")
+            product = Product(image_url=image_urls[0] if image_urls else None, **item)
+            db.session.add(product)
+            db.session.flush()
+            for position, url in enumerate(image_urls):
+                product.images.append(ProductImage(image_url=url, position=position))
+            created.append(product)
+
+        db.session.commit()
+        return jsonify(
+            {
+                "created": len(created),
+                "products": [p.to_dict() for p in created],
+            }
+        ), 201
+    except Exception as exc:
+        current_app.logger.exception(f"Error en alta masiva de productos: {exc}")
+        db.session.rollback()
+        return jsonify({"msg": "Error interno al crear los productos. No se guardó ninguno."}), 500
+
+
+def admin_list_cloudinary_assets():
+    """
+    Devuelve las imágenes de Cloudinary para armar productos a partir de ellas.
+
+    Marca las que ya usa algún producto (`usedBy`) para que el admin no cargue
+    dos veces la misma foto al reconstruir el catálogo.
+    """
+    if (current_app.config.get("PRODUCT_IMAGE_STORAGE") or "local").lower() != "cloudinary":
+        return jsonify(
+            {"msg": "El almacenamiento de imágenes no está configurado en Cloudinary."}
+        ), 400
+
+    try:
+        cursor = request.args.get("cursor") or None
+        # Solo la carpeta de este cliente. Las demas carpetas de la cuenta de
+        # Cloudinary son de otros clientes y no deben aparecer nunca aca.
+        asset_folder = request.args.get("folder") or current_app.config.get(
+            "CLOUDINARY_ASSET_FOLDER"
+        )
+
+        result = list_product_assets(asset_folder=asset_folder, cursor=cursor)
+
+        # Un producto puede referenciar la imagen desde products.image_url o
+        # desde product_images, asi que se miran las dos.
+        used = {}
+        for product in Product.query.all():
+            urls = {product.image_url} | {img.image_url for img in (product.images or [])}
+            for url in urls:
+                if url:
+                    used[url] = {"id": product.id, "name": product.name}
+
+        for asset in result["assets"]:
+            asset["usedBy"] = used.get(asset["url"])
+
+        return jsonify(result)
+    except Exception as exc:
+        current_app.logger.exception(f"Error listando assets de Cloudinary: {exc}")
+        return jsonify({"msg": "No se pudieron listar las imágenes de Cloudinary."}), 502
+
+
+def admin_ai_suggest_products():
+    """
+    Sugiere título, descripción y categoría a partir de las fotos elegidas.
+
+    Es solo asistencia de carga: el admin revisa todo y pone el precio a mano.
+    """
+    if not ai_service.is_configured():
+        return jsonify(
+            {"msg": "Falta configurar OPENAI_API_KEY para usar las sugerencias."}
+        ), 400
+
+    payload = request.get_json(silent=True) or {}
+    images = payload.get("images")
+
+    if not isinstance(images, list) or not images:
+        return jsonify({"msg": "Enviá una lista de imágenes en 'images'."}), 400
+    if len(images) > ai_service.MAX_IMAGES:
+        return jsonify(
+            {"msg": f"Máximo {ai_service.MAX_IMAGES} imágenes por tanda."}
+        ), 400
+
+    cleaned = []
+    for item in images:
+        url = (item or {}).get("url") if isinstance(item, dict) else None
+        if not url or not str(url).startswith("https://"):
+            return jsonify({"msg": "Cada imagen necesita una url https válida."}), 400
+        cleaned.append({"id": (item.get("id") or url), "url": url})
+
+    try:
+        return jsonify(ai_service.suggest_for_images(cleaned))
+    except Exception as exc:
+        current_app.logger.exception(f"Error en sugerencias de IA: {exc}")
+        return jsonify({"msg": "No se pudieron generar las sugerencias."}), 502
 
 
 def admin_list_products():

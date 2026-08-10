@@ -1,15 +1,14 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { BadgeCheck, Moon, Sun, User } from "lucide-react";
+import { BadgeCheck, User } from "lucide-react";
 import { fetchAddresses, createAddress, deleteAddress, updateAddress, setDefaultAddress, resendVerifyEmail} from "../services/api";
 import { useEffect, useState, useMemo } from "react";
 import { useLanguage } from "../context/LanguageContext";
-import { useTheme } from "../context/ThemeContext";
+import ThemePicker from "../components/ThemePicker";
 
 function Profile() {
   const { user } = useAuth();
   const { t } = useLanguage();
-  const { theme, toggleTheme } = useTheme();
   const [addresses, setAddresses] = useState([]);
   const [loadingAddresses, setLoadingAddresses] = useState(true);
   const [addrError, setAddrError] = useState("");
@@ -169,30 +168,12 @@ function Profile() {
           </div>
         </div>
 
-        <div className="profile-theme">
+        <div className="profile-theme profile-theme--picker">
           <div>
             <h2 className="profile-title">{t("profile.theme.title")}</h2>
             <p className="profile-subtitle">{t("profile.theme.description")}</p>
           </div>
-          <button
-            type="button"
-            className={`theme-toggle ${theme === "dark" ? "is-dark" : "is-light"}`}
-            onClick={toggleTheme}
-            aria-label={t("profile.theme.toggle")}
-          >
-            <span className="theme-toggle-icon">
-              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-            </span>
-            <span className="theme-toggle-labels">
-              <span className="theme-toggle-label theme-toggle-label--light">
-                {t("profile.theme.light")}
-              </span>
-              <span className="theme-toggle-label theme-toggle-label--dark">
-                {t("profile.theme.dark")}
-              </span>
-            </span>
-            <span className="theme-toggle-thumb" aria-hidden="true" />
-          </button>
+          <ThemePicker />
         </div>
         
         {!isEmailVerified && (

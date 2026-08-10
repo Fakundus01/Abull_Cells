@@ -345,6 +345,15 @@ const TRANSLATIONS = {
         toggle: "Cambiar tema",
         light: "Modo claro",
         dark: "Modo oscuro",
+        picker: "Elegí un tema",
+        current: "Tema actual: {name}",
+        names: {
+          light: "Claro",
+          dark: "Oscuro",
+          midnight: "Medianoche",
+          forest: "Bosque",
+          sunset: "Atardecer",
+        },
       },
       labels: {
         name: "Nombre",
@@ -1238,6 +1247,15 @@ const TRANSLATIONS = {
         toggle: "Toggle theme",
         light: "Light mode",
         dark: "Dark mode",
+        picker: "Pick a theme",
+        current: "Current theme: {name}",
+        names: {
+          light: "Light",
+          dark: "Dark",
+          midnight: "Midnight",
+          forest: "Forest",
+          sunset: "Sunset",
+        },
       },
       labels: {
         name: "Name",

@@ -192,6 +192,51 @@ export function deleteProduct(id) {
   });
 }
 
+/**
+ * Clona un producto en el servidor. Las imágenes se reusan por URL, así que no
+ * hay que volver a subirlas. `overrides` permite pisar name / price / stock.
+ */
+export function duplicateProduct(id, overrides = {}) {
+  return apiFetch(`/admin/products/${id}/duplicate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(overrides),
+  });
+}
+
+/**
+ * Lista las imágenes ya subidas a Cloudinary, paginadas por cursor.
+ * Cada asset incluye `usedBy` si ya lo referencia algún producto.
+ */
+export function fetchCloudinaryAssets(cursor) {
+  const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
+  return apiFetch(`/admin/cloudinary/assets${query}`);
+}
+
+/**
+ * Pide sugerencias de título, descripción y categoría mirando cada foto.
+ * `images` es [{id, url}], máximo 12 por tanda. El precio nunca lo sugiere.
+ */
+export function aiSuggestProducts(images) {
+  return apiFetch("/admin/products/ai-suggest", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ images }),
+  });
+}
+
+/**
+ * Alta masiva. Es todo-o-nada: si alguna fila falla, el backend responde 400
+ * con `errors: [{index, name, msg}]` y no crea ninguno.
+ */
+export function bulkCreateProducts(items) {
+  return apiFetch("/admin/products/bulk", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ items }),
+  });
+}
+
 export function setProductActive(id, is_active) {
   return apiFetch(`/admin/products/${id}/active`, {
     method: "PATCH",

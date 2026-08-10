@@ -1,21 +1,21 @@
 // src/context/ThemeContext.jsx
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { DEFAULT_THEME, THEMES, getThemeMeta, isValidTheme } from "./themes";
 
 const ThemeContext = createContext();
 
 const STORAGE_KEY = "theme";
-const DEFAULT_THEME = "dark";
 
 function getInitialTheme() {
   if (typeof window === "undefined") return DEFAULT_THEME;
   const saved = window.localStorage.getItem(STORAGE_KEY);
-  if (saved === "light" || saved === "dark") return saved;
+  if (isValidTheme(saved)) return saved;
   const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
-  return prefersDark ? "dark" : DEFAULT_THEME;
+  return prefersDark ? "dark" : "light";
 }
 
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(getInitialTheme);
+  const [theme, setThemeState] = useState(getInitialTheme);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -25,16 +25,27 @@ export function ThemeProvider({ children }) {
   useEffect(() => {
     if (typeof document === "undefined") return;
     document.body.dataset.theme = theme;
+    // Le avisa al navegador si pintar los controles nativos (scrollbars, inputs
+    // de fecha, autofill) en variante clara u oscura.
+    document.documentElement.style.colorScheme = getThemeMeta(theme)?.dark
+      ? "dark"
+      : "light";
   }, [theme]);
 
-  const value = useMemo(() => {
-    return {
+  const value = useMemo(
+    () => ({
       theme,
-      setTheme,
+      themes: THEMES,
+      isDark: getThemeMeta(theme)?.dark ?? true,
+      setTheme: (next) => {
+        if (isValidTheme(next)) setThemeState(next);
+      },
+      // Toggle rápido claro <-> oscuro, para el atajo del navbar.
       toggleTheme: () =>
-        setTheme((prev) => (prev === "dark" ? "light" : "dark")),
-    };
-  }, [theme]);
+        setThemeState((prev) => (getThemeMeta(prev)?.dark ? "light" : "dark")),
+    }),
+    [theme]
+  );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

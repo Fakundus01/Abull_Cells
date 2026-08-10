@@ -5,18 +5,18 @@ import {
   ChevronLeft,
   ChevronRight,
   Check,
-  Link2,
   Loader2,
-  Scissors,
   Sparkles,
   X,
 } from "lucide-react";
 import { aiSuggestProducts } from "../../services/api";
 import { parsePriceLoose } from "../../utils/parseProductRows";
 
-// El backend acepta 12 imagenes por request de IA y hasta 5 por producto.
+// El backend acepta 12 imagenes por request de IA.
 const AI_BATCH = 12;
-const MAX_IMAGES_PER_PRODUCT = 5;
+
+// Stock con el que nacen los productos cargados desde fotos.
+const DEFAULT_STOCK = 99;
 
 const CATEGORIES = [
   "Fundas",
@@ -32,25 +32,23 @@ const CATEGORIES = [
 /**
  * Revisión de los productos que se van a crear a partir de las fotos elegidas.
  *
- * Arranca con un producto por foto y permite unir: si la foto que estás viendo
- * es otra vista del producto anterior, se fusiona en él. Es el orden natural
- * porque recién acá, con la foto y el título a la vista, se sabe cuáles son el
- * mismo producto.
- *
- * La IA propone título, descripción y categoría; el precio siempre lo pone la
- * persona.
+ * Los grupos ya vienen armados del paso anterior, asi que acá solo se revisa:
+ * la IA propone título, descripción y categoría, y el precio lo pone la
+ * persona. El stock arranca en 99.
  */
-export default function AiReviewModal({ assets, onClose, onDone }) {
+export default function AiReviewModal({ groups, onClose, onDone }) {
   const [entries, setEntries] = useState(() =>
-    assets.map((a) => ({
-      id: a.publicId,
-      images: [{ url: a.url, thumbUrl: a.thumbUrl }],
+    groups.map((group) => ({
+      id: group[0].publicId,
+      images: group.map((a) => ({ url: a.url, thumbUrl: a.thumbUrl })),
       mainIndex: 0,
       name: "",
       description: "",
       category: "",
       price: "",
-      stock: "",
+      // Arranca en 99: el negocio repone, asi que el stock real casi nunca es
+      // el dato que frena una carga. Se puede cambiar producto por producto.
+      stock: String(DEFAULT_STOCK),
       aiError: "",
     }))
   );
@@ -133,66 +131,9 @@ export default function AiReviewModal({ assets, onClose, onDone }) {
     );
   }
 
-  /**
-   * Fusiona el producto actual dentro del anterior: sus imágenes pasan a ser
-   * fotos secundarias y la ficha desaparece de la lista.
-   */
-  function mergeIntoPrevious() {
-    if (index === 0) return;
-    setEntries((prev) => {
-      const target = prev[index - 1];
-      const source = prev[index];
-      if (target.images.length + source.images.length > MAX_IMAGES_PER_PRODUCT) {
-        return prev;
-      }
-      const merged = {
-        ...target,
-        images: [...target.images, ...source.images],
-        // Se recuerda de dónde vino cada foto para poder separarla después.
-        mergedFrom: [...(target.mergedFrom || []), source.id],
-      };
-      return [...prev.slice(0, index - 1), merged, ...prev.slice(index + 1)];
-    });
-    setIndex((i) => i - 1);
-  }
-
-  /** Saca la última foto agregada y la vuelve a dejar como producto aparte. */
-  function splitLast() {
-    setEntries((prev) => {
-      const entry = prev[index];
-      if (entry.images.length < 2) return prev;
-
-      const images = entry.images.slice(0, -1);
-      const detached = entry.images[entry.images.length - 1];
-      const restoredId = (entry.mergedFrom || []).slice(-1)[0] || detached.url;
-
-      const kept = {
-        ...entry,
-        images,
-        mainIndex: Math.min(entry.mainIndex, images.length - 1),
-        mergedFrom: (entry.mergedFrom || []).slice(0, -1),
-      };
-      const nuevo = {
-        id: restoredId,
-        images: [detached],
-        mainIndex: 0,
-        name: "",
-        description: "",
-        category: entry.category,
-        price: "",
-        stock: "",
-        aiError: "",
-      };
-      return [...prev.slice(0, index), kept, nuevo, ...prev.slice(index + 1)];
-    });
-  }
-
   const priceValue = parsePriceLoose(current?.price);
   const nameMissing = !String(current?.name || "").trim();
   const priceMissing = priceValue === null;
-  const canMerge =
-    index > 0 &&
-    entries[index - 1].images.length + current.images.length <= MAX_IMAGES_PER_PRODUCT;
 
   const totalFotos = entries.reduce((acc, e) => acc + e.images.length, 0);
 
@@ -356,38 +297,6 @@ export default function AiReviewModal({ assets, onClose, onDone }) {
               </div>
             </div>
           )}
-
-          {/* Agrupar varias fotos en un mismo producto */}
-          <div className="ai-merge-bar">
-            <button
-              type="button"
-              className="btn-small btn-icon"
-              onClick={mergeIntoPrevious}
-              disabled={!canMerge}
-              title={
-                index === 0
-                  ? "No hay producto anterior"
-                  : !canMerge
-                    ? `Máximo ${MAX_IMAGES_PER_PRODUCT} fotos por producto`
-                    : undefined
-              }
-            >
-              <Link2 size={15} className="icon" />
-              Es otra foto del anterior
-            </button>
-
-            {current?.images.length > 1 && (
-              <button
-                type="button"
-                className="btn-small btn-icon"
-                onClick={splitLast}
-                title="Vuelve a separar la última foto como producto aparte"
-              >
-                <Scissors size={15} className="icon" />
-                Separar la última
-              </button>
-            )}
-          </div>
 
           <div className="picker-pager">
             <button

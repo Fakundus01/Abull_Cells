@@ -5660,3 +5660,74 @@ html{
   line-height: 17px;
   text-align: center;
 }
+
+/* --------------------------------------------------------------------------
+   Paso de agrupado: decidir que fotos son del mismo producto
+-------------------------------------------------------------------------- */
+.group-list{
+  display: grid;
+  gap: .5rem;
+  max-height: min(48vh, 400px);
+  overflow-y: auto;
+  padding-right: .25rem;
+}
+
+.group-card{
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: .5rem;
+  background: var(--surface-2);
+}
+
+/* Un producto con varias fotos se distingue de un vistazo. */
+.group-card.is-multi{
+  border-color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 6%, var(--surface-2));
+}
+
+.group-card-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  margin-bottom: .375rem;
+}
+
+.group-card-num{
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .75rem;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.group-card-count{
+  padding: .125rem .375rem;
+  border-radius: 999px;
+  background: var(--brand);
+  color: #06131c;
+  font-size: .625rem;
+  font-weight: 900;
+}
+
+.group-card-photos{
+  display: flex;
+  gap: .375rem;
+  flex-wrap: wrap;
+}
+
+.group-card-photos .asset-tile{
+  width: 62px;
+  height: 62px;
+  flex: 0 0 auto;
+}
+
+.group-merge-bar{
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  align-items: center;
+  padding-top: .5rem;
+  border-top: 1px solid var(--border);
+}

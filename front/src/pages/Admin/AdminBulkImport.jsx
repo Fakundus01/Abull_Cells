@@ -51,7 +51,7 @@ export default function AdminBulkImport({ onCancel, onSave, saving }) {
   const [assetsLoaded, setAssetsLoaded] = useState(false);
   // Flujo de dos pasos: elegir fotos -> revisar textos sugeridos por IA.
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [reviewAssets, setReviewAssets] = useState(null);
+  const [reviewGroups, setReviewGroups] = useState(null);
 
   const rowErrors = useMemo(() => rows.map((row) => validateRow(row)), [rows]);
   const invalidCount = rowErrors.filter((e) => Object.keys(e).length > 0).length;
@@ -161,7 +161,7 @@ export default function AdminBulkImport({ onCancel, onSave, saving }) {
         });
       }),
     ]);
-    setReviewAssets(null);
+    setReviewGroups(null);
     setServerErrors({});
     setNotice(
       `${entries.length} producto${entries.length === 1 ? "" : "s"} agregado${
@@ -541,17 +541,17 @@ export default function AdminBulkImport({ onCancel, onSave, saving }) {
           hasMore={Boolean(assetCursor)}
           onLoadMore={() => loadAssets(assetCursor)}
           onClose={() => setPickerOpen(false)}
-          onContinue={(chosen) => {
+          onContinue={(grupos) => {
             setPickerOpen(false);
-            setReviewAssets(chosen);
+            setReviewGroups(grupos);
           }}
         />
       )}
 
-      {reviewAssets && reviewAssets.length > 0 && (
+      {reviewGroups && reviewGroups.length > 0 && (
         <AiReviewModal
-          assets={reviewAssets}
-          onClose={() => setReviewAssets(null)}
+          groups={reviewGroups}
+          onClose={() => setReviewGroups(null)}
           onDone={handleReviewDone}
         />
       )}

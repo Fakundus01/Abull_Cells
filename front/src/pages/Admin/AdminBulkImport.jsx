@@ -146,17 +146,20 @@ export default function AdminBulkImport({ onCancel, onSave, saving }) {
   function handleReviewDone(entries) {
     setRows((prev) => [
       ...prev,
-      ...entries.map((e) =>
-        makeEmptyRow({
+      ...entries.map((e) => {
+        // La principal va primera: el backend usa imageUrls[0] como image_url.
+        const main = e.images[e.mainIndex] || e.images[0];
+        const rest = e.images.filter((img) => img !== main);
+        return makeEmptyRow({
           name: e.name,
           price: e.price,
           stock: e.stock,
           category: e.category,
           description: e.description,
-          imageUrl: e.url,
-          thumbUrl: e.thumbUrl,
-        })
-      ),
+          imageUrls: [main, ...rest].map((img) => img.url),
+          thumbUrl: main.thumbUrl,
+        });
+      }),
     ]);
     setReviewAssets(null);
     setServerErrors({});
@@ -387,12 +390,19 @@ export default function AdminBulkImport({ onCancel, onSave, saving }) {
                   <div className="bulk-row-head">
                     <span className="bulk-row-num">
                       {row.thumbUrl && (
-                        <img
-                          className="bulk-row-thumb"
-                          src={row.thumbUrl}
-                          alt=""
-                          loading="lazy"
-                        />
+                        <span className="bulk-row-thumb-wrap">
+                          <img
+                            className="bulk-row-thumb"
+                            src={row.thumbUrl}
+                            alt=""
+                            loading="lazy"
+                          />
+                          {row.imageUrls?.length > 1 && (
+                            <span className="bulk-row-thumb-count">
+                              {row.imageUrls.length}
+                            </span>
+                          )}
+                        </span>
                       )}
                       #{index + 1}
                     </span>

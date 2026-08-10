@@ -5588,3 +5588,75 @@ html{
   .modal-actions{ flex-direction: column-reverse; }
   .modal-actions > *{ width: 100%; justify-content: center; }
 }
+
+/* --------------------------------------------------------------------------
+   Varias fotos para un mismo producto
+-------------------------------------------------------------------------- */
+.ai-entry-media{
+  display: grid;
+  gap: .5rem;
+}
+
+.ai-entry-thumbs{
+  display: flex;
+  gap: .375rem;
+  flex-wrap: wrap;
+}
+
+.ai-thumb{
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  background: var(--surface-2);
+  cursor: pointer;
+}
+
+.ai-thumb img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* La principal es la que se ve en la tienda. */
+.ai-thumb.is-main{
+  border-color: var(--brand);
+}
+
+.ai-merge-bar{
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  padding-top: .5rem;
+  border-top: 1px solid var(--border);
+}
+
+/* Contador de fotos sobre la miniatura de la fila del lote */
+.bulk-row-thumb-wrap{
+  position: relative;
+  display: inline-block;
+  margin-right: .5rem;
+  vertical-align: middle;
+}
+
+.bulk-row-thumb-wrap .bulk-row-thumb{
+  margin-right: 0;
+}
+
+.bulk-row-thumb-count{
+  position: absolute;
+  right: -5px;
+  bottom: -4px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--brand);
+  color: #06131c;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 17px;
+  text-align: center;
+}

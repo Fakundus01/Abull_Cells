@@ -573,8 +573,8 @@ export default function Admin() {
         description: row.description || null,
         offerLabel: row.offerLabel || null,
         isOffer: Boolean(row.offerLabel),
-        // Las filas nacidas de la biblioteca de Cloudinary ya traen la imagen.
-        imageUrls: row.imageUrl ? [row.imageUrl] : [],
+        // Las filas de la biblioteca ya traen sus fotos; la primera es la principal.
+        imageUrls: row.imageUrls || [],
       }));
 
       const result = await bulkCreateProducts(payload);

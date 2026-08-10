@@ -127,8 +127,9 @@ export function makeEmptyRow(overrides = {}) {
     category: "",
     description: "",
     offerLabel: "",
-    // Se completa cuando la fila nace de una imagen ya subida a Cloudinary.
-    imageUrl: "",
+    // Se completan cuando la fila nace de la biblioteca de Cloudinary.
+    // La primera de imageUrls es la principal en la tienda.
+    imageUrls: [],
     thumbUrl: "",
     ...overrides,
   };

@@ -5,15 +5,18 @@ import {
   ChevronLeft,
   ChevronRight,
   Check,
+  Link2,
   Loader2,
+  Scissors,
   Sparkles,
   X,
 } from "lucide-react";
 import { aiSuggestProducts } from "../../services/api";
 import { parsePriceLoose } from "../../utils/parseProductRows";
 
-// El backend acepta 12 por request; se manda en tandas para no pasarse.
+// El backend acepta 12 imagenes por request de IA y hasta 5 por producto.
 const AI_BATCH = 12;
+const MAX_IMAGES_PER_PRODUCT = 5;
 
 const CATEGORIES = [
   "Fundas",
@@ -29,16 +32,20 @@ const CATEGORIES = [
 /**
  * Revisión de los productos que se van a crear a partir de las fotos elegidas.
  *
+ * Arranca con un producto por foto y permite unir: si la foto que estás viendo
+ * es otra vista del producto anterior, se fusiona en él. Es el orden natural
+ * porque recién acá, con la foto y el título a la vista, se sabe cuáles son el
+ * mismo producto.
+ *
  * La IA propone título, descripción y categoría; el precio siempre lo pone la
- * persona. Se pagina de a un producto porque en el celular no entra más y
- * obliga a mirar cada foto antes de confirmar.
+ * persona.
  */
 export default function AiReviewModal({ assets, onClose, onDone }) {
   const [entries, setEntries] = useState(() =>
     assets.map((a) => ({
       id: a.publicId,
-      url: a.url,
-      thumbUrl: a.thumbUrl,
+      images: [{ url: a.url, thumbUrl: a.thumbUrl }],
+      mainIndex: 0,
       name: "",
       description: "",
       category: "",
@@ -69,12 +76,14 @@ export default function AiReviewModal({ assets, onClose, onDone }) {
     let totalCost = 0;
 
     try {
-      for (let start = 0; start < entries.length; start += AI_BATCH) {
-        const slice = entries.slice(start, start + AI_BATCH);
-        const data = await aiSuggestProducts(
-          slice.map((e) => ({ id: e.id, url: e.url }))
-        );
+      // Se piden sugerencias por la imagen principal de cada producto.
+      const targets = entries.map((e) => ({
+        id: e.id,
+        url: e.images[e.mainIndex]?.url || e.images[0].url,
+      }));
 
+      for (let start = 0; start < targets.length; start += AI_BATCH) {
+        const data = await aiSuggestProducts(targets.slice(start, start + AI_BATCH));
         totalCost += data?.usage?.costUsd || 0;
 
         setEntries((prev) => {
@@ -124,9 +133,68 @@ export default function AiReviewModal({ assets, onClose, onDone }) {
     );
   }
 
+  /**
+   * Fusiona el producto actual dentro del anterior: sus imágenes pasan a ser
+   * fotos secundarias y la ficha desaparece de la lista.
+   */
+  function mergeIntoPrevious() {
+    if (index === 0) return;
+    setEntries((prev) => {
+      const target = prev[index - 1];
+      const source = prev[index];
+      if (target.images.length + source.images.length > MAX_IMAGES_PER_PRODUCT) {
+        return prev;
+      }
+      const merged = {
+        ...target,
+        images: [...target.images, ...source.images],
+        // Se recuerda de dónde vino cada foto para poder separarla después.
+        mergedFrom: [...(target.mergedFrom || []), source.id],
+      };
+      return [...prev.slice(0, index - 1), merged, ...prev.slice(index + 1)];
+    });
+    setIndex((i) => i - 1);
+  }
+
+  /** Saca la última foto agregada y la vuelve a dejar como producto aparte. */
+  function splitLast() {
+    setEntries((prev) => {
+      const entry = prev[index];
+      if (entry.images.length < 2) return prev;
+
+      const images = entry.images.slice(0, -1);
+      const detached = entry.images[entry.images.length - 1];
+      const restoredId = (entry.mergedFrom || []).slice(-1)[0] || detached.url;
+
+      const kept = {
+        ...entry,
+        images,
+        mainIndex: Math.min(entry.mainIndex, images.length - 1),
+        mergedFrom: (entry.mergedFrom || []).slice(0, -1),
+      };
+      const nuevo = {
+        id: restoredId,
+        images: [detached],
+        mainIndex: 0,
+        name: "",
+        description: "",
+        category: entry.category,
+        price: "",
+        stock: "",
+        aiError: "",
+      };
+      return [...prev.slice(0, index), kept, nuevo, ...prev.slice(index + 1)];
+    });
+  }
+
   const priceValue = parsePriceLoose(current?.price);
   const nameMissing = !String(current?.name || "").trim();
   const priceMissing = priceValue === null;
+  const canMerge =
+    index > 0 &&
+    entries[index - 1].images.length + current.images.length <= MAX_IMAGES_PER_PRODUCT;
+
+  const totalFotos = entries.reduce((acc, e) => acc + e.images.length, 0);
 
   return (
     <div
@@ -153,7 +221,8 @@ export default function AiReviewModal({ assets, onClose, onDone }) {
             <p className="modal-subtitle">
               {aiState === "running"
                 ? "La IA está mirando las fotos..."
-                : `Producto ${index + 1} de ${entries.length}` +
+                : `${entries.length} producto${entries.length === 1 ? "" : "s"} con ` +
+                  `${totalFotos} foto${totalFotos === 1 ? "" : "s"}` +
                   (missing ? ` · faltan ${missing}` : " · todo listo")}
             </p>
           </div>
@@ -166,8 +235,7 @@ export default function AiReviewModal({ assets, onClose, onDone }) {
           {aiState === "running" && (
             <p className="bulk-notice">
               <Loader2 size={16} className="icon spin" /> Generando títulos y
-              descripciones para {entries.length} foto
-              {entries.length === 1 ? "" : "s"}. Podés ir completando precios mientras.
+              descripciones. Podés ir completando precios mientras.
             </p>
           )}
 
@@ -188,10 +256,34 @@ export default function AiReviewModal({ assets, onClose, onDone }) {
 
           {current && (
             <div className="ai-entry">
-              <div className="ai-entry-image">
-                <img src={current.thumbUrl} alt="" />
-                {current.aiError && (
-                  <span className="ai-entry-badge">Sin sugerencia</span>
+              <div className="ai-entry-media">
+                <div className="ai-entry-image">
+                  <img src={current.images[current.mainIndex]?.thumbUrl} alt="" />
+                  {current.aiError && (
+                    <span className="ai-entry-badge">Sin sugerencia</span>
+                  )}
+                </div>
+
+                {current.images.length > 1 && (
+                  <>
+                    <div className="ai-entry-thumbs">
+                      {current.images.map((img, i) => (
+                        <button
+                          key={img.url}
+                          type="button"
+                          className={`ai-thumb ${i === current.mainIndex ? "is-main" : ""}`}
+                          onClick={() => update("mainIndex", i)}
+                          title={i === current.mainIndex ? "Foto principal" : "Usar como principal"}
+                        >
+                          <img src={img.thumbUrl} alt="" />
+                        </button>
+                      ))}
+                    </div>
+                    <p className="bulk-hint">
+                      {current.images.length} fotos. Tocá una para que sea la
+                      principal en la tienda.
+                    </p>
+                  </>
                 )}
               </div>
 
@@ -265,6 +357,38 @@ export default function AiReviewModal({ assets, onClose, onDone }) {
             </div>
           )}
 
+          {/* Agrupar varias fotos en un mismo producto */}
+          <div className="ai-merge-bar">
+            <button
+              type="button"
+              className="btn-small btn-icon"
+              onClick={mergeIntoPrevious}
+              disabled={!canMerge}
+              title={
+                index === 0
+                  ? "No hay producto anterior"
+                  : !canMerge
+                    ? `Máximo ${MAX_IMAGES_PER_PRODUCT} fotos por producto`
+                    : undefined
+              }
+            >
+              <Link2 size={15} className="icon" />
+              Es otra foto del anterior
+            </button>
+
+            {current?.images.length > 1 && (
+              <button
+                type="button"
+                className="btn-small btn-icon"
+                onClick={splitLast}
+                title="Vuelve a separar la última foto como producto aparte"
+              >
+                <Scissors size={15} className="icon" />
+                Separar la última
+              </button>
+            )}
+          </div>
+
           <div className="picker-pager">
             <button
               type="button"
@@ -290,8 +414,7 @@ export default function AiReviewModal({ assets, onClose, onDone }) {
               <ChevronRight size={16} className="icon" />
             </button>
 
-            {/* Salta al primero incompleto: con 12 productos, buscarlo a mano
-                pasando uno por uno es tedioso. */}
+            {/* Con 12 productos, buscar el incompleto pasando de a uno es tedioso. */}
             {missing > 0 && (
               <button
                 type="button"

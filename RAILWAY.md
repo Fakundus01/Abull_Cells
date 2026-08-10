@@ -167,6 +167,13 @@ CLOUDINARY_API_KEY=<rotada>
 CLOUDINARY_API_SECRET=<rotada>
 CLOUDINARY_SECURE=true
 CLOUDINARY_PRODUCT_FOLDER=products
+CLOUDINARY_ASSET_FOLDER=products_clientes/Productos_abul
+
+# Sugerencias de titulo y descripcion desde la foto, en el panel de admin.
+# Opcional: sin la key el panel anda igual, solo sin ese boton.
+# Costo medido: ~USD 0.0005 por imagen.
+OPENAI_API_KEY=<tu key de platform.openai.com>
+OPENAI_VISION_MODEL=gpt-4o-mini
 
 MAX_UPLOAD_MB=8
 UPLOAD_TEMP_DIR=/tmp/abul_cells_uploads

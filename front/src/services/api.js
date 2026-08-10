@@ -214,6 +214,18 @@ export function fetchCloudinaryAssets(cursor) {
 }
 
 /**
+ * Pide sugerencias de título, descripción y categoría mirando cada foto.
+ * `images` es [{id, url}], máximo 12 por tanda. El precio nunca lo sugiere.
+ */
+export function aiSuggestProducts(images) {
+  return apiFetch("/admin/products/ai-suggest", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ images }),
+  });
+}
+
+/**
  * Alta masiva. Es todo-o-nada: si alguna fila falla, el backend responde 400
  * con `errors: [{index, name, msg}]` y no crea ninguno.
  */

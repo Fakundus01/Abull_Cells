@@ -5451,3 +5451,136 @@ html{
 @media (max-width: 900px){
   html{ scroll-padding-top: 68px; }
 }
+
+/* --------------------------------------------------------------------------
+   Tira de fotos + modales de seleccion y revision con IA
+-------------------------------------------------------------------------- */
+.asset-strip{
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: .45rem;
+}
+
+/* La ultima celda abre el modal: se ve como "y muchas mas". */
+.asset-tile--more{
+  display: grid;
+  place-items: center;
+  gap: .1rem;
+  border: 1px dashed var(--border-strong);
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.asset-tile--more:hover{
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+.asset-more-count{
+  font-size: .68rem;
+  font-weight: 800;
+}
+
+.modal-card--wide{
+  width: min(720px, 96vw);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-body{
+  padding: 1rem;
+  display: grid;
+  gap: .8rem;
+  overflow-y: auto;
+}
+
+.picker-grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: .5rem;
+}
+
+.picker-pager{
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .45rem;
+}
+
+.ai-entry{
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: .9rem;
+  align-items: start;
+}
+
+.ai-entry-image{
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  aspect-ratio: 1 / 1;
+}
+
+.ai-entry-image img{
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.ai-entry-badge{
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 3px 0;
+  text-align: center;
+  background: rgba(239,68,68,.85);
+  color: #fff;
+  font-size: .66rem;
+  font-weight: 800;
+}
+
+.ai-entry-fields{
+  display: grid;
+  gap: .6rem;
+}
+
+.ai-entry-row{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .6rem;
+}
+
+.ai-entry-fields select,
+.ai-entry-fields textarea{
+  width: 100%;
+  padding: .5rem .6rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: .9rem;
+  font-family: inherit;
+}
+
+.ai-entry-fields select{ min-height: 42px; }
+
+.bulk-notice--warn{
+  background: rgba(251,191,36,.12);
+  border-color: rgba(251,191,36,.3);
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 620px){
+  .asset-strip{ grid-template-columns: repeat(3, 1fr); }
+  .ai-entry{ grid-template-columns: 1fr; }
+  .ai-entry-image{ max-width: 190px; margin-inline: auto; }
+  .modal-actions{ flex-direction: column-reverse; }
+  .modal-actions > *{ width: 100%; justify-content: center; }
+}

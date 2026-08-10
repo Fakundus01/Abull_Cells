@@ -4,6 +4,7 @@ import {
   ClipboardPaste,
   FileSpreadsheet,
   Images,
+  MoreHorizontal,
   Loader2,
   Plus,
   Table2,
@@ -12,6 +13,8 @@ import {
   X,
 } from "lucide-react";
 import { fetchCloudinaryAssets } from "../../services/api";
+import AssetPickerModal from "./AssetPickerModal";
+import AiReviewModal from "./AiReviewModal";
 import {
   makeEmptyRow,
   parseProductRows,
@@ -46,35 +49,16 @@ export default function AdminBulkImport({ onCancel, onSave, saving }) {
   const [assetsLoading, setAssetsLoading] = useState(false);
   const [assetsError, setAssetsError] = useState("");
   const [assetsLoaded, setAssetsLoaded] = useState(false);
-  const [picked, setPicked] = useState(() => new Set());
-  const [hideUsed, setHideUsed] = useState(true);
-  const [folderFilter, setFolderFilter] = useState("");
+  // Flujo de dos pasos: elegir fotos -> revisar textos sugeridos por IA.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [reviewAssets, setReviewAssets] = useState(null);
 
   const rowErrors = useMemo(() => rows.map((row) => validateRow(row)), [rows]);
   const invalidCount = rowErrors.filter((e) => Object.keys(e).length > 0).length;
   const validCount = rows.length - invalidCount;
 
-  // Carpetas presentes en lo que se descargo, para armar el selector.
-  const folders = useMemo(() => {
-    const counts = new Map();
-    assets.forEach((a) => {
-      const key = a.assetFolder || "(sin carpeta)";
-      counts.set(key, (counts.get(key) || 0) + 1);
-    });
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
-  }, [assets]);
-
-  const visibleAssets = useMemo(
-    () =>
-      assets.filter((a) => {
-        if (hideUsed && a.usedBy) return false;
-        if (folderFilter && (a.assetFolder || "(sin carpeta)") !== folderFilter) {
-          return false;
-        }
-        return true;
-      }),
-    [assets, hideUsed, folderFilter]
-  );
+  // Solo las que ningun producto usa todavia: son las candidatas a cargar.
+  const freeAssets = useMemo(() => assets.filter((a) => !a.usedBy), [assets]);
 
   const total = useMemo(
     () =>
@@ -158,31 +142,28 @@ export default function AdminBulkImport({ onCancel, onSave, saving }) {
     }
   }, [source, assetsLoaded, assetsLoading, loadAssets]);
 
-  function togglePick(publicId) {
-    setPicked((prev) => {
-      const next = new Set(prev);
-      if (next.has(publicId)) next.delete(publicId);
-      else next.add(publicId);
-      return next;
-    });
-  }
-
-  function addPickedAsRows() {
-    const chosen = assets.filter((a) => picked.has(a.publicId));
-    if (chosen.length === 0) return;
-
+  /** Pasa lo revisado en el modal de IA a filas del lote. */
+  function handleReviewDone(entries) {
     setRows((prev) => [
       ...prev,
-      ...chosen.map((a) =>
-        makeEmptyRow({ imageUrl: a.url, thumbUrl: a.thumbUrl })
+      ...entries.map((e) =>
+        makeEmptyRow({
+          name: e.name,
+          price: e.price,
+          stock: e.stock,
+          category: e.category,
+          description: e.description,
+          imageUrl: e.url,
+          thumbUrl: e.thumbUrl,
+        })
       ),
     ]);
-    setPicked(new Set());
+    setReviewAssets(null);
     setServerErrors({});
     setNotice(
-      `${chosen.length} imagen${chosen.length === 1 ? "" : "es"} agregada${
-        chosen.length === 1 ? "" : "s"
-      }. Completá nombre y precio de cada una.`
+      `${entries.length} producto${entries.length === 1 ? "" : "s"} agregado${
+        entries.length === 1 ? "" : "s"
+      } al lote. Revisá y guardá.`
     );
   }
 
@@ -313,106 +294,43 @@ export default function AdminBulkImport({ onCancel, onSave, saving }) {
       {source === "assets" && (
         <div className="bulk-source-body">
           <p className="admin-card-desc">
-            Tus fotos ya subidas a Cloudinary. Tocá las que quieras y se crea una
-            fila por cada una, con la imagen ya asociada: solo queda ponerle
-            nombre y precio.
+            Tus fotos ya subidas. Elegí las que quieras y la IA te propone
+            título, descripción y categoría mirando cada una. El precio lo
+            ponés vos.
           </p>
-
-          <div className="asset-filters">
-            {folders.length > 1 && (
-              <label className="bulk-field">
-                <span>Carpeta</span>
-                <select
-                  value={folderFilter}
-                  onChange={(e) => setFolderFilter(e.target.value)}
-                >
-                  <option value="">Todas ({assets.length})</option>
-                  {folders.map(([name, count]) => (
-                    <option key={name} value={name}>
-                      {name} ({count})
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-
-            <label className="checkbox-row admin-checkbox">
-              <input
-                type="checkbox"
-                checked={hideUsed}
-                onChange={(e) => setHideUsed(e.target.checked)}
-              />
-              <span className="label-row">Ocultar las que ya usa un producto</span>
-            </label>
-          </div>
 
           {assetsError && <p className="bulk-error">{assetsError}</p>}
 
           {assetsLoading && assets.length === 0 ? (
             <p className="admin-muted">
-              <Loader2 size={16} className="icon spin" /> Cargando imágenes...
+              <Loader2 size={16} className="icon spin" /> Cargando fotos...
             </p>
           ) : (
-            <>
-              <div className="asset-grid">
-                {visibleAssets.map((asset) => {
-                  const isPicked = picked.has(asset.publicId);
-                  return (
-                    <button
-                      key={asset.publicId}
-                      type="button"
-                      className={`asset-tile ${isPicked ? "is-picked" : ""} ${
-                        asset.usedBy ? "is-used" : ""
-                      }`}
-                      onClick={() => togglePick(asset.publicId)}
-                      aria-pressed={isPicked}
-                      title={
-                        asset.usedBy
-                          ? `Ya la usa: ${asset.usedBy.name}`
-                          : asset.filename
-                      }
-                    >
-                      <img src={asset.thumbUrl} alt={asset.filename} loading="lazy" />
-                      {isPicked && <span className="asset-check">✓</span>}
-                      {asset.usedBy && <span className="asset-used">en uso</span>}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {visibleAssets.length === 0 && (
-                <p className="admin-muted">
-                  No hay imágenes libres. Destildá el filtro para ver todas.
-                </p>
-              )}
-
-              <div className="bulk-source-actions">
+            <div className="asset-strip">
+              {freeAssets.slice(0, 5).map((asset) => (
                 <button
+                  key={asset.publicId}
                   type="button"
-                  className="btn-primary btn-icon"
-                  onClick={addPickedAsRows}
-                  disabled={picked.size === 0}
+                  className="asset-tile"
+                  onClick={() => setPickerOpen(true)}
+                  title={asset.filename}
                 >
-                  <Plus size={16} className="icon" /> Agregar {picked.size || ""}{" "}
-                  seleccionada{picked.size === 1 ? "" : "s"}
+                  <img src={asset.thumbUrl} alt={asset.filename} loading="lazy" />
                 </button>
+              ))}
 
-                {assetCursor && (
-                  <button
-                    type="button"
-                    className="btn-small"
-                    onClick={() => loadAssets(assetCursor)}
-                    disabled={assetsLoading}
-                  >
-                    {assetsLoading ? "Cargando..." : "Cargar más"}
-                  </button>
-                )}
-
-                <span className="admin-muted">
-                  {visibleAssets.length} de {assets.length} cargadas
+              <button
+                type="button"
+                className="asset-tile asset-tile--more"
+                onClick={() => setPickerOpen(true)}
+                aria-label="Ver todas las fotos"
+              >
+                <span className="asset-more-dots" aria-hidden="true">
+                  <MoreHorizontal size={22} />
                 </span>
-              </div>
-            </>
+                <span className="asset-more-count">{freeAssets.length}</span>
+              </button>
+            </div>
           )}
         </div>
       )}
@@ -506,7 +424,7 @@ export default function AdminBulkImport({ onCancel, onSave, saving }) {
                       onChange={(e) => updateRow(index, "price", e.target.value)}
                       className={errors.price ? "is-invalid" : ""}
                       inputMode="decimal"
-                      placeholder="12500"
+                      placeholder="Ej. 12500"
                     />
                     {errors.price ? (
                       <small className="bulk-error">{errors.price}</small>
@@ -605,6 +523,29 @@ export default function AdminBulkImport({ onCancel, onSave, saving }) {
           )}
         </>
       )}
+      {pickerOpen && (
+        <AssetPickerModal
+          assets={assets}
+          loading={assetsLoading}
+          error={assetsError}
+          hasMore={Boolean(assetCursor)}
+          onLoadMore={() => loadAssets(assetCursor)}
+          onClose={() => setPickerOpen(false)}
+          onContinue={(chosen) => {
+            setPickerOpen(false);
+            setReviewAssets(chosen);
+          }}
+        />
+      )}
+
+      {reviewAssets && reviewAssets.length > 0 && (
+        <AiReviewModal
+          assets={reviewAssets}
+          onClose={() => setReviewAssets(null)}
+          onDone={handleReviewDone}
+        />
+      )}
+
     </div>
   );
 }

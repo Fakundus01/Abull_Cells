@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <style>
+      .bg { fill: #0f172a; }
+      .brand { font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif; font-weight: 800; }
+      .primary { fill: #38bdf8; }
+      .secondary { fill: #e2e8f0; }
+    </style>
+  </defs>
+  <rect class="bg" width="512" height="512" rx="96" />
+  <text x="64" y="240" font-size="128" class="brand primary">Abul</text>
+  <text x="64" y="340" font-size="96" class="brand secondary">Cell</text>
+</svg>

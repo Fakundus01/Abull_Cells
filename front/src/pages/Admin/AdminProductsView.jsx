@@ -21,6 +21,8 @@ export default function AdminProductsView({
   onActivate,
   onDuplicate,
   duplicatingId,
+  onAiSuggest,
+  aiSuggesting,
   bulkOpen,
   onToggleBulk,
   productsPage,
@@ -52,6 +54,7 @@ export default function AdminProductsView({
     CheckCircle2,
     Copy,
     Table2,
+    Sparkles,
   } = icons;
   const totalProducts = products.length;
   const filteredCount = filteredProducts.length;
@@ -194,6 +197,29 @@ export default function AdminProductsView({
             />
             <small className="field-hint">{t("admin.products.form.imageFileHint")}</small>
           </label>
+
+          <div className="admin-ai-suggest">
+            <button
+              type="button"
+              className="btn-small btn-icon"
+              onClick={onAiSuggest}
+              disabled={aiSuggesting}
+            >
+              {aiSuggesting ? (
+                <>
+                  <Loader2 size={16} className="icon spin" /> Mirando la foto...
+                </>
+              ) : (
+                <>
+                  <Sparkles size={16} className="icon" /> Completar con IA
+                </>
+              )}
+            </button>
+            <small className="field-hint">
+              Usa la foto para proponer nombre, descripción y categoría. El
+              precio lo ponés vos.
+            </small>
+          </div>
 
           <div className="admin-image-preview">
             <span className="label-row">

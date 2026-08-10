@@ -1,5 +1,5 @@
 // src/pages/Admin/AssetPickerModal.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -8,8 +8,10 @@ import {
   Link2,
   Loader2,
   Scissors,
+  Upload,
   X,
 } from "lucide-react";
+import { uploadCloudinaryAssets } from "../../services/api";
 
 // Cuantas miniaturas por pagina. Con mas, en un celular hay que scrollear
 // dentro del modal y se pierde la sensacion de "hojear".
@@ -35,6 +37,7 @@ export default function AssetPickerModal({
   error,
   hasMore,
   onLoadMore,
+  onUploaded,
   onClose,
   onContinue,
 }) {
@@ -46,6 +49,10 @@ export default function AssetPickerModal({
   // Paso 2: cada grupo es un producto. Empiezan de a una foto.
   const [groups, setGroups] = useState([]);
   const [checked, setChecked] = useState(() => new Set());
+
+  const fileRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadMsg, setUploadMsg] = useState("");
 
   const visible = useMemo(
     () => (hideUsed ? assets.filter((a) => !a.usedBy) : assets),
@@ -82,6 +89,43 @@ export default function AssetPickerModal({
       pageAssets.forEach((a) => next.add(a.publicId));
       return next;
     });
+  }
+
+  /**
+   * Sube fotos nuevas a la biblioteca y las deja seleccionadas.
+   *
+   * Es el caso normal a futuro: sacás las fotos de los productos nuevos, las
+   * subís todas juntas y seguís con el mismo flujo sin salir del panel.
+   */
+  async function handleUpload(event) {
+    const files = Array.from(event.target.files || []);
+    event.target.value = "";
+    if (files.length === 0) return;
+
+    setUploading(true);
+    setUploadMsg("");
+    try {
+      const data = await uploadCloudinaryAssets(files);
+      const subidas = data.uploaded || [];
+      const fallidas = data.errors || [];
+
+      // Las nuevas quedan tildadas para no tener que buscarlas en la grilla.
+      const nuevas = await onUploaded(subidas.map((u) => u.url));
+      if (nuevas?.length) {
+        setPicked((prev) => new Set([...prev, ...nuevas]));
+        setPage(0);
+      }
+
+      setUploadMsg(
+        `${subidas.length} foto${subidas.length === 1 ? "" : "s"} subida${
+          subidas.length === 1 ? "" : "s"
+        }` + (fallidas.length ? ` · ${fallidas.length} fallaron` : "") + "."
+      );
+    } catch (err) {
+      setUploadMsg(err?.message || "No se pudieron subir las fotos.");
+    } finally {
+      setUploading(false);
+    }
   }
 
   function goToGrouping() {
@@ -190,6 +234,34 @@ export default function AssetPickerModal({
                 />
                 <span className="label-row">Ocultar las que ya usa un producto</span>
               </label>
+
+              <div className="picker-upload">
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  multiple
+                  onChange={handleUpload}
+                  hidden
+                />
+                <button
+                  type="button"
+                  className="btn-small btn-icon"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 size={16} className="icon spin" /> Subiendo...
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={16} className="icon" /> Subir fotos nuevas
+                    </>
+                  )}
+                </button>
+                {uploadMsg && <span className="admin-muted">{uploadMsg}</span>}
+              </div>
 
               {error && <p className="bulk-error">{error}</p>}
 

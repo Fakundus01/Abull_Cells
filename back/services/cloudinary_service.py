@@ -37,13 +37,25 @@ def upload_product_image(
     *,
     folder: str = "products",
     public_id: str | None = None,
+    asset_folder: str | None = None,
 ) -> str:
-    upload_result = cloudinary.uploader.upload(
-        image_file,
-        folder=folder,
-        public_id=public_id,
-        resource_type="image",
-    )
+    """
+    Sube una imagen y devuelve su URL.
+
+    `folder` define el prefijo del public_id y `asset_folder` la carpeta que se
+    ve en la Media Library. Con carpetas dinamicas son cosas distintas: pasando
+    solo `folder`, la imagen queda en una carpeta "products" separada y no
+    aparece en el selector del panel, que filtra por asset_folder.
+    """
+    options = {
+        "folder": folder,
+        "public_id": public_id,
+        "resource_type": "image",
+    }
+    if asset_folder:
+        options["asset_folder"] = asset_folder
+
+    upload_result = cloudinary.uploader.upload(image_file, **options)
     return upload_result["secure_url"]
 
 def _thumb_url(public_id: str, fmt: str | None) -> str:

@@ -214,8 +214,19 @@ export function fetchCloudinaryAssets(cursor) {
 }
 
 /**
+ * Sube imágenes a la biblioteca de Cloudinary sin crear productos.
+ * Devuelve {uploaded, errors}: una foto que falla no cancela las demás.
+ */
+export function uploadCloudinaryAssets(files) {
+  const body = new FormData();
+  Array.from(files).forEach((file) => body.append("images", file));
+  return apiFetch("/admin/cloudinary/upload", { method: "POST", body });
+}
+
+/**
  * Pide sugerencias de título, descripción y categoría mirando cada foto.
  * `images` es [{id, url}], máximo 12 por tanda. El precio nunca lo sugiere.
+ * La url puede ser https o una imagen embebida (data:) todavía sin subir.
  */
 export function aiSuggestProducts(images) {
   return apiFetch("/admin/products/ai-suggest", {

@@ -142,6 +142,21 @@ export default function AdminBulkImport({ onCancel, onSave, saving }) {
     }
   }, [source, assetsLoaded, assetsLoading, loadAssets]);
 
+  /**
+   * Recarga la biblioteca despues de subir fotos y devuelve los publicId de
+   * las nuevas, para que el selector las deje tildadas.
+   */
+  async function handleUploaded(urls) {
+    if (!urls?.length) return [];
+    const data = await fetchCloudinaryAssets();
+    setAssets(data.assets);
+    setAssetCursor(data.nextCursor || null);
+    setAssetsLoaded(true);
+
+    const buscadas = new Set(urls);
+    return data.assets.filter((a) => buscadas.has(a.url)).map((a) => a.publicId);
+  }
+
   /** Pasa lo revisado en el modal de IA a filas del lote. */
   function handleReviewDone(entries) {
     setRows((prev) => [
@@ -540,6 +555,7 @@ export default function AdminBulkImport({ onCancel, onSave, saving }) {
           error={assetsError}
           hasMore={Boolean(assetCursor)}
           onLoadMore={() => loadAssets(assetCursor)}
+          onUploaded={handleUploaded}
           onClose={() => setPickerOpen(false)}
           onContinue={(grupos) => {
             setPickerOpen(false);

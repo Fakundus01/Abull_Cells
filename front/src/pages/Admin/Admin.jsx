@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { Link } from "react-router-dom";
 import { useLanguage } from "../../context/LanguageContext";
 import {
+  aiSuggestProducts,
   bulkCreateProducts,
   createProduct,
   duplicateProduct,
@@ -37,11 +38,13 @@ import {
   Printer,
   Copy,
   Table2,
+  Sparkles,
   X,
   XCircle,
 } from "lucide-react";
 
 import { slugify } from "../../utils/slugify";
+import { imageFileToDataUrl } from "../../utils/imageToDataUrl";
 
 import AdminProductsView from "./AdminProductsView";
 import AdminBulkImport from "./AdminBulkImport";
@@ -73,6 +76,7 @@ export default function Admin() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkSaving, setBulkSaving] = useState(false);
   const [duplicatingId, setDuplicatingId] = useState(null);
+  const [aiSuggesting, setAiSuggesting] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -556,6 +560,52 @@ export default function Admin() {
   }
 
   /**
+   * Completa nombre, descripcion y categoria del formulario mirando su foto.
+   *
+   * Acepta tanto una imagen ya subida como una recien elegida del celular: en
+   * ese caso se achica en el navegador y se manda embebida, para no tener que
+   * subirla a Cloudinary antes de saber si el producto se va a guardar.
+   */
+  async function handleAiSuggestForm() {
+    const file = form.imageFiles?.[0];
+    const existing = form.imageUrl || form.existingImages?.[0];
+
+    if (!file && !existing) {
+      setError("Elegí una imagen antes de pedir sugerencias.");
+      return;
+    }
+
+    setError("");
+    setSuccessMsg("");
+    setAiSuggesting(true);
+
+    try {
+      const url = file ? await imageFileToDataUrl(file) : existing;
+      const data = await aiSuggestProducts([{ id: "form", url }]);
+      const result = data?.results?.[0];
+
+      if (!result || result.error) {
+        setError(result?.error || "La IA no pudo describir esta foto.");
+        return;
+      }
+
+      setForm((prev) => ({
+        ...prev,
+        // Solo completa lo que este vacio: no pisa lo que ya escribiste.
+        name: prev.name || result.name || "",
+        slug: prev.slug || slugify(result.name || ""),
+        description: prev.description || result.description || "",
+        category: prev.category || result.category || "",
+      }));
+      setSuccessMsg("Listo. Revisá los textos y poné el precio.");
+    } catch (err) {
+      setError(err?.message || "No se pudieron generar las sugerencias.");
+    } finally {
+      setAiSuggesting(false);
+    }
+  }
+
+  /**
    * Alta masiva. Devuelve {ok} o {errors} para que el panel marque las filas
    * que el backend rechazo; el backend no crea nada si alguna falla.
    */
@@ -909,6 +959,8 @@ export default function Admin() {
           onDeactivate={openConfirmDeactivate}
           onActivate={handleActivateProduct}
           onDuplicate={handleDuplicateProduct}
+          onAiSuggest={handleAiSuggestForm}
+          aiSuggesting={aiSuggesting}
           duplicatingId={duplicatingId}
           bulkOpen={bulkOpen}
           onToggleBulk={() => setBulkOpen((v) => !v)}
@@ -934,6 +986,7 @@ export default function Admin() {
                 Search,
                 Copy,
                 Table2,
+                Sparkles,
                 X,
                 XCircle,
                 CheckCircle2,

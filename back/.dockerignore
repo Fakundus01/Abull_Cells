@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Bases sqlite locales: en produccion se usa Supabase
+*.db
+instance/
+
+# Secretos: van como variables de entorno en Railway
+.env
+.env.*
+!.env.example
+
+uploads/
+.pytest_cache/
+.vscode/

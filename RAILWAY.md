@@ -80,10 +80,19 @@ pg_restore --no-owner --no-privileges -d "postgresql://postgres.wtivtshzvsnfwnha
    - **Branch**: `main` (o `dev` si querés deployar esa)
 3. **Region**: elegí `us-east4` (Virginia). Es la más cercana a `ca-central-1`, donde está
    tu Supabase — cada query de más lejos suma latencia a todas las respuestas.
-4. El resto (build, start command, migraciones, healthcheck) ya está en `back/railway.toml`:
-   - pre-deploy: `flask db upgrade`
-   - start: `gunicorn app:app --bind 0.0.0.0:$PORT ...`
-   - healthcheck: `/api/health`
+4. El resto ya está en el repo:
+   - `back/Dockerfile` → imagen Python 3.11 + gunicorn. Railway lo detecta solo.
+   - `back/railway.toml` → pre-deploy `flask db upgrade`, healthcheck `/api/health`.
+
+### Por qué Dockerfile y no Railpack
+
+El builder por defecto de Railway hoy es **Railpack**, y con este repo autodetectaba un
+runtime de **Node** para un backend de Python: el build moría en ~7 segundos con
+"Failed to build an image".
+
+Con el `Dockerfile` presente en el root directory, Railway lo usa y no hay autodetección
+que pueda equivocarse. Si en Settings → Build ves "Railpack" seleccionado a mano,
+cambialo a **Dockerfile** (o dejalo en automático, que al encontrar el archivo lo prioriza).
 5. **Settings → Networking → Generate Domain**. Anotá el dominio (`xxx.up.railway.app`).
 6. Pegá las variables (sección 4) y redeployá.
 

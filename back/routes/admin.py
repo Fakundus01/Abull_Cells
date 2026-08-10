@@ -14,6 +14,18 @@ def admin_products():
     return admin_service.admin_create_product()
 
 
+@admin_bp.route("/api/admin/products/bulk", methods=["POST"])
+@auth_service.admin_required
+def admin_bulk_create_products():
+    return admin_service.admin_bulk_create_products()
+
+
+@admin_bp.route("/api/admin/products/<int:product_id>/duplicate", methods=["POST"])
+@auth_service.admin_required
+def admin_duplicate_product(product_id: int):
+    return admin_service.admin_duplicate_product(product_id)
+
+
 @admin_bp.route("/api/admin/products/<int:product_id>", methods=["PUT"])
 @auth_service.admin_required
 def admin_update_product(product_id: int):

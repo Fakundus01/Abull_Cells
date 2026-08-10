@@ -192,6 +192,30 @@ export function deleteProduct(id) {
   });
 }
 
+/**
+ * Clona un producto en el servidor. Las imágenes se reusan por URL, así que no
+ * hay que volver a subirlas. `overrides` permite pisar name / price / stock.
+ */
+export function duplicateProduct(id, overrides = {}) {
+  return apiFetch(`/admin/products/${id}/duplicate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(overrides),
+  });
+}
+
+/**
+ * Alta masiva. Es todo-o-nada: si alguna fila falla, el backend responde 400
+ * con `errors: [{index, name, msg}]` y no crea ninguno.
+ */
+export function bulkCreateProducts(items) {
+  return apiFetch("/admin/products/bulk", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ items }),
+  });
+}
+
 export function setProductActive(id, is_active) {
   return apiFetch(`/admin/products/${id}/active`, {
     method: "PATCH",

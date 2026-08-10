@@ -94,6 +94,94 @@
   --ring: 0 0 0 4px rgba(56,189,248,.25);
 }
 
+/* -------------------------------------------------------------------------
+   1b) TEMAS ADICIONALES
+   Cada tema redefine el mismo set de tokens que :root, asi que ningun
+   componente necesita saber que tema esta activo. Para agregar uno nuevo
+   alcanza con copiar un bloque y sumarlo a THEMES en ThemeContext.jsx.
+------------------------------------------------------------------------- */
+
+/* Medianoche: oscuro frio con acento violeta */
+[data-theme="midnight"]{
+  --bg: #0a0a14;
+  --surface: #12121f;
+  --surface-2: #17172a;
+  --surface-3: #1f1f36;
+
+  --text: #e9e6f5;
+  --muted: #9d97bd;
+
+  --brand: #a78bfa;
+  --brand-2: #8b5cf6;
+  --brand-ink: #ede9fe;
+
+  --danger: #fb7185;
+  --danger-2: #f43f5e;
+  --success: #34d399;
+  --warning: #fbbf24;
+
+  --border: rgba(167, 139, 250, .16);
+  --border-strong: rgba(167, 139, 250, .30);
+  --shadow: 0 10px 30px rgba(5,3,15,.6);
+  --shadow-soft: 0 6px 16px rgba(5,3,15,.4);
+
+  --ring: 0 0 0 4px rgba(167,139,250,.28);
+}
+
+/* Bosque: oscuro calido con acento verde */
+[data-theme="forest"]{
+  --bg: #08120e;
+  --surface: #0e1b16;
+  --surface-2: #12241d;
+  --surface-3: #1a3128;
+
+  --text: #e3f2ea;
+  --muted: #8fb3a3;
+
+  --brand: #34d399;
+  --brand-2: #10b981;
+  --brand-ink: #d1fae5;
+
+  --danger: #f87171;
+  --danger-2: #ef4444;
+  --success: #4ade80;
+  --warning: #fbbf24;
+
+  --border: rgba(52, 211, 153, .16);
+  --border-strong: rgba(52, 211, 153, .30);
+  --shadow: 0 10px 30px rgba(2,12,8,.55);
+  --shadow-soft: 0 6px 16px rgba(2,12,8,.35);
+
+  --ring: 0 0 0 4px rgba(52,211,153,.26);
+}
+
+/* Atardecer: oscuro calido con acento ambar */
+[data-theme="sunset"]{
+  --bg: #140d0a;
+  --surface: #1f1512;
+  --surface-2: #291b16;
+  --surface-3: #38251d;
+
+  --text: #f8ece4;
+  --muted: #c0a292;
+
+  --brand: #fb923c;
+  --brand-2: #f97316;
+  --brand-ink: #ffedd5;
+
+  --danger: #f87171;
+  --danger-2: #ef4444;
+  --success: #4ade80;
+  --warning: #fcd34d;
+
+  --border: rgba(251, 146, 60, .18);
+  --border-strong: rgba(251, 146, 60, .32);
+  --shadow: 0 10px 30px rgba(12,5,2,.55);
+  --shadow-soft: 0 6px 16px rgba(12,5,2,.35);
+
+  --ring: 0 0 0 4px rgba(251,146,60,.26);
+}
+
 /* =========================
    2) BASE / RESET
 ========================= */
@@ -4840,4 +4928,392 @@ input:disabled, textarea:disabled, select:disabled{
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* ==========================================================================
+   SELECTOR DE TEMAS
+   ========================================================================== */
+.theme-picker{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  gap: .6rem;
+  width: 100%;
+}
+
+.theme-swatch{
+  display: grid;
+  gap: .42rem;
+  justify-items: center;
+  padding: .55rem .4rem;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color .15s ease, transform .15s ease, color .15s ease;
+}
+
+.theme-swatch:hover{
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.theme-swatch:active{ transform: scale(.97); }
+
+.theme-swatch.is-active{
+  border-color: var(--brand);
+  color: var(--text);
+  box-shadow: var(--ring);
+}
+
+.theme-swatch-preview{
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  max-width: 68px;
+  border-radius: 9px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.theme-swatch-bg{ position: absolute; inset: 0; }
+
+.theme-swatch-surface{
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: 16%;
+  height: 34%;
+  border-radius: 4px;
+}
+
+.theme-swatch-accent{
+  position: absolute;
+  left: 12%;
+  top: 16%;
+  width: 42%;
+  height: 20%;
+  border-radius: 999px;
+}
+
+.theme-swatch-check{
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0,0,0,.35);
+  color: #fff;
+}
+
+.theme-swatch-label{
+  line-height: 1.1;
+  text-align: center;
+}
+
+/* En el drawer del navbar entra en una sola fila scrolleable */
+.theme-picker--compact{
+  grid-template-columns: repeat(5, minmax(58px, 1fr));
+  gap: .4rem;
+}
+
+.theme-picker--compact .theme-swatch{
+  padding: .4rem .25rem;
+  font-size: .68rem;
+}
+
+.theme-picker--compact .theme-swatch-preview{ max-width: 100%; }
+
+.drawer-theme{
+  display: grid;
+  gap: .5rem;
+  padding: .85rem .25rem .25rem;
+  border-top: 1px solid var(--border);
+  margin-top: .5rem;
+}
+
+.drawer-theme-title{
+  margin: 0;
+  font-size: .8rem;
+  font-weight: 800;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ==========================================================================
+   CONSISTENCIA: LINKS Y BOTONES
+   ========================================================================== */
+
+/* Los links dentro de listas de navegacion y del footer no deben ir
+   subrayados: son items de menu, no links en medio de un parrafo.
+   El subrayado se reserva para el hover, como afordancia. */
+.footer-links a,
+.footer-link,
+.footer-contact-link,
+.nav-link,
+.user-menu-item,
+.mobile-drawer-links a{
+  text-decoration: none;
+}
+
+.footer-links a:hover,
+.footer-link:hover,
+.footer-contact-link:hover{
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* El .footer-cta heredaba estilos de boton (fondo, borde) y ademas subrayado,
+   asi que se leia como un boton roto. Se define como link con flecha. */
+.footer-cta{
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--brand);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.footer-cta:hover{
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Foco visible y consistente en todo lo interactivo. Sin esto, navegar con
+   teclado en el admin es adivinanza. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="radio"]:focus-visible{
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Cursor coherente: todo lo clickeable lo indica, lo deshabilitado tambien. */
+button:not(:disabled),
+[role="button"]:not(:disabled),
+label.checkbox-row{
+  cursor: pointer;
+}
+
+button:disabled{
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+/* ==========================================================================
+   ADMIN: CARGA MASIVA DE PRODUCTOS
+   Layout pensado para el celular: la previsualizacion son tarjetas apiladas,
+   no una tabla con scroll horizontal.
+   ========================================================================== */
+.bulk-import{
+  display: grid;
+  gap: .9rem;
+  border: 1px solid var(--brand);
+  box-shadow: var(--shadow-soft);
+}
+
+.bulk-source-tabs{
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .4rem;
+  padding: .3rem;
+  border-radius: 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.bulk-tab{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  min-height: 44px;
+  padding: .5rem .4rem;
+  border: none;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--muted);
+  font-size: .85rem;
+  font-weight: 750;
+  transition: background .15s ease, color .15s ease;
+}
+
+.bulk-tab:hover{ color: var(--text); }
+
+.bulk-tab.is-active{
+  background: var(--surface);
+  color: var(--brand);
+  box-shadow: var(--shadow-soft);
+}
+
+.bulk-source-body{
+  display: grid;
+  gap: .65rem;
+}
+
+.bulk-textarea{
+  width: 100%;
+  min-height: 120px;
+  padding: .7rem .8rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .85rem;
+  line-height: 1.5;
+  resize: vertical;
+  /* Sin esto, pegar una tabla ancha desde Excel rompe el layout en mobile. */
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.bulk-source-actions{
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.bulk-notice{
+  margin: 0;
+  padding: .6rem .75rem;
+  border-radius: 10px;
+  background: rgba(56,189,248,.10);
+  border: 1px solid rgba(56,189,248,.22);
+  color: var(--text);
+  font-size: .86rem;
+}
+
+.bulk-summary{
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.bulk-rows{
+  display: grid;
+  gap: .7rem;
+  /* Con lotes largos la pagina se vuelve infinita; se acota y scrollea adentro. */
+  max-height: min(60vh, 520px);
+  overflow-y: auto;
+  padding-right: .2rem;
+}
+
+.bulk-row{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .5rem;
+  padding: .7rem;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.bulk-row.has-error{
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 7%, var(--surface-2));
+}
+
+.bulk-row-head{
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bulk-row-num{
+  font-size: .78rem;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.bulk-field{
+  display: grid;
+  gap: .22rem;
+  min-width: 0;
+}
+
+.bulk-field--wide{ grid-column: 1 / -1; }
+
+.bulk-field > span{
+  font-size: .74rem;
+  font-weight: 750;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+
+.bulk-field input{
+  width: 100%;
+  min-height: 42px;
+  padding: .45rem .6rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: .9rem;
+}
+
+.bulk-field input.is-invalid{
+  border-color: var(--danger);
+}
+
+.bulk-error{
+  color: var(--danger);
+  font-size: .76rem;
+  font-weight: 650;
+}
+
+.bulk-error--server{
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.bulk-hint{
+  color: var(--muted);
+  font-size: .76rem;
+}
+
+.bulk-footer{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .6rem;
+  padding-top: .6rem;
+  border-top: 1px solid var(--border);
+}
+
+.bulk-footer-actions{
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+
+.bulk-blocker{
+  margin: 0;
+  color: var(--danger);
+  font-size: .84rem;
+  font-weight: 650;
+}
+
+/* El boton de carga masiva se marca cuando el panel esta abierto */
+.btn-small.is-active{
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+@media (max-width: 560px){
+  .bulk-source-tabs{ grid-template-columns: 1fr; }
+  .bulk-row{ grid-template-columns: 1fr; }
+  .bulk-footer{ flex-direction: column; align-items: stretch; }
+  .bulk-footer-actions{ flex-direction: column; }
+  .bulk-footer-actions > *{ width: 100%; justify-content: center; }
 }

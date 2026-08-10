@@ -19,6 +19,10 @@ export default function AdminProductsView({
   onRemoveImage,
   onDeactivate,
   onActivate,
+  onDuplicate,
+  duplicatingId,
+  bulkOpen,
+  onToggleBulk,
   productsPage,
   totalProductPages,
   pageSize,
@@ -46,6 +50,8 @@ export default function AdminProductsView({
     X,
     XCircle,
     CheckCircle2,
+    Copy,
+    Table2,
   } = icons;
   const totalProducts = products.length;
   const filteredCount = filteredProducts.length;
@@ -290,6 +296,15 @@ export default function AdminProductsView({
           <h2 className="admin-card-title">
             <Package size={18} className="icon" /> {t("admin.products.list.title")}
           </h2>
+          <button
+            type="button"
+            className={`btn-small btn-icon ${bulkOpen ? "is-active" : ""}`}
+            onClick={onToggleBulk}
+            aria-pressed={bulkOpen}
+          >
+            <Table2 size={16} className="icon" />
+            Carga masiva
+          </button>
         </div>
         
         <div className="admin-products-toolbar">
@@ -405,6 +420,20 @@ export default function AdminProductsView({
                     )}
                   </span>
                   <span className="admin-actions">
+                    <button
+                      type="button"
+                      className="btn-small btn-icon"
+                      onClick={() => onDuplicate?.(p)}
+                      disabled={duplicatingId === p.id}
+                      aria-label={`Duplicar ${p.name}`}
+                      title="Duplicar: crea una copia lista para editar"
+                    >
+                      {duplicatingId === p.id ? (
+                        <Loader2 size={16} className="icon spin" />
+                      ) : (
+                        <Copy size={16} className="icon" />
+                      )}
+                    </button>
                     <button
                       type="button"
                       className="btn-small btn-icon"

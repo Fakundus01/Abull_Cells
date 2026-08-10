@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import CartMiniPreview from "./CartMiniPreview";
 import AppLoader from "./AppLoader";
+import ThemePicker from "./ThemePicker";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 function Navbar() {
@@ -470,6 +471,11 @@ function Navbar() {
               <NavLink to="/contacto" className="nav-link">
                 <Mail size={16} /> {t("nav.contact")}
               </NavLink>
+            </div>
+
+            <div className="drawer-theme">
+              <p className="drawer-theme-title">{t("profile.theme.title")}</p>
+              <ThemePicker compact />
             </div>
 
             <div className="navbar-actions">

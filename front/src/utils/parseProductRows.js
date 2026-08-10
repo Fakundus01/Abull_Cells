@@ -119,7 +119,7 @@ function mapHeaderToFields(cells) {
   });
 }
 
-export function makeEmptyRow() {
+export function makeEmptyRow(overrides = {}) {
   return {
     name: "",
     price: "",
@@ -127,6 +127,10 @@ export function makeEmptyRow() {
     category: "",
     description: "",
     offerLabel: "",
+    // Se completa cuando la fila nace de una imagen ya subida a Cloudinary.
+    imageUrl: "",
+    thumbUrl: "",
+    ...overrides,
   };
 }
 

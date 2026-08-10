@@ -153,6 +153,16 @@ class Config:
     CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET")
     CLOUDINARY_SECURE = os.getenv("CLOUDINARY_SECURE", "true").lower() == "true"
     CLOUDINARY_PRODUCT_FOLDER = os.getenv("CLOUDINARY_PRODUCT_FOLDER", "products")
+    # Carpeta de la Media Library de la que se listan imagenes en el panel.
+    # La cuenta de Cloudinary tiene carpetas de otros clientes: sin este filtro
+    # se mezclarian catalogos ajenos.
+    CLOUDINARY_ASSET_FOLDER = os.getenv(
+        "CLOUDINARY_ASSET_FOLDER", "products_clientes/Productos_abul"
+    )
+
+    # OpenAI: sugerencia de titulo/descripcion desde la foto del producto.
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    OPENAI_VISION_MODEL = os.getenv("OPENAI_VISION_MODEL", "gpt-4o-mini")
 
     ORDER_RESERVATION_MINUTES = int(os.getenv("ORDER_RESERVATION_MINUTES", "30"))
 

@@ -14,6 +14,18 @@ def admin_products():
     return admin_service.admin_create_product()
 
 
+@admin_bp.route("/api/admin/cloudinary/assets", methods=["GET"])
+@auth_service.admin_required
+def admin_list_cloudinary_assets():
+    return admin_service.admin_list_cloudinary_assets()
+
+
+@admin_bp.route("/api/admin/products/ai-suggest", methods=["POST"])
+@auth_service.admin_required
+def admin_ai_suggest_products():
+    return admin_service.admin_ai_suggest_products()
+
+
 @admin_bp.route("/api/admin/products/bulk", methods=["POST"])
 @auth_service.admin_required
 def admin_bulk_create_products():

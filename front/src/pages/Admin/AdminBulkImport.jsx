@@ -1,8 +1,9 @@
 // src/pages/Admin/AdminBulkImport.jsx
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ClipboardPaste,
   FileSpreadsheet,
+  Images,
   Loader2,
   Plus,
   Table2,
@@ -10,6 +11,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
+import { fetchCloudinaryAssets } from "../../services/api";
 import {
   makeEmptyRow,
   parseProductRows,
@@ -38,9 +40,41 @@ export default function AdminBulkImport({ onCancel, onSave, saving }) {
   const [serverErrors, setServerErrors] = useState({});
   const fileRef = useRef(null);
 
+  // Pestana "Imagenes": la biblioteca de Cloudinary paginada por cursor.
+  const [assets, setAssets] = useState([]);
+  const [assetCursor, setAssetCursor] = useState(null);
+  const [assetsLoading, setAssetsLoading] = useState(false);
+  const [assetsError, setAssetsError] = useState("");
+  const [assetsLoaded, setAssetsLoaded] = useState(false);
+  const [picked, setPicked] = useState(() => new Set());
+  const [hideUsed, setHideUsed] = useState(true);
+  const [folderFilter, setFolderFilter] = useState("");
+
   const rowErrors = useMemo(() => rows.map((row) => validateRow(row)), [rows]);
   const invalidCount = rowErrors.filter((e) => Object.keys(e).length > 0).length;
   const validCount = rows.length - invalidCount;
+
+  // Carpetas presentes en lo que se descargo, para armar el selector.
+  const folders = useMemo(() => {
+    const counts = new Map();
+    assets.forEach((a) => {
+      const key = a.assetFolder || "(sin carpeta)";
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  }, [assets]);
+
+  const visibleAssets = useMemo(
+    () =>
+      assets.filter((a) => {
+        if (hideUsed && a.usedBy) return false;
+        if (folderFilter && (a.assetFolder || "(sin carpeta)") !== folderFilter) {
+          return false;
+        }
+        return true;
+      }),
+    [assets, hideUsed, folderFilter]
+  );
 
   const total = useMemo(
     () =>
@@ -101,6 +135,57 @@ export default function AdminBulkImport({ onCancel, onSave, saving }) {
     setServerErrors({});
   }
 
+  const loadAssets = useCallback(async (cursor) => {
+    setAssetsLoading(true);
+    setAssetsError("");
+    try {
+      const data = await fetchCloudinaryAssets(cursor);
+      setAssets((prev) => (cursor ? [...prev, ...data.assets] : data.assets));
+      setAssetCursor(data.nextCursor || null);
+      setAssetsLoaded(true);
+    } catch (err) {
+      setAssetsError(err?.message || "No se pudieron cargar las imágenes.");
+    } finally {
+      setAssetsLoading(false);
+    }
+  }, []);
+
+  // Se cargan al abrir la pestaña, no al montar el panel: son 284 imágenes y
+  // no tiene sentido pedirlas si el admin va a pegar desde Excel.
+  useEffect(() => {
+    if (source === "assets" && !assetsLoaded && !assetsLoading) {
+      loadAssets();
+    }
+  }, [source, assetsLoaded, assetsLoading, loadAssets]);
+
+  function togglePick(publicId) {
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(publicId)) next.delete(publicId);
+      else next.add(publicId);
+      return next;
+    });
+  }
+
+  function addPickedAsRows() {
+    const chosen = assets.filter((a) => picked.has(a.publicId));
+    if (chosen.length === 0) return;
+
+    setRows((prev) => [
+      ...prev,
+      ...chosen.map((a) =>
+        makeEmptyRow({ imageUrl: a.url, thumbUrl: a.thumbUrl })
+      ),
+    ]);
+    setPicked(new Set());
+    setServerErrors({});
+    setNotice(
+      `${chosen.length} imagen${chosen.length === 1 ? "" : "es"} agregada${
+        chosen.length === 1 ? "" : "s"
+      }. Completá nombre y precio de cada una.`
+    );
+  }
+
   async function handleSave() {
     const result = await onSave(rows);
     // El backend es todo-o-nada: si vuelve con errores, los mapeamos por indice
@@ -153,6 +238,15 @@ export default function AdminBulkImport({ onCancel, onSave, saving }) {
           onClick={() => setSource("file")}
         >
           <FileSpreadsheet size={16} className="icon" /> Archivo
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={source === "assets"}
+          className={`bulk-tab ${source === "assets" ? "is-active" : ""}`}
+          onClick={() => setSource("assets")}
+        >
+          <Images size={16} className="icon" /> Imágenes
         </button>
         <button
           type="button"
@@ -216,6 +310,113 @@ export default function AdminBulkImport({ onCancel, onSave, saving }) {
         </div>
       )}
 
+      {source === "assets" && (
+        <div className="bulk-source-body">
+          <p className="admin-card-desc">
+            Tus fotos ya subidas a Cloudinary. Tocá las que quieras y se crea una
+            fila por cada una, con la imagen ya asociada: solo queda ponerle
+            nombre y precio.
+          </p>
+
+          <div className="asset-filters">
+            {folders.length > 1 && (
+              <label className="bulk-field">
+                <span>Carpeta</span>
+                <select
+                  value={folderFilter}
+                  onChange={(e) => setFolderFilter(e.target.value)}
+                >
+                  <option value="">Todas ({assets.length})</option>
+                  {folders.map(([name, count]) => (
+                    <option key={name} value={name}>
+                      {name} ({count})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            <label className="checkbox-row admin-checkbox">
+              <input
+                type="checkbox"
+                checked={hideUsed}
+                onChange={(e) => setHideUsed(e.target.checked)}
+              />
+              <span className="label-row">Ocultar las que ya usa un producto</span>
+            </label>
+          </div>
+
+          {assetsError && <p className="bulk-error">{assetsError}</p>}
+
+          {assetsLoading && assets.length === 0 ? (
+            <p className="admin-muted">
+              <Loader2 size={16} className="icon spin" /> Cargando imágenes...
+            </p>
+          ) : (
+            <>
+              <div className="asset-grid">
+                {visibleAssets.map((asset) => {
+                  const isPicked = picked.has(asset.publicId);
+                  return (
+                    <button
+                      key={asset.publicId}
+                      type="button"
+                      className={`asset-tile ${isPicked ? "is-picked" : ""} ${
+                        asset.usedBy ? "is-used" : ""
+                      }`}
+                      onClick={() => togglePick(asset.publicId)}
+                      aria-pressed={isPicked}
+                      title={
+                        asset.usedBy
+                          ? `Ya la usa: ${asset.usedBy.name}`
+                          : asset.filename
+                      }
+                    >
+                      <img src={asset.thumbUrl} alt={asset.filename} loading="lazy" />
+                      {isPicked && <span className="asset-check">✓</span>}
+                      {asset.usedBy && <span className="asset-used">en uso</span>}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {visibleAssets.length === 0 && (
+                <p className="admin-muted">
+                  No hay imágenes libres. Destildá el filtro para ver todas.
+                </p>
+              )}
+
+              <div className="bulk-source-actions">
+                <button
+                  type="button"
+                  className="btn-primary btn-icon"
+                  onClick={addPickedAsRows}
+                  disabled={picked.size === 0}
+                >
+                  <Plus size={16} className="icon" /> Agregar {picked.size || ""}{" "}
+                  seleccionada{picked.size === 1 ? "" : "s"}
+                </button>
+
+                {assetCursor && (
+                  <button
+                    type="button"
+                    className="btn-small"
+                    onClick={() => loadAssets(assetCursor)}
+                    disabled={assetsLoading}
+                  >
+                    {assetsLoading ? "Cargando..." : "Cargar más"}
+                  </button>
+                )}
+
+                <span className="admin-muted">
+                  {visibleAssets.length} de {assets.length} cargadas
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {source === "manual" && (
         <div className="bulk-source-body">
           <p className="admin-card-desc">
@@ -266,7 +467,17 @@ export default function AdminBulkImport({ onCancel, onSave, saving }) {
                   className={`bulk-row ${hasError ? "has-error" : ""}`}
                 >
                   <div className="bulk-row-head">
-                    <span className="bulk-row-num">#{index + 1}</span>
+                    <span className="bulk-row-num">
+                      {row.thumbUrl && (
+                        <img
+                          className="bulk-row-thumb"
+                          src={row.thumbUrl}
+                          alt=""
+                          loading="lazy"
+                        />
+                      )}
+                      #{index + 1}
+                    </span>
                     <button
                       type="button"
                       className="btn-small btn-danger btn-icon"

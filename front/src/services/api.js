@@ -205,6 +205,15 @@ export function duplicateProduct(id, overrides = {}) {
 }
 
 /**
+ * Lista las imágenes ya subidas a Cloudinary, paginadas por cursor.
+ * Cada asset incluye `usedBy` si ya lo referencia algún producto.
+ */
+export function fetchCloudinaryAssets(cursor) {
+  const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
+  return apiFetch(`/admin/cloudinary/assets${query}`);
+}
+
+/**
  * Alta masiva. Es todo-o-nada: si alguna fila falla, el backend responde 400
  * con `errors: [{index, name, msg}]` y no crea ninguno.
  */

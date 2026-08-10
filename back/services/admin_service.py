@@ -7,7 +7,8 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from flask import current_app, jsonify, request
 from werkzeug.exceptions import NotFound
 from werkzeug.utils import secure_filename
-from services.cloudinary_service import upload_product_image #type: ignore
+from services import ai_service
+from services.cloudinary_service import list_product_assets, upload_product_image #type: ignore
 
 from models import Order, Product, ProductImage, User, db
 
@@ -437,6 +438,81 @@ def admin_bulk_create_products():
         current_app.logger.exception(f"Error en alta masiva de productos: {exc}")
         db.session.rollback()
         return jsonify({"msg": "Error interno al crear los productos. No se guardó ninguno."}), 500
+
+
+def admin_list_cloudinary_assets():
+    """
+    Devuelve las imágenes de Cloudinary para armar productos a partir de ellas.
+
+    Marca las que ya usa algún producto (`usedBy`) para que el admin no cargue
+    dos veces la misma foto al reconstruir el catálogo.
+    """
+    if (current_app.config.get("PRODUCT_IMAGE_STORAGE") or "local").lower() != "cloudinary":
+        return jsonify(
+            {"msg": "El almacenamiento de imágenes no está configurado en Cloudinary."}
+        ), 400
+
+    try:
+        cursor = request.args.get("cursor") or None
+        # Solo la carpeta de este cliente. Las demas carpetas de la cuenta de
+        # Cloudinary son de otros clientes y no deben aparecer nunca aca.
+        asset_folder = request.args.get("folder") or current_app.config.get(
+            "CLOUDINARY_ASSET_FOLDER"
+        )
+
+        result = list_product_assets(asset_folder=asset_folder, cursor=cursor)
+
+        # Un producto puede referenciar la imagen desde products.image_url o
+        # desde product_images, asi que se miran las dos.
+        used = {}
+        for product in Product.query.all():
+            urls = {product.image_url} | {img.image_url for img in (product.images or [])}
+            for url in urls:
+                if url:
+                    used[url] = {"id": product.id, "name": product.name}
+
+        for asset in result["assets"]:
+            asset["usedBy"] = used.get(asset["url"])
+
+        return jsonify(result)
+    except Exception as exc:
+        current_app.logger.exception(f"Error listando assets de Cloudinary: {exc}")
+        return jsonify({"msg": "No se pudieron listar las imágenes de Cloudinary."}), 502
+
+
+def admin_ai_suggest_products():
+    """
+    Sugiere título, descripción y categoría a partir de las fotos elegidas.
+
+    Es solo asistencia de carga: el admin revisa todo y pone el precio a mano.
+    """
+    if not ai_service.is_configured():
+        return jsonify(
+            {"msg": "Falta configurar OPENAI_API_KEY para usar las sugerencias."}
+        ), 400
+
+    payload = request.get_json(silent=True) or {}
+    images = payload.get("images")
+
+    if not isinstance(images, list) or not images:
+        return jsonify({"msg": "Enviá una lista de imágenes en 'images'."}), 400
+    if len(images) > ai_service.MAX_IMAGES:
+        return jsonify(
+            {"msg": f"Máximo {ai_service.MAX_IMAGES} imágenes por tanda."}
+        ), 400
+
+    cleaned = []
+    for item in images:
+        url = (item or {}).get("url") if isinstance(item, dict) else None
+        if not url or not str(url).startswith("https://"):
+            return jsonify({"msg": "Cada imagen necesita una url https válida."}), 400
+        cleaned.append({"id": (item.get("id") or url), "url": url})
+
+    try:
+        return jsonify(ai_service.suggest_for_images(cleaned))
+    except Exception as exc:
+        current_app.logger.exception(f"Error en sugerencias de IA: {exc}")
+        return jsonify({"msg": "No se pudieron generar las sugerencias."}), 502
 
 
 def admin_list_products():

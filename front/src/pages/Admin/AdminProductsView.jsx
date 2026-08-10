@@ -108,10 +108,21 @@ export default function AdminProductsView({
             )}
           </h2>
 
-          {isEditing && (
+          {isEditing ? (
             <span className="admin-chip">
               <Hash size={14} className="icon" /> {t("admin.products.form.idLabel", { id: editingId })}
             </span>
+          ) : (
+            <button
+              type="button"
+              className={`btn-small btn-icon ${bulkOpen ? "is-active" : ""}`}
+              onClick={onToggleBulk}
+              aria-pressed={bulkOpen}
+              aria-expanded={bulkOpen}
+            >
+              <Table2 size={16} className="icon" />
+              {bulkOpen ? "Cerrar carga masiva" : "Carga masiva"}
+            </button>
           )}
         </div>
 
@@ -296,15 +307,6 @@ export default function AdminProductsView({
           <h2 className="admin-card-title">
             <Package size={18} className="icon" /> {t("admin.products.list.title")}
           </h2>
-          <button
-            type="button"
-            className={`btn-small btn-icon ${bulkOpen ? "is-active" : ""}`}
-            onClick={onToggleBulk}
-            aria-pressed={bulkOpen}
-          >
-            <Table2 size={16} className="icon" />
-            Carga masiva
-          </button>
         </div>
         
         <div className="admin-products-toolbar">

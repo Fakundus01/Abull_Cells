@@ -4641,3 +4641,203 @@ input:disabled, textarea:disabled, select:disabled{
     font-size: .96rem;
   }
 }
+
+/* ==========================================================================
+   MOBILE POLISH (2026-08-10)
+   Escala canonica de breakpoints usada de aca en adelante:
+     --bp-lg: 1024px  (desktop -> tablet)
+     --bp-md:  768px  (tablet  -> phone grande)
+     --bp-sm:  480px  (phone chico)
+   Las media queries viejas del archivo usan 9 valores distintos; no se tocaron
+   para no romper layouts. Migrar a esta escala queda como tarea aparte.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1) Areas tactiles: minimo 44px de alto (guia de Apple HIG / Material)
+   Los links del footer median 21px, imposibles de acertar con el pulgar.
+   Se usa padding + inline-flex en vez de height para no romper el flujo.
+-------------------------------------------------------------------------- */
+@media (max-width: 768px){
+  .footer-links a,
+  .footer-link,
+  .footer-cta,
+  .link-inline,
+  .link-inline--v2{
+    display: inline-flex;
+    align-items: center;
+    /* inline-flex colapsa el espacio en blanco entre el icono y el texto */
+    gap: .45rem;
+    min-height: 44px;
+    padding-block: .35rem;
+  }
+
+  .footer-links{
+    gap: .15rem;
+  }
+
+  .footer-contact .contact-row{
+    min-height: 44px;
+    align-items: center;
+    margin: .1rem 0;
+  }
+
+  .footer-contact-link{
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    min-height: 44px;
+    width: 100%;
+    padding: .25rem .4rem;
+    margin-inline: -.4rem;
+  }
+
+  /* El texto de contacto quedaba a ~3:1 de contraste sobre el fondo oscuro. */
+  .footer-contact-link,
+  .footer-contact .contact-row{
+    color: rgba(226,232,240,.82);
+  }
+
+  .navbar-logo{
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  /* El bloque de 900px las dejaba en 42px; se completan a 44px. */
+  .cart-pill,
+  .user-pill,
+  .nav-auth-link,
+  .btn-auth,
+  .nav-burger{
+    min-height: 44px;
+  }
+
+  .nav-burger{
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   2) Footer: separarlo visualmente del contenido
+   Tenia el mismo fondo que la pagina, asi que sus 40px de padding se leian
+   como un hueco vacio en vez de como el arranque del footer.
+-------------------------------------------------------------------------- */
+.site-footer--v2{
+  border-top: 1px solid rgba(148,163,184,.18);
+  background: linear-gradient(180deg, rgba(148,163,184,.05), transparent 220px);
+}
+
+@media (max-width: 768px){
+  .footer-inner--v2{
+    padding: 1.5rem .9rem 1.25rem;
+    gap: .85rem;
+  }
+
+  .footer-column{
+    padding: 1rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   3) Logo: lockup horizontal en mobile
+   Apilado ocupa dos lineas y estira el navbar; en linea queda igual que en
+   el footer y libera alto util en pantallas chicas.
+-------------------------------------------------------------------------- */
+@media (max-width: 480px){
+  .navbar-logo{
+    flex-direction: row;
+    align-items: baseline;
+    gap: .22rem;
+  }
+
+  .logo-main{ font-size: 1.18rem; }
+  .logo-sub{ font-size: .82rem; }
+}
+
+/* --------------------------------------------------------------------------
+   4) Ritmo vertical: el home media 6860px de alto en un viewport de 844px.
+-------------------------------------------------------------------------- */
+@media (max-width: 768px){
+  .home-section{
+    padding-block: .6rem;
+  }
+
+  .home-section + .home-section{
+    margin-top: .35rem;
+  }
+
+  .page-header--v2{
+    padding: 1rem .95rem;
+  }
+
+  /* Titulos de seccion: evita cortes feos tipo "Abul / Cell?" */
+  .home-section-title,
+  .page-header--v2 h1,
+  .cart-title{
+    text-wrap: balance;
+  }
+
+  /* En la grilla de 2 columnas "Accesorios para celulares" cortaba en 3 lineas
+     y dejaba las cards de alturas distintas. */
+  .category-card--v2 h3{
+    text-wrap: balance;
+    font-size: .98rem;
+  }
+
+  .category-card--v2 p{
+    text-wrap: pretty;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   5) Carrito: resumen pegado al fondo en mobile
+   Antes habia que scrollear hasta abajo del listado para ver total y checkout.
+-------------------------------------------------------------------------- */
+@media (max-width: 980px){
+  .cart-summary{
+    position: sticky;
+    bottom: .5rem;
+    z-index: 20;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 -8px 28px rgba(2,6,23,.35);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   6) Input de archivos (Contacto)
+   El ::file-selector-button estaba pintado para tema claro: texto #0f172a
+   sobre fondo oscuro quedaba practicamente ilegible.
+-------------------------------------------------------------------------- */
+.contact-page input[type="file"]{
+  color: var(--muted);
+  font-size: .9rem;
+}
+
+.contact-page input[type="file"]::file-selector-button{
+  border: 1px solid rgba(56,189,248,.28);
+  background: rgba(56,189,248,.14);
+  color: var(--brand-2);
+  font-weight: 700;
+  padding: .5rem .8rem;
+  border-radius: 10px;
+  margin-right: .7rem;
+  min-height: 40px;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease;
+}
+
+.contact-page input[type="file"]::file-selector-button:hover{
+  background: rgba(56,189,248,.22);
+  border-color: rgba(56,189,248,.42);
+}
+
+/* --------------------------------------------------------------------------
+   7) Respeta "reducir movimiento" del sistema operativo
+-------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce){
+  .card-animate,
+  .card-animate *{
+    animation: none !important;
+    transition: none !important;
+  }
+}

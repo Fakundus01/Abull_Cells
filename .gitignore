@@ -12,6 +12,14 @@ yarn-error.log*
 # Env
 .env
 .env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+back/instance/
+back/app.db
 
 # OS
 .DS_Store

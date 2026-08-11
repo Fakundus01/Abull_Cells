@@ -171,6 +171,14 @@ def _save_product_image(image_file):
     unique_name = f"{uuid.uuid4().hex}_{filename}"
     
     if storage_backend == "cloudinary":
+        if not current_app.config.get("CLOUDINARY_CLOUD_NAME") or not current_app.config.get(
+            "CLOUDINARY_API_KEY"
+        ):
+            raise ValueError(
+                "Cloudinary no está configurado en el servidor "
+                "(faltan CLOUDINARY_CLOUD_NAME / API_KEY / API_SECRET)."
+            )
+
         folder = current_app.config.get("CLOUDINARY_PRODUCT_FOLDER", "products")
         try:
             return upload_product_image(
@@ -181,7 +189,10 @@ def _save_product_image(image_file):
             )
         except Exception as exc:
             current_app.logger.exception(f"[Cloudinary] Error al subir imagen: {exc!r}")
-            raise ValueError("No se pudo subir la imagen a Cloudinary.") from exc
+            # Se incluye el motivo real. Un "no se pudo subir" pelado obliga a
+            # entrar a los logs del servidor para saber si es una credencial
+            # vencida, la cuota llena o el archivo.
+            raise ValueError(f"No se pudo subir la imagen a Cloudinary: {exc}") from exc
 
     upload_dir = current_app.config["PRODUCT_UPLOAD_DIR"]
     os.makedirs(upload_dir, exist_ok=True)

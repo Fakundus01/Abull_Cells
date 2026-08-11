@@ -37,6 +37,7 @@ export default function AssetPickerModal({
   error,
   hasMore,
   onLoadMore,
+  onRetry,
   onUploaded,
   onClose,
   onContinue,
@@ -263,7 +264,19 @@ export default function AssetPickerModal({
                 {uploadMsg && <span className="admin-muted">{uploadMsg}</span>}
               </div>
 
-              {error && <p className="bulk-error">{error}</p>}
+              {error && (
+                <div className="bulk-notice bulk-notice--warn">
+                  <span>{error}</span>
+                  <button
+                    type="button"
+                    className="btn-small"
+                    onClick={onRetry}
+                    disabled={loading}
+                  >
+                    {loading ? "Reintentando..." : "Reintentar"}
+                  </button>
+                </div>
+              )}
 
               {loading && assets.length === 0 ? (
                 <p className="admin-muted">

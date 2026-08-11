@@ -498,7 +498,11 @@ def admin_list_cloudinary_assets():
         return jsonify(result)
     except Exception as exc:
         current_app.logger.exception(f"Error listando assets de Cloudinary: {exc}")
-        return jsonify({"msg": "No se pudieron listar las imágenes de Cloudinary."}), 502
+        # Con el motivo a la vista se distingue una credencial vencida de una
+        # carpeta inexistente sin tener que entrar a los logs del servidor.
+        return jsonify(
+            {"msg": f"No se pudieron listar las imágenes de Cloudinary: {exc}"}
+        ), 502
 
 
 def admin_ai_suggest_products():

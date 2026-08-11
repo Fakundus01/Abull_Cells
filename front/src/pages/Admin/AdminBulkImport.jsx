@@ -129,12 +129,16 @@ export default function AdminBulkImport({ onCancel, onSave, saving }) {
       setAssetsLoaded(true);
     } catch (err) {
       setAssetsError(err?.message || "No se pudieron cargar las imágenes.");
+      // Tambien se marca como cargado al fallar. Si no, el efecto de abajo ve
+      // "no cargado y no cargando" y vuelve a pedir para siempre: con el
+      // endpoint caido eso son cientos de requests por minuto contra la API.
+      setAssetsLoaded(true);
     } finally {
       setAssetsLoading(false);
     }
   }, []);
 
-  // Se cargan al abrir la pestaña, no al montar el panel: son 284 imágenes y
+  // Se cargan al abrir la pestaña, no al montar el panel: son ~200 imágenes y
   // no tiene sentido pedirlas si el admin va a pegar desde Excel.
   useEffect(() => {
     if (source === "assets" && !assetsLoaded && !assetsLoading) {
@@ -317,7 +321,19 @@ export default function AdminBulkImport({ onCancel, onSave, saving }) {
             ponés vos.
           </p>
 
-          {assetsError && <p className="bulk-error">{assetsError}</p>}
+          {assetsError && (
+            <div className="bulk-notice bulk-notice--warn">
+              <span>{assetsError}</span>
+              <button
+                type="button"
+                className="btn-small"
+                onClick={() => loadAssets()}
+                disabled={assetsLoading}
+              >
+                {assetsLoading ? "Reintentando..." : "Reintentar"}
+              </button>
+            </div>
+          )}
 
           {assetsLoading && assets.length === 0 ? (
             <p className="admin-muted">
@@ -555,6 +571,7 @@ export default function AdminBulkImport({ onCancel, onSave, saving }) {
           error={assetsError}
           hasMore={Boolean(assetCursor)}
           onLoadMore={() => loadAssets(assetCursor)}
+          onRetry={() => loadAssets()}
           onUploaded={handleUploaded}
           onClose={() => setPickerOpen(false)}
           onContinue={(grupos) => {
